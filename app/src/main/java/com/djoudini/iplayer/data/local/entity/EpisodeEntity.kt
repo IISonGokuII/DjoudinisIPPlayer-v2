@@ -28,9 +28,8 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["series_id"]),
         Index(value = ["playlist_id"]),
-        // Optimized for getNextEpisode() query pattern
-        Index(value = ["series_id", "season_number"]),
-        Index(value = ["series_id", "episode_number"]),
+        // Optimiert für getNextEpisode() Query: (series_id, season_number, episode_number)
+        Index(value = ["series_id", "season_number", "episode_number"]),
         Index(value = ["playlist_id", "remote_id"], unique = true),
     ]
 )

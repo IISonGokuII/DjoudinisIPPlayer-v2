@@ -21,9 +21,11 @@ import androidx.room.PrimaryKey
         )
     ],
     indices = [
-        // Composite indices cover playlist_id lookups - no single-column index needed
-        Index(value = ["playlist_id", "category_type"]),
+        // Optimiert für observeByType mit is_selected Filter und sort_order, name Sortierung
+        Index(value = ["playlist_id", "category_type", "is_selected", "sort_order", "name"]),
         Index(value = ["playlist_id", "remote_id"], unique = true),
+        // Optimiert für observeSelected
+        Index(value = ["playlist_id", "is_selected", "sort_order"]),
     ]
 )
 data class CategoryEntity(

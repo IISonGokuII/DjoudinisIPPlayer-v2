@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Replay10
@@ -56,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +66,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import android.view.MotionEvent
 import android.app.Activity
 import android.view.KeyEvent
 import android.view.WindowInsetsController
@@ -83,7 +91,9 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.domain.model.WatchContentType
+import com.djoudini.iplayer.presentation.viewmodel.AspectRatio
 import com.djoudini.iplayer.presentation.viewmodel.PlayerViewModel
+import com.djoudini.iplayer.presentation.viewmodel.SleepTimerPreset
 import kotlinx.coroutines.delay
 
 @OptIn(UnstableApi::class)
@@ -97,6 +107,7 @@ fun PlayerScreen(
     var isFullscreen by remember { mutableStateOf(false) }
     var showAudioTrackDialog by remember { mutableStateOf(false) }
     var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
     var currentPlaybackSpeed by remember { mutableStateOf(1f) }
 
     // Immersive fullscreen mode
@@ -356,7 +367,88 @@ fun PlayerScreen(
         )
     }
 
+    // NEW: Sleep Timer Dialog
+    if (showSleepTimerDialog) {
+        AlertDialog(
+            onDismissRequest = { showSleepTimerDialog = false },
+            title = { Text("Sleep Timer") },
+            text = {
+                Column {
+                    SleepTimerPreset.entries.forEach { preset ->
+                        val isSelected = uiState.sleepTimerActive && 
+                            (preset.minutes * 60 == uiState.sleepTimerRemainingSeconds || 
+                             (preset != SleepTimerPreset.OFF && uiState.sleepTimerActive))
+                        Text(
+                            text = if (isSelected) "✓ ${preset.label}" else preset.label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setSleepTimer(preset)
+                                    showSleepTimerDialog = false
+                                }
+                                .padding(vertical = 10.dp),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSleepTimerDialog = false }) {
+                    Text(stringResource(R.string.close))
+                }
+            },
+        )
+    }
+
+    // NEW: Auto-Play Countdown Overlay
+    if (uiState.showAutoPlayCountdown) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.7f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "Nächste Folge in ${uiState.autoPlayCountdownSeconds}s",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Button(onClick = { viewModel.cancelAutoPlay() }) {
+                        Text("Abbrechen")
+                    }
+                    Button(onClick = { viewModel.startAutoPlayCountdown(0) }) {
+                        Text("Jetzt abspielen")
+                    }
+                }
+            }
+        }
+    }
+
     val focusRequester = remember { FocusRequester() }
+
+    // Long-press detector for TV remote
+    var longPressAction by remember { mutableStateOf<String?>(null) }
+
+    // Execute long press actions
+    LaunchedEffect(longPressAction) {
+        when (longPressAction) {
+            "aspect_ratio" -> viewModel.cycleAspectRatio()
+            "sleep_timer" -> showSleepTimerDialog = true
+            "audio_delay_down" -> viewModel.adjustAudioDelay(-100)
+            "audio_delay_up" -> viewModel.adjustAudioDelay(100)
+        }
+        longPressAction = null
+    }
 
     // Request focus for D-pad key handling
     LaunchedEffect(Unit) {
@@ -370,66 +462,87 @@ fun PlayerScreen(
             .focusRequester(focusRequester)
             .focusable()
             .onKeyEvent { event ->
-                if (event.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
-                when (event.nativeKeyEvent.keyCode) {
-                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                        exoPlayer?.let { it.playWhenReady = !it.isPlaying }
-                        viewModel.showControls()
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                        exoPlayer?.let { it.seekTo((it.currentPosition - 10_000).coerceAtLeast(0)) }
-                        viewModel.showControls()
-                        true
-                    }
-                    KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                        exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
-                        viewModel.showControls()
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_UP -> {
-                        if (uiState.contentType == WatchContentType.CHANNEL) {
-                            viewModel.playPreviousChannel()
-                        } else {
-                            viewModel.toggleControls()
+                if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                    when (event.nativeKeyEvent.keyCode) {
+                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                            // Long press for aspect ratio toggle
+                            longPressAction = "aspect_ratio"
+                            exoPlayer?.let { it.playWhenReady = !it.isPlaying }
+                            viewModel.showControls()
+                            true
                         }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        if (uiState.contentType == WatchContentType.CHANNEL) {
-                            viewModel.playNextChannel()
-                        } else {
-                            viewModel.toggleControls()
-                        }
-                        true
-                    }
-                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        // Long press detection for next episode in series
-                        if (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode) {
-                            // For simplicity, we trigger next episode on regular RIGHT press when at end
-                            // or we could implement a long-press detector
-                            exoPlayer?.let { 
-                                if (uiState.durationMs > 0 && it.currentPosition >= uiState.durationMs - 5000) {
-                                    viewModel.loadNextEpisode()
-                                } else {
-                                    it.seekTo(it.currentPosition + 10_000)
-                                }
+                        KeyEvent.KEYCODE_DPAD_UP -> {
+                            if (uiState.contentType == WatchContentType.CHANNEL) {
+                                viewModel.playPreviousChannel()
+                            } else {
+                                // Long press for sleep timer
+                                longPressAction = "sleep_timer"
+                                viewModel.toggleControls()
                             }
-                        } else {
-                            exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
+                            true
                         }
-                        viewModel.showControls()
-                        true
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            if (uiState.contentType == WatchContentType.CHANNEL) {
+                                viewModel.playNextChannel()
+                            } else {
+                                viewModel.toggleControls()
+                            }
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            // Long press for audio delay decrease
+                            longPressAction = "audio_delay_down"
+                            exoPlayer?.let { it.seekTo((it.currentPosition - 10_000).coerceAtLeast(0)) }
+                            viewModel.showControls()
+                            true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            // Long press for audio delay increase
+                            longPressAction = "audio_delay_up"
+                            if (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode) {
+                                exoPlayer?.let {
+                                    if (uiState.durationMs > 0 && it.currentPosition >= uiState.durationMs - 5000) {
+                                        viewModel.startAutoPlayCountdown(0)
+                                    } else {
+                                        it.seekTo(it.currentPosition + 10_000)
+                                    }
+                                }
+                            } else {
+                                exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
+                            }
+                            viewModel.showControls()
+                            true
+                        }
+                        KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                            exoPlayer?.playWhenReady = true
+                            true
+                        }
+                        KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                            exoPlayer?.playWhenReady = false
+                            true
+                        }
+                        KeyEvent.KEYCODE_MEDIA_STOP -> {
+                            exoPlayer?.stop()
+                            true
+                        }
+                        KeyEvent.KEYCODE_BACK -> {
+                            false // Let back button navigate normally
+                        }
+                        else -> false
                     }
-                    KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                        exoPlayer?.playWhenReady = true
-                        true
+                } else if (event.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
+                    // Cancel long press on key release
+                    longPressAction = null
+                    when (event.nativeKeyEvent.keyCode) {
+                        KeyEvent.KEYCODE_DPAD_CENTER,
+                        KeyEvent.KEYCODE_DPAD_UP,
+                        KeyEvent.KEYCODE_DPAD_DOWN,
+                        KeyEvent.KEYCODE_DPAD_LEFT,
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                        else -> false
                     }
-                    KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                        exoPlayer?.playWhenReady = false
-                        true
-                    }
-                    else -> false
+                } else {
+                    false
                 }
             }
             .clickable(
@@ -438,7 +551,7 @@ fun PlayerScreen(
                 onClick = { viewModel.toggleControls() },
             ),
     ) {
-        // Video surface
+        // Video surface with Pinch-to-Zoom
         if (exoPlayer != null) {
             AndroidView(
                 factory = { ctx ->
@@ -451,7 +564,40 @@ fun PlayerScreen(
                         )
                     }
                 },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = uiState.videoScale
+                        scaleY = uiState.videoScale
+                    }
+                    .pointerInput(uiState.videoScale) {
+                        // Simple pinch-to-zoom
+                        awaitEachGesture {
+                            var zooming = false
+                            var initialSpan = 0f
+                            val initialScale = uiState.videoScale
+
+                            do {
+                                val event = awaitPointerEvent()
+                                val changes = event.changes
+                                if (changes.size >= 2) {
+                                    val p0 = changes[0].position
+                                    val p1 = changes[1].position
+                                    val dx = p1.x - p0.x
+                                    val dy = p1.y - p0.y
+                                    val span = kotlin.math.sqrt(dx * dx + dy * dy)
+                                    if (!zooming) {
+                                        initialSpan = span
+                                        zooming = true
+                                    } else {
+                                        val scaleChange = span / initialSpan
+                                        val newScale = (initialScale * scaleChange).coerceIn(0.5f, 3.0f)
+                                        viewModel.setVideoScale(newScale)
+                                    }
+                                }
+                            } while (event.changes.any { it.pressed })
+                        }
+                    }
             )
         }
 
@@ -547,6 +693,23 @@ fun PlayerScreen(
                         }) {
                             Icon(Icons.Default.Speed, stringResource(R.string.speed), tint = Color.White)
                         }
+                        // NEW: Sleep Timer
+                        IconButton(onClick = { showSleepTimerDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Bedtime,
+                                contentDescription = "Sleep Timer",
+                                tint = if (uiState.sleepTimerActive) MaterialTheme.colorScheme.error else Color.White,
+                            )
+                        }
+                        // NEW: Aspect Ratio
+                        IconButton(onClick = { viewModel.cycleAspectRatio() }) {
+                            Text(
+                                text = uiState.aspectRatio.label,
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                         IconButton(onClick = { isFullscreen = !isFullscreen }) {
                             Icon(
                                 imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
@@ -560,9 +723,34 @@ fun PlayerScreen(
                 // Center play/pause controls
                 Row(
                     modifier = Modifier.align(Alignment.Center),
-                    horizontalArrangement = Arrangement.spacedBy(32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // PREVIOUS: Channel (LiveTV) or Episode (Series)
+                    if (uiState.contentType == WatchContentType.CHANNEL || 
+                        (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode)) {
+                        IconButton(
+                            onClick = {
+                                if (uiState.contentType == WatchContentType.CHANNEL) {
+                                    viewModel.playPreviousChannel()
+                                } else {
+                                    viewModel.loadNextEpisode()
+                                }
+                            },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.5f)),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = if (uiState.contentType == WatchContentType.CHANNEL) "Vorheriger Sender" else "Vorherige Folge",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
+
                     // Rewind 10s
                     IconButton(
                         onClick = {
@@ -605,6 +793,36 @@ fun PlayerScreen(
                             .background(Color.Black.copy(alpha = 0.5f)),
                     ) {
                         Icon(Icons.Default.Forward10, stringResource(R.string.forward), tint = Color.White)
+                    }
+
+                    // NEXT: Channel (LiveTV) or Episode (Series)
+                    if (uiState.contentType == WatchContentType.CHANNEL || 
+                        (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode)) {
+                        IconButton(
+                            onClick = {
+                                if (uiState.contentType == WatchContentType.CHANNEL) {
+                                    viewModel.playNextChannel()
+                                } else {
+                                    // Start auto-play countdown or load next episode immediately
+                                    if (uiState.hasNextEpisode) {
+                                        viewModel.startAutoPlayCountdown(0) // Immediate
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.5f)),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = if (uiState.contentType == WatchContentType.CHANNEL) "Nächster Sender" else "Nächste Folge",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .rotate(180f),
+                            )
+                        }
                     }
                 }
 

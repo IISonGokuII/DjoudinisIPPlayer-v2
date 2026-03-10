@@ -33,17 +33,18 @@ class SettingsViewModel @Inject constructor(
     var preferredSubtitleLanguage by mutableStateOf("")
         private set
 
+    // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
     val playerConfig: StateFlow<PlayerConfig> = appPreferences.playerConfig
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlayerConfig())
+        .stateIn(viewModelScope, SharingStarted.Lazily, PlayerConfig())
 
     val autoSyncEnabled: StateFlow<Boolean> = appPreferences.autoSyncEnabled
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
     val traktEnabled: StateFlow<Boolean> = appPreferences.traktEnabled
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     val theme: StateFlow<String> = appPreferences.theme
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "dark")
+        .stateIn(viewModelScope, SharingStarted.Lazily, "dark")
 
     fun setUserAgent(userAgent: String) {
         viewModelScope.launch {

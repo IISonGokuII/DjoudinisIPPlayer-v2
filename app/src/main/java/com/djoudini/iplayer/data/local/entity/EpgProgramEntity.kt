@@ -24,9 +24,13 @@ import androidx.room.PrimaryKey
         Index(value = ["playlist_id"]),
         Index(value = ["epg_channel_id"]),
         Index(value = ["start_time"]),
-        Index(value = ["stop_time"]),  // For getCurrentProgram queries
+        Index(value = ["stop_time"]),  // Für getCurrentProgram Queries
         Index(value = ["epg_channel_id", "start_time"]),
         Index(value = ["playlist_id", "epg_channel_id", "start_time"], unique = true),
+        // Optimiert für getCurrentProgram: channel + time range lookup
+        Index(value = ["playlist_id", "epg_channel_id", "stop_time"]),
+        // Optimiert für batch queries im EPG Grid
+        Index(value = ["playlist_id", "start_time", "stop_time"]),
     ]
 )
 data class EpgProgramEntity(

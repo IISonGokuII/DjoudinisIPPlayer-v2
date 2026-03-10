@@ -30,6 +30,8 @@ import androidx.room.PrimaryKey
         Index(value = ["category_id"]),
         Index(value = ["playlist_id", "remote_id"], unique = true),
         Index(value = ["tmdb_id"]),
+        // Optimiert für observeByCategory mit ORDER BY name
+        Index(value = ["category_id", "name"]),
     ]
 )
 data class SeriesEntity(

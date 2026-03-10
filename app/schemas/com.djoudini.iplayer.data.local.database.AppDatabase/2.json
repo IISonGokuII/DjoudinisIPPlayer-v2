@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "145d46d18cc25d346bedf5397bf09ed2",
+    "identityHash": "9866b2a335f5ecf4bc946a57d7b1c091",
     "entities": [
       {
         "tableName": "playlists",
@@ -206,14 +206,17 @@
         },
         "indices": [
           {
-            "name": "index_categories_playlist_id_category_type",
+            "name": "index_categories_playlist_id_category_type_is_selected_sort_order_name",
             "unique": false,
             "columnNames": [
               "playlist_id",
-              "category_type"
+              "category_type",
+              "is_selected",
+              "sort_order",
+              "name"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_categories_playlist_id_category_type` ON `${TABLE_NAME}` (`playlist_id`, `category_type`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_categories_playlist_id_category_type_is_selected_sort_order_name` ON `${TABLE_NAME}` (`playlist_id`, `category_type`, `is_selected`, `sort_order`, `name`)"
           },
           {
             "name": "index_categories_playlist_id_remote_id",
@@ -224,6 +227,17 @@
             ],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_categories_playlist_id_remote_id` ON `${TABLE_NAME}` (`playlist_id`, `remote_id`)"
+          },
+          {
+            "name": "index_categories_playlist_id_is_selected_sort_order",
+            "unique": false,
+            "columnNames": [
+              "playlist_id",
+              "is_selected",
+              "sort_order"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_categories_playlist_id_is_selected_sort_order` ON `${TABLE_NAME}` (`playlist_id`, `is_selected`, `sort_order`)"
           }
         ],
         "foreignKeys": [
@@ -409,6 +423,17 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_channels_playlist_id_last_watched_at` ON `${TABLE_NAME}` (`playlist_id`, `last_watched_at`)"
+          },
+          {
+            "name": "index_channels_category_id_sort_order_name",
+            "unique": false,
+            "columnNames": [
+              "category_id",
+              "sort_order",
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_channels_category_id_sort_order_name` ON `${TABLE_NAME}` (`category_id`, `sort_order`, `name`)"
           }
         ],
         "foreignKeys": [
@@ -613,6 +638,16 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_vod_items_is_favorite` ON `${TABLE_NAME}` (`is_favorite`)"
+          },
+          {
+            "name": "index_vod_items_category_id_name",
+            "unique": false,
+            "columnNames": [
+              "category_id",
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_vod_items_category_id_name` ON `${TABLE_NAME}` (`category_id`, `name`)"
           }
         ],
         "foreignKeys": [
@@ -766,6 +801,16 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_series_tmdb_id` ON `${TABLE_NAME}` (`tmdb_id`)"
+          },
+          {
+            "name": "index_series_category_id_name",
+            "unique": false,
+            "columnNames": [
+              "category_id",
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_series_category_id_name` ON `${TABLE_NAME}` (`category_id`, `name`)"
           }
         ],
         "foreignKeys": [
@@ -908,24 +953,15 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_episodes_playlist_id` ON `${TABLE_NAME}` (`playlist_id`)"
           },
           {
-            "name": "index_episodes_series_id_season_number",
+            "name": "index_episodes_series_id_season_number_episode_number",
             "unique": false,
             "columnNames": [
               "series_id",
-              "season_number"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_episodes_series_id_season_number` ON `${TABLE_NAME}` (`series_id`, `season_number`)"
-          },
-          {
-            "name": "index_episodes_series_id_episode_number",
-            "unique": false,
-            "columnNames": [
-              "series_id",
+              "season_number",
               "episode_number"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_episodes_series_id_episode_number` ON `${TABLE_NAME}` (`series_id`, `episode_number`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_episodes_series_id_season_number_episode_number` ON `${TABLE_NAME}` (`series_id`, `season_number`, `episode_number`)"
           },
           {
             "name": "index_episodes_playlist_id_remote_id",
@@ -1097,6 +1133,28 @@
             ],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_epg_programs_playlist_id_epg_channel_id_start_time` ON `${TABLE_NAME}` (`playlist_id`, `epg_channel_id`, `start_time`)"
+          },
+          {
+            "name": "index_epg_programs_playlist_id_epg_channel_id_stop_time",
+            "unique": false,
+            "columnNames": [
+              "playlist_id",
+              "epg_channel_id",
+              "stop_time"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_epg_programs_playlist_id_epg_channel_id_stop_time` ON `${TABLE_NAME}` (`playlist_id`, `epg_channel_id`, `stop_time`)"
+          },
+          {
+            "name": "index_epg_programs_playlist_id_start_time_stop_time",
+            "unique": false,
+            "columnNames": [
+              "playlist_id",
+              "start_time",
+              "stop_time"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_epg_programs_playlist_id_start_time_stop_time` ON `${TABLE_NAME}` (`playlist_id`, `start_time`, `stop_time`)"
           }
         ],
         "foreignKeys": [
@@ -1226,6 +1284,17 @@
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_watch_progress_playlist_id_content_type_content_id` ON `${TABLE_NAME}` (`playlist_id`, `content_type`, `content_id`)"
           },
           {
+            "name": "index_watch_progress_playlist_id_is_completed_last_watched_at",
+            "unique": false,
+            "columnNames": [
+              "playlist_id",
+              "is_completed",
+              "last_watched_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_watch_progress_playlist_id_is_completed_last_watched_at` ON `${TABLE_NAME}` (`playlist_id`, `is_completed`, `last_watched_at`)"
+          },
+          {
             "name": "index_watch_progress_last_watched_at",
             "unique": false,
             "columnNames": [
@@ -1233,6 +1302,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_watch_progress_last_watched_at` ON `${TABLE_NAME}` (`last_watched_at`)"
+          },
+          {
+            "name": "index_watch_progress_trakt_synced",
+            "unique": false,
+            "columnNames": [
+              "trakt_synced"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_watch_progress_trakt_synced` ON `${TABLE_NAME}` (`trakt_synced`)"
           }
         ],
         "foreignKeys": [
@@ -1253,7 +1331,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '145d46d18cc25d346bedf5397bf09ed2')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9866b2a335f5ecf4bc946a57d7b1c091')"
     ]
   }
 }

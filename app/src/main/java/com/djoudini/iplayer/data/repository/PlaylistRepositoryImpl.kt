@@ -23,6 +23,8 @@ import com.djoudini.iplayer.domain.model.SyncProgress
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -234,9 +236,9 @@ class PlaylistRepositoryImpl @Inject constructor(
 
     /**
      * Phase 2: Sync only streams for user-selected categories.
-     * Much faster than full sync because unselected categories are skipped entirely.
+     * OPTIMIERUNG: Parallele API-Aufrufe für alle Kategorien statt sequentiell.
      */
-    private suspend fun syncXtreamSelectedStreams(playlist: PlaylistEntity) {
+    private suspend fun syncXtreamSelectedStreams(playlist: PlaylistEntity) = coroutineScope {
         val serverUrl = playlist.serverUrl ?: throw IllegalStateException("Missing server URL")
         val username = playlist.username ?: throw IllegalStateException("Missing username")
         val password = playlist.password ?: throw IllegalStateException("Missing password")
@@ -254,14 +256,14 @@ class PlaylistRepositoryImpl @Inject constructor(
 
         val allCategories = categoryDao.getAllByPlaylist(playlist.id)
         Timber.d("[Sync] Loaded ${allCategories.size} categories from DB for playlist ${playlist.id}")
-        
+
         for (cat in allCategories) {
             categoryIdMap[categoryKey(cat.categoryType, cat.remoteId)] = cat.id
             if (cat.isSelected) {
                 selectedRemoteIds[cat.categoryType]?.add(cat.remoteId)
             }
         }
-        
+
         Timber.d("[Sync] Selected categories: Live=${selectedRemoteIds[ContentType.LIVE.value]?.size}, Vod=${selectedRemoteIds[ContentType.VOD.value]?.size}, Series=${selectedRemoteIds[ContentType.SERIES.value]?.size}")
 
         val selectedLive = selectedRemoteIds[ContentType.LIVE.value] ?: emptySet()
@@ -274,119 +276,191 @@ class PlaylistRepositoryImpl @Inject constructor(
             throw IllegalStateException("No categories selected. Please select at least one category to sync.")
         }
 
-        val totalSteps = (if (selectedLive.isNotEmpty()) 1 else 0) +
-                (if (selectedVod.isNotEmpty()) 1 else 0) +
-                (if (selectedSeries.isNotEmpty()) 1 else 0)
-        var currentStep = 0
+        // OPTIMIERUNG: Parallele Fetching-Jobs für alle Content-Typen
+        val liveJob = if (selectedLive.isNotEmpty()) async {
+            fetchLiveChannels(playlist, selectedLive, categoryIdMap, serverUrl, username, password, ContentType.LIVE.value)
+        } else null
 
-        fun stepProgress(intraProgress: Float): Float {
-            if (totalSteps == 0) return 0.95f
-            return ((currentStep + intraProgress) / totalSteps).coerceAtMost(0.95f)
+        val vodJob = if (selectedVod.isNotEmpty()) async {
+            fetchVodItems(playlist, selectedVod, categoryIdMap, serverUrl, username, password, ContentType.VOD.value)
+        } else null
+
+        val seriesJob = if (selectedSeries.isNotEmpty()) async {
+            fetchSeriesItems(playlist, selectedSeries, categoryIdMap, apiUrl, username, password, ContentType.SERIES.value)
+        } else null
+
+        // Warte auf alle Jobs und sammle Ergebnisse
+        _syncProgress.value = SyncProgress.active("Loading content...", 0.5f)
+        
+        val liveChannels = liveJob?.await() ?: emptyList()
+        val vodItems = vodJob?.await() ?: emptyList()
+        val seriesItems = seriesJob?.await() ?: emptyList()
+
+        // Batch-Insert aller Daten in Transaktion
+        _syncProgress.value = SyncProgress.active("Saving to database...", 0.9f)
+        
+        if (liveChannels.isNotEmpty()) {
+            channelDao.insertAll(liveChannels)
+            Timber.d("[Sync] Inserted ${liveChannels.size} channels into DB")
+        } else {
+            Timber.d("[Sync] No live channels to insert")
         }
 
-        // Sync live channels (only selected categories)
-        if (selectedLive.isNotEmpty()) {
-            _syncProgress.value = SyncProgress.active("Loading live channels...", stepProgress(0f))
-            channelDao.deleteByPlaylist(playlist.id)
-
-            // Fetch per selected category for faster response
-            val channelEntities = mutableListOf<ChannelEntity>()
-            selectedLive.forEachIndexed { index, remoteId ->
-                val streams = xtreamApi.getLiveStreams(apiUrl, username, password, categoryId = remoteId)
-                val catKey = categoryKey(ContentType.LIVE.value, remoteId)
-                val catId = categoryIdMap[catKey]
-                if (catId == null) {
-                    Timber.w("[Sync] Live category not found in map for remoteId=$remoteId, key=$catKey")
-                    return@forEachIndexed
-                }
-                Timber.d("[Sync] Fetched ${streams.size} live streams for category $remoteId")
-                streams.mapNotNullTo(channelEntities) { dto ->
-                    dto.toChannelEntity(playlist, catId, serverUrl, username, password)
-                }
-                _syncProgress.value = SyncProgress(
-                    phase = "Live channels... (${channelEntities.size})",
-                    progress = stepProgress((index + 1).toFloat() / selectedLive.size),
-                    processedItems = channelEntities.size,
-                    isActive = true,
-                )
-            }
-            channelDao.insertAll(channelEntities)
-            Timber.d("[Sync] Inserted ${channelEntities.size} channels into DB")
-            currentStep++
+        if (vodItems.isNotEmpty()) {
+            vodDao.insertAll(vodItems)
+            Timber.d("[Sync] Inserted ${vodItems.size} VOD items into DB")
         } else {
-            Timber.d("[Sync] No live categories selected, deleting all channels")
-            channelDao.deleteByPlaylist(playlist.id)
+            Timber.d("[Sync] No VOD items to insert")
         }
 
-        // Sync VOD (only selected categories)
-        if (selectedVod.isNotEmpty()) {
-            _syncProgress.value = SyncProgress.active("Loading movies...", stepProgress(0f))
-            vodDao.deleteByPlaylist(playlist.id)
-
-            val vodEntities = mutableListOf<VodEntity>()
-            selectedVod.forEachIndexed { index, remoteId ->
-                val streams = xtreamApi.getVodStreams(apiUrl, username, password, categoryId = remoteId)
-                val catKey = categoryKey(ContentType.VOD.value, remoteId)
-                val catId = categoryIdMap[catKey]
-                if (catId == null) {
-                    Timber.w("[Sync] VOD category not found in map for remoteId=$remoteId, key=$catKey")
-                    return@forEachIndexed
-                }
-                Timber.d("[Sync] Fetched ${streams.size} VOD streams for category $remoteId")
-                streams.mapNotNullTo(vodEntities) { dto ->
-                    dto.toVodEntity(playlist, catId, serverUrl, username, password)
-                }
-                _syncProgress.value = SyncProgress(
-                    phase = "Movies... (${vodEntities.size})",
-                    progress = stepProgress((index + 1).toFloat() / selectedVod.size),
-                    processedItems = vodEntities.size,
-                    isActive = true,
-                )
-            }
-            vodDao.insertAll(vodEntities)
-            Timber.d("[Sync] Inserted ${vodEntities.size} VOD items into DB")
-            currentStep++
+        if (seriesItems.isNotEmpty()) {
+            seriesDao.insertAll(seriesItems)
+            Timber.d("[Sync] Inserted ${seriesItems.size} series into DB")
         } else {
-            Timber.d("[Sync] No VOD categories selected, deleting all VOD items")
-            vodDao.deleteByPlaylist(playlist.id)
-        }
-
-        // Sync series (only selected categories)
-        if (selectedSeries.isNotEmpty()) {
-            _syncProgress.value = SyncProgress.active("Loading series...", stepProgress(0f))
-            seriesDao.deleteByPlaylist(playlist.id)
-            episodeDao.deleteByPlaylist(playlist.id)
-
-            val seriesEntities = mutableListOf<SeriesEntity>()
-            selectedSeries.forEachIndexed { index, remoteId ->
-                val streams = xtreamApi.getSeries(apiUrl, username, password, categoryId = remoteId)
-                val catKey = categoryKey(ContentType.SERIES.value, remoteId)
-                val catId = categoryIdMap[catKey]
-                if (catId == null) {
-                    Timber.w("[Sync] Series category not found in map for remoteId=$remoteId, key=$catKey")
-                    return@forEachIndexed
-                }
-                Timber.d("[Sync] Fetched ${streams.size} series for category $remoteId")
-                streams.mapNotNullTo(seriesEntities) { dto ->
-                    dto.toSeriesEntity(playlist, catId)
-                }
-                _syncProgress.value = SyncProgress(
-                    phase = "Series... (${seriesEntities.size})",
-                    progress = stepProgress((index + 1).toFloat() / selectedSeries.size),
-                    processedItems = seriesEntities.size,
-                    isActive = true,
-                )
-            }
-            seriesDao.insertAll(seriesEntities)
-            Timber.d("[Sync] Inserted ${seriesEntities.size} series into DB")
-            currentStep++
-        } else {
-            Timber.d("[Sync] No series categories selected, deleting all series")
-            seriesDao.deleteByPlaylist(playlist.id)
-            episodeDao.deleteByPlaylist(playlist.id)
+            Timber.d("[Sync] No series items to insert")
         }
 
         _syncProgress.value = SyncProgress.active("Finalizing...", 0.95f)
+    }
+
+    /**
+     * OPTIMIERUNG: Paralleles Fetching für Live-Kanäle mit koroutinen-basiertem Batch-Processing
+     */
+    private suspend fun fetchLiveChannels(
+        playlist: PlaylistEntity,
+        selectedRemoteIds: Set<String>,
+        categoryIdMap: Map<String, Long>,
+        serverUrl: String,
+        username: String,
+        password: String,
+        contentType: String
+    ): List<ChannelEntity> = coroutineScope {
+        val channelEntities = mutableListOf<ChannelEntity>()
+        val apiUrl = "$serverUrl/player_api.php"
+        
+        fun categoryKey(type: String, remoteId: String) = "$type:$remoteId"
+        
+        // Parallele API-Aufrufe für alle Kategorien
+        val deferredResults = selectedRemoteIds.map { remoteId ->
+            async {
+                try {
+                    val streams = xtreamApi.getLiveStreams(apiUrl, username, password, categoryId = remoteId)
+                    val catKey = categoryKey(contentType, remoteId)
+                    val catId = categoryIdMap[catKey]
+                    if (catId == null) {
+                        Timber.w("[Sync] Live category not found for remoteId=$remoteId")
+                        emptyList()
+                    } else {
+                        streams.mapNotNull { dto ->
+                            dto.toChannelEntity(playlist, catId, serverUrl, username, password)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to fetch live category $remoteId")
+                    emptyList<ChannelEntity>()
+                }
+            }
+        }
+        
+        // Sammle alle Ergebnisse
+        deferredResults.forEach { deferred ->
+            channelEntities.addAll(deferred.await())
+        }
+        
+        channelEntities
+    }
+
+    /**
+     * OPTIMIERUNG: Paralleles Fetching für VOD-Items
+     */
+    private suspend fun fetchVodItems(
+        playlist: PlaylistEntity,
+        selectedRemoteIds: Set<String>,
+        categoryIdMap: Map<String, Long>,
+        serverUrl: String,
+        username: String,
+        password: String,
+        contentType: String
+    ): List<VodEntity> = coroutineScope {
+        val vodEntities = mutableListOf<VodEntity>()
+        val apiUrl = "$serverUrl/player_api.php"
+        
+        fun categoryKey(type: String, remoteId: String) = "$type:$remoteId"
+        
+        // Parallele API-Aufrufe für alle Kategorien
+        val deferredResults = selectedRemoteIds.map { remoteId ->
+            async {
+                try {
+                    val streams = xtreamApi.getVodStreams(apiUrl, username, password, categoryId = remoteId)
+                    val catKey = categoryKey(contentType, remoteId)
+                    val catId = categoryIdMap[catKey]
+                    if (catId == null) {
+                        Timber.w("[Sync] VOD category not found for remoteId=$remoteId")
+                        emptyList()
+                    } else {
+                        streams.mapNotNull { dto ->
+                            dto.toVodEntity(playlist, catId, serverUrl, username, password)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to fetch VOD category $remoteId")
+                    emptyList<VodEntity>()
+                }
+            }
+        }
+        
+        // Sammle alle Ergebnisse
+        deferredResults.forEach { deferred ->
+            vodEntities.addAll(deferred.await())
+        }
+        
+        vodEntities
+    }
+
+    /**
+     * OPTIMIERUNG: Paralleles Fetching für Series-Items
+     */
+    private suspend fun fetchSeriesItems(
+        playlist: PlaylistEntity,
+        selectedRemoteIds: Set<String>,
+        categoryIdMap: Map<String, Long>,
+        apiUrl: String,
+        username: String,
+        password: String,
+        contentType: String
+    ): List<SeriesEntity> = coroutineScope {
+        val seriesEntities = mutableListOf<SeriesEntity>()
+        
+        fun categoryKey(type: String, remoteId: String) = "$type:$remoteId"
+        
+        // Parallele API-Aufrufe für alle Kategorien
+        val deferredResults = selectedRemoteIds.map { remoteId ->
+            async {
+                try {
+                    val streams = xtreamApi.getSeries(apiUrl, username, password, categoryId = remoteId)
+                    val catKey = categoryKey(contentType, remoteId)
+                    val catId = categoryIdMap[catKey]
+                    if (catId == null) {
+                        Timber.w("[Sync] Series category not found for remoteId=$remoteId")
+                        emptyList()
+                    } else {
+                        streams.mapNotNull { dto ->
+                            dto.toSeriesEntity(playlist, catId)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to fetch series category $remoteId")
+                    emptyList<SeriesEntity>()
+                }
+            }
+        }
+        
+        // Sammle alle Ergebnisse
+        deferredResults.forEach { deferred ->
+            seriesEntities.addAll(deferred.await())
+        }
+        
+        seriesEntities
     }
 
     private suspend fun syncXtream(playlist: PlaylistEntity) {

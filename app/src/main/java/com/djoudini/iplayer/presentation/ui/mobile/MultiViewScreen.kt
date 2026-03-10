@@ -70,6 +70,7 @@ import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.CategoryEntity
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.presentation.viewmodel.ChannelWithEpg
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 
 private enum class GridLayout(val count: Int, val cols: Int, val rows: Int, val label: String) {
@@ -148,7 +149,8 @@ fun MultiViewScreen(
             searchQuery = searchQuery,
             onSelectCategory = { viewModel.selectCategory(it) },
             onSearchChange = { viewModel.updateInlineSearch(it) },
-            onChannelSelected = { channel ->
+            onChannelSelected = { channelWithEpg ->
+                val channel = channelWithEpg.channel
                 val stream = MultiViewStream(
                     name = channel.name,
                     streamUrl = channel.streamUrl,
@@ -361,12 +363,12 @@ private fun MultiViewCell(
 @Composable
 private fun ChannelPickerDialog(
     categories: List<CategoryEntity>,
-    channels: List<ChannelEntity>,
+    channels: List<ChannelWithEpg>,
     selectedCategoryId: Long,
     searchQuery: String,
     onSelectCategory: (Long) -> Unit,
     onSearchChange: (String) -> Unit,
-    onChannelSelected: (ChannelEntity) -> Unit,
+    onChannelSelected: (ChannelWithEpg) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
@@ -411,17 +413,17 @@ private fun ChannelPickerDialog(
 
                 // Channel list
                 LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(channels, key = { it.id }) { channel ->
+                    items(channels, key = { it.channel.id }) { channelWithEpg ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onChannelSelected(channel) }
+                                .clickable { onChannelSelected(channelWithEpg) }
                                 .padding(vertical = 8.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            if (!channel.logoUrl.isNullOrBlank()) {
+                            if (!channelWithEpg.channel.logoUrl.isNullOrBlank()) {
                                 AsyncImage(
-                                    model = channel.logoUrl,
+                                    model = channelWithEpg.channel.logoUrl,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
@@ -438,7 +440,7 @@ private fun ChannelPickerDialog(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = channel.name,
+                                text = channelWithEpg.channel.name,
                                 style = MaterialTheme.typography.bodyMedium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

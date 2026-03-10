@@ -32,8 +32,10 @@ import androidx.room.PrimaryKey
         Index(value = ["playlist_id", "remote_id"], unique = true),
         Index(value = ["tvg_id"]),
         Index(value = ["is_favorite"]),
-        // Optimized for getRecentlyWatched() query
+        // Optimiert für getRecentlyWatched() query
         Index(value = ["playlist_id", "last_watched_at"]),
+        // Optimiert für observeByCategory mit ORDER BY sort_order, name
+        Index(value = ["category_id", "sort_order", "name"]),
     ]
 )
 data class ChannelEntity(

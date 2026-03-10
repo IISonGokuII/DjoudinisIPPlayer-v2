@@ -42,6 +42,29 @@ data class SubtitleTrackInfo(
     val isSelected: Boolean,
 )
 
+/**
+ * Aspect ratio modes for video playback.
+ */
+enum class AspectRatio(val label: String, val scale: Float) {
+    FIT_16_9("16:9", 1.0f),
+    FIT_4_3("4:3", 0.75f),
+    ZOOM("Zoom", 1.33f),
+    STRETCH("Stretch", 1.0f),
+    ORIGINAL("Original", 1.0f)
+}
+
+/**
+ * Sleep timer presets in minutes.
+ */
+enum class SleepTimerPreset(val minutes: Int, val label: String) {
+    OFF(0, "Aus"),
+    MIN_15(15, "15 Min"),
+    MIN_30(30, "30 Min"),
+    MIN_45(45, "45 Min"),
+    MIN_60(60, "60 Min"),
+    MIN_90(90, "90 Min"),
+}
+
 @Immutable
 data class PlayerUiState(
     val title: String = "",
@@ -85,6 +108,20 @@ data class PlayerUiState(
     // Channel number input
     val channelNumberInput: String = "",
     val showChannelNumberInput: Boolean = false,
+    // NEW: Auto-play for next episode
+    val showAutoPlayCountdown: Boolean = false,
+    val autoPlayCountdownSeconds: Int = 5,
+    // NEW: Sleep timer
+    val sleepTimerActive: Boolean = false,
+    val sleepTimerRemainingSeconds: Int = 0,
+    // NEW: Aspect ratio
+    val aspectRatio: AspectRatio = AspectRatio.FIT_16_9,
+    // NEW: Pinch-to-zoom scale
+    val videoScale: Float = 1.0f,
+    // NEW: VOD description
+    val description: String? = null,
+    // NEW: Audio delay (ms) for sync
+    val audioDelayMs: Int = 0,
 )
 
 @HiltViewModel
@@ -107,6 +144,10 @@ class PlayerViewModel @Inject constructor(
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
     private var progressSaveJob: Job? = null
+    // NEW: Sleep timer job
+    private var sleepTimerJob: Job? = null
+    // NEW: Auto-play job
+    private var autoPlayJob: Job? = null
 
     init {
         loadContent()
@@ -170,28 +211,37 @@ class PlayerViewModel @Inject constructor(
 
     /**
      * Build alternative stream URLs by trying different extensions/formats.
-     * Many IPTV providers support multiple formats per channel.
+     * Viele IPTV-Provider unterstützen mehrere Formate pro Kanal.
+     * OPTIMIERUNG: String-Operationen statt Regex für bessere Performance.
      */
     private fun buildStreamFallbacks(originalUrl: String, containerExtension: String?): List<String> {
         val urls = mutableListOf(originalUrl)
 
-        // For Xtream-style URLs like http://server/live/user/pass/12345.ts
-        val xtreamPattern = Regex("""(.+/live/.+/\d+)\.(ts|m3u8|mpegts)$""")
-        val match = xtreamPattern.find(originalUrl)
-        if (match != null) {
-            val base = match.groupValues[1]
-            val extensions = listOf("ts", "m3u8", "mpegts")
-            for (ext in extensions) {
-                val alt = "$base.$ext"
-                if (alt != originalUrl && alt !in urls) {
-                    urls.add(alt)
+        // OPTIMIERUNG: String-Operationen statt Regex für Xtream-URLs
+        // Pattern: http://server/live/user/pass/12345.ts
+        val liveIndex = originalUrl.indexOf("/live/")
+        if (liveIndex != -1) {
+            val lastSlash = originalUrl.lastIndexOf('/')
+            if (lastSlash > liveIndex) {
+                val dotIndex = originalUrl.lastIndexOf('.')
+                if (dotIndex > lastSlash) {
+                    val base = originalUrl.substring(0, dotIndex)
+                    // Fallbacks in Prioritätsreihenfolge
+                    val extensions = listOf("ts", "m3u8", "mpegts")
+                    for (ext in extensions) {
+                        val alt = "$base.$ext"
+                        if (alt != originalUrl && alt !in urls) {
+                            urls.add(alt)
+                        }
+                    }
                 }
             }
         } else {
-            // For generic URLs, try appending /live.m3u8 or changing extension
-            val dotIdx = originalUrl.lastIndexOf('.')
-            if (dotIdx > originalUrl.lastIndexOf('/')) {
-                val base = originalUrl.substring(0, dotIdx)
+            // Für generische URLs
+            val lastSlash = originalUrl.lastIndexOf('/')
+            val dotIndex = originalUrl.lastIndexOf('.')
+            if (dotIndex > lastSlash) {
+                val base = originalUrl.substring(0, dotIndex)
                 val extensions = listOf(".ts", ".m3u8", ".mpegts")
                 for (ext in extensions) {
                     val alt = "$base$ext"
@@ -245,6 +295,7 @@ class PlayerViewModel @Inject constructor(
                 isLoading = false,
                 resumePositionMs = progress?.positionMs ?: 0L,
                 showResumeDialog = hasProgress,
+                description = vod.plot, // NEW: Load description
             )
         }
     }
@@ -350,6 +401,163 @@ class PlayerViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         progressSaveJob?.cancel()
+        sleepTimerJob?.cancel()
+        autoPlayJob?.cancel()
+    }
+
+    // ==================== SLEEP TIMER ====================
+
+    /**
+     * Set sleep timer to stop playback after specified minutes.
+     */
+    fun setSleepTimer(preset: SleepTimerPreset) {
+        sleepTimerJob?.cancel()
+        
+        if (preset == SleepTimerPreset.OFF) {
+            _uiState.update { it.copy(sleepTimerActive = false, sleepTimerRemainingSeconds = 0) }
+            return
+        }
+
+        val totalSeconds = preset.minutes * 60
+        _uiState.update { 
+            it.copy(
+                sleepTimerActive = true,
+                sleepTimerRemainingSeconds = totalSeconds
+            )
+        }
+
+        sleepTimerJob = viewModelScope.launch {
+            var remaining = totalSeconds
+            while (remaining > 0) {
+                delay(1000L)
+                remaining--
+                _uiState.update { it.copy(sleepTimerRemainingSeconds = remaining) }
+            }
+            // Time's up - stop playback
+            stopPlayback()
+            _uiState.update { it.copy(sleepTimerActive = false, sleepTimerRemainingSeconds = 0) }
+        }
+    }
+
+    /**
+     * Cancel active sleep timer.
+     */
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        _uiState.update { it.copy(sleepTimerActive = false, sleepTimerRemainingSeconds = 0) }
+    }
+
+    // ==================== ASPECT RATIO ====================
+
+    /**
+     * Cycle through aspect ratio modes.
+     */
+    fun cycleAspectRatio() {
+        val current = _uiState.value.aspectRatio
+        _uiState.update {
+            it.copy(
+                aspectRatio = when (current) {
+                    AspectRatio.FIT_16_9 -> AspectRatio.FIT_4_3
+                    AspectRatio.FIT_4_3 -> AspectRatio.ZOOM
+                    AspectRatio.ZOOM -> AspectRatio.STRETCH
+                    AspectRatio.STRETCH -> AspectRatio.ORIGINAL
+                    AspectRatio.ORIGINAL -> AspectRatio.FIT_16_9
+                }
+            )
+        }
+    }
+
+    /**
+     * Set specific aspect ratio mode.
+     */
+    fun setAspectRatio(ratio: AspectRatio) {
+        _uiState.update { it.copy(aspectRatio = ratio) }
+    }
+
+    /**
+     * Update video scale for pinch-to-zoom.
+     */
+    fun setVideoScale(scale: Float) {
+        _uiState.update { it.copy(videoScale = scale.coerceIn(0.5f, 3.0f)) }
+    }
+
+    /**
+     * Reset video scale to default.
+     */
+    fun resetVideoScale() {
+        _uiState.update { it.copy(videoScale = 1.0f) }
+    }
+
+    // ==================== AUDIO DELAY ====================
+
+    /**
+     * Set audio delay for sync (in milliseconds).
+     */
+    fun setAudioDelay(delayMs: Int) {
+        _uiState.update { it.copy(audioDelayMs = delayMs.coerceIn(-5000, 5000)) }
+    }
+
+    /**
+     * Adjust audio delay by delta.
+     */
+    fun adjustAudioDelay(deltaMs: Int) {
+        val current = _uiState.value.audioDelayMs
+        _uiState.update { it.copy(audioDelayMs = (current + deltaMs).coerceIn(-5000, 5000)) }
+    }
+
+    /**
+     * Reset audio delay to zero.
+     */
+    fun resetAudioDelay() {
+        _uiState.update { it.copy(audioDelayMs = 0) }
+    }
+
+    // ==================== AUTO-PLAY NEXT EPISODE ====================
+
+    /**
+     * Start countdown for auto-playing next episode.
+     */
+    fun startAutoPlayCountdown(seconds: Int = 5) {
+        autoPlayJob?.cancel()
+        
+        _uiState.update { 
+            it.copy(
+                showAutoPlayCountdown = true,
+                autoPlayCountdownSeconds = seconds
+            )
+        }
+
+        autoPlayJob = viewModelScope.launch {
+            var remaining = seconds
+            while (remaining > 0) {
+                delay(1000L)
+                remaining--
+                _uiState.update { it.copy(autoPlayCountdownSeconds = remaining) }
+            }
+            // Auto-play next episode
+            _uiState.update { it.copy(showAutoPlayCountdown = false) }
+            loadNextEpisode()
+        }
+    }
+
+    /**
+     * Cancel auto-play countdown.
+     */
+    fun cancelAutoPlay() {
+        autoPlayJob?.cancel()
+        autoPlayJob = null
+        _uiState.update { it.copy(showAutoPlayCountdown = false) }
+    }
+
+    // ==================== STOP PLAYBACK ====================
+
+    /**
+     * Stop playback (used by sleep timer).
+     */
+    private fun stopPlayback() {
+        // This will be called from the sleep timer
+        // The PlayerScreen should observe sleepTimerActive and stop the player
     }
 
     // ==================== CHANNEL ZAPPING (Live TV) ====================

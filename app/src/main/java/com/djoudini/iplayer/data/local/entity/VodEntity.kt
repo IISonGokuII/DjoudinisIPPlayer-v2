@@ -32,6 +32,8 @@ import androidx.room.PrimaryKey
         Index(value = ["playlist_id", "remote_id"], unique = true),
         Index(value = ["tmdb_id"]),
         Index(value = ["is_favorite"]),
+        // Optimiert für observeByCategory mit ORDER BY name
+        Index(value = ["category_id", "name"]),
     ]
 )
 data class VodEntity(

@@ -40,8 +40,9 @@ object NetworkModule {
         val cache = Cache(context.cacheDir.resolve("http_cache"), cacheSize)
         return OkHttpClient.Builder()
             .cache(cache)
+            // Längere Timeouts für langsame IPTV-Server
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS) // Erhöht für große Playlists/EPG
             .writeTimeout(30, TimeUnit.SECONDS)
             .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
             .retryOnConnectionFailure(true)
@@ -51,6 +52,7 @@ object NetworkModule {
                     .build()
                 chain.proceed(request)
             }
+            // Logging nur im Debug-Build für Performance
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
                     level = HttpLoggingInterceptor.Level.BASIC

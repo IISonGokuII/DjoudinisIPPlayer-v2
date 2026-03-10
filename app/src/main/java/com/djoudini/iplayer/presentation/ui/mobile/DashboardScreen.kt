@@ -215,10 +215,11 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                 )
                 DashboardTile(
-                    title = stringResource(R.string.epg_guide),
-                    icon = Icons.Default.CalendarMonth,
-                    onClick = onNavigateEpg,
+                    title = stringResource(R.string.favorites),
+                    icon = Icons.Default.Favorite,
+                    onClick = { /* Navigate to favorites or show favorites list */ },
                     modifier = Modifier.weight(1f),
+                    showCount = favoriteChannels.size,
                 )
             }
 
@@ -229,9 +230,9 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 DashboardTile(
-                    title = stringResource(R.string.multi_view),
-                    icon = Icons.Default.GridView,
-                    onClick = onNavigateMultiView,
+                    title = stringResource(R.string.epg_guide),
+                    icon = Icons.Default.CalendarMonth,
+                    onClick = onNavigateEpg,
                     modifier = Modifier.weight(1f),
                 )
                 DashboardTile(
@@ -264,6 +265,7 @@ private fun DashboardTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     syncProgress: SyncProgress? = null,
+    showCount: Int? = null,
 ) {
     Card(
         modifier = modifier
@@ -294,6 +296,17 @@ private fun DashboardTile(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
+                // Show count badge if provided
+                showCount?.let { count ->
+                    if (count > 0) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "$count items",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
 
             // Progress ring overlay during sync

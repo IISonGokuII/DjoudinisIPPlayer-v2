@@ -28,33 +28,34 @@ class DashboardViewModel @Inject constructor(
     private val vodDao: VodDao,
 ) : ViewModel() {
 
+    // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
     val activePlaylist: StateFlow<PlaylistEntity?> = playlistRepository
         .observeActive()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     val continueWatching: StateFlow<List<WatchProgressEntity>> =
         playlistRepository.observeActive().flatMapLatest { playlist ->
             playlist?.let { watchProgressRepository.observeContinueWatching(it.id) }
                 ?: flowOf(emptyList())
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val favoriteChannels: StateFlow<List<ChannelEntity>> =
         playlistRepository.observeActive().flatMapLatest { playlist ->
             playlist?.let { channelDao.observeFavorites(it.id) }
                 ?: flowOf(emptyList())
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val recentlyWatched: StateFlow<List<ChannelEntity>> =
         playlistRepository.observeActive().flatMapLatest { playlist ->
             playlist?.let { channelDao.observeRecentlyWatched(it.id) }
                 ?: flowOf(emptyList())
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val favoriteVod: StateFlow<List<VodEntity>> =
         playlistRepository.observeActive().flatMapLatest { playlist ->
             playlist?.let { vodDao.observeFavorites(it.id) }
                 ?: flowOf(emptyList())
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val syncProgress: StateFlow<SyncProgress> = playlistRepository.syncProgress
 

@@ -8,9 +8,11 @@ import com.djoudini.iplayer.data.local.dao.SeriesDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.CategoryEntity
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.domain.repository.ChannelRepository
+import com.djoudini.iplayer.domain.repository.EpgRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.presentation.navigation.NavArgs
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,10 +22,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 import javax.inject.Inject
 import androidx.compose.runtime.Immutable
 
@@ -43,11 +47,22 @@ enum class SortMode(val label: String) {
     RECENTLY_ADDED("Newest"),
 }
 
+/**
+ * Channel data with current and next EPG program.
+ */
+@Immutable
+data class ChannelWithEpg(
+    val channel: ChannelEntity,
+    val currentProgram: EpgProgramEntity?,
+    val nextProgram: EpgProgramEntity?,
+)
+
 @HiltViewModel
 class ContentListViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playlistRepository: PlaylistRepository,
     private val channelRepository: ChannelRepository,
+    private val epgRepository: EpgRepository,
     private val categoryDao: CategoryDao,
     private val vodDao: VodDao,
     private val seriesDao: SeriesDao,
@@ -89,49 +104,92 @@ class ContentListViewModel @Inject constructor(
     }
 
     // --- Categories by type ---
+    // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
 
     val liveCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
                 playlist?.let { categoryDao.observeByType(it.id, "live") } ?: flowOf(emptyList())
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val vodCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
                 playlist?.let { categoryDao.observeByType(it.id, "vod") } ?: flowOf(emptyList())
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val seriesCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
                 playlist?.let { categoryDao.observeByType(it.id, "series") } ?: flowOf(emptyList())
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // --- Items within a selected category (reactive to _selectedCategoryId) ---
+    // OPTIMIERUNG: SharingStarted.Lazily behält Daten im Speicher für sofortiges Laden bei Navigation
 
-    val channels: StateFlow<List<ChannelEntity>> =
-        _selectedCategoryId.flatMapLatest { catId ->
-            if (catId == 0L) flowOf(emptyList())
-            else channelRepository.observeByCategory(catId)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val _channelsWithEpg = MutableStateFlow<List<ChannelWithEpg>>(emptyList())
+    val channels: StateFlow<List<ChannelWithEpg>> = _channelsWithEpg.asStateFlow()
+
+    init {
+        // Load channels with EPG when category changes
+        viewModelScope.launch {
+            _selectedCategoryId.collect { catId ->
+                if (catId == 0L) {
+                    _channelsWithEpg.value = emptyList()
+                } else {
+                    loadChannelsWithEpg(catId)
+                }
+            }
+        }
+    }
+
+    private suspend fun loadChannelsWithEpg(categoryId: Long) {
+        val channelList = channelRepository.observeByCategory(categoryId).first()
+        if (channelList.isEmpty()) {
+            _channelsWithEpg.value = emptyList()
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val channelIds = channelList.mapNotNull { it.tvgId }
+
+        val programsByChannel = if (channelIds.isEmpty()) {
+            emptyMap()
+        } else {
+            epgRepository.getProgramsForChannels(
+                channelIds = channelIds,
+                fromTime = now,
+                toTime = now + 4 * 60 * 60 * 1000, // Next 4 hours
+            )
+        }
+
+        val channelsWithEpg = channelList.map { channel ->
+            val channelPrograms = channel.tvgId?.let { programsByChannel[it] } ?: emptyList()
+            val currentProgram = channelPrograms.find { it.startTime <= now && it.stopTime > now }
+            val nextProgram = channelPrograms.firstOrNull { it.startTime > now }
+            ChannelWithEpg(channel, currentProgram, nextProgram)
+        }
+
+        _channelsWithEpg.value = channelsWithEpg
+    }
 
     val vodItems: StateFlow<List<VodEntity>> =
         _selectedCategoryId.flatMapLatest { catId ->
             if (catId == 0L) flowOf(emptyList())
             else vodDao.observeByCategory(catId)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val seriesItems: StateFlow<List<SeriesEntity>> =
         _selectedCategoryId.flatMapLatest { catId ->
             if (catId == 0L) flowOf(emptyList())
             else seriesDao.observeByCategory(catId)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // --- Inline search (per-section, scoped to current content type) ---
+    // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
 
     private val _inlineSearchQuery = MutableStateFlow("")
     val inlineSearchQuery: StateFlow<String> = _inlineSearchQuery.asStateFlow()
@@ -140,16 +198,16 @@ class ContentListViewModel @Inject constructor(
         _inlineSearchQuery.value = query
     }
 
-    val filteredChannels: StateFlow<List<ChannelEntity>> =
+    val filteredChannels: StateFlow<List<ChannelWithEpg>> =
         combine(channels, _inlineSearchQuery, _sortMode) { items, query, sort ->
             val filtered = if (query.length < 2) items
-            else items.filter { it.name.contains(query, ignoreCase = true) }
+            else items.filter { it.channel.name.contains(query, ignoreCase = true) }
             when (sort) {
-                SortMode.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
-                SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
-                SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
+                SortMode.NAME_ASC -> filtered.sortedBy { it.channel.name.lowercase() }
+                SortMode.NAME_DESC -> filtered.sortedByDescending { it.channel.name.lowercase() }
+                SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.channel.id }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val filteredVodItems: StateFlow<List<VodEntity>> =
         combine(vodItems, _inlineSearchQuery, _sortMode) { items, query, sort ->
@@ -160,7 +218,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val filteredSeriesItems: StateFlow<List<SeriesEntity>> =
         combine(seriesItems, _inlineSearchQuery, _sortMode) { items, query, sort ->
@@ -171,7 +229,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
             }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     // --- Global Search ---
 

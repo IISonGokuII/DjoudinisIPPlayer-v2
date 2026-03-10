@@ -50,13 +50,17 @@ fun ChannelListScreen(
                 .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(channels, key = { it.id }) { channel ->
+            items(channels, key = { it.channel.id }) { channelWithEpg ->
+                val epgNow = channelWithEpg.currentProgram?.let { program ->
+                    "${program.title} (${program.startTime / 60000} min)"
+                }
                 ContentCard(
-                    name = channel.name,
-                    logoUrl = channel.logoUrl,
-                    onClick = { onChannelClick(channel.id) },
-                    isFavorite = channel.isFavorite,
-                    onFavoriteClick = { viewModel.toggleFavorite(channel.id, channel.isFavorite) },
+                    name = channelWithEpg.channel.name,
+                    logoUrl = channelWithEpg.channel.logoUrl,
+                    onClick = { onChannelClick(channelWithEpg.channel.id) },
+                    isFavorite = channelWithEpg.channel.isFavorite,
+                    onFavoriteClick = { viewModel.toggleFavorite(channelWithEpg.channel.id, channelWithEpg.channel.isFavorite) },
+                    epgNow = epgNow,
                 )
             }
         }

@@ -161,15 +161,21 @@ class M3uParser @Inject constructor() {
     }
 
     private fun inferContentType(url: String, groupTitle: String): ContentType {
+        // OPTIMIERUNG: Early Returns und weniger String-Operationen
         val lowerUrl = url.lowercase()
+        
+        // URL-basierte Erkennung (schnellste Methode)
+        when {
+            lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".mkv") || lowerUrl.endsWith(".avi") -> return ContentType.VOD
+            lowerUrl.contains("/movie/") -> return ContentType.VOD
+            lowerUrl.contains("/series/") -> return ContentType.SERIES
+        }
+        
+        // Group-basierte Erkennung (nur wenn URL nicht eindeutig)
         val lowerGroup = groupTitle.lowercase()
-
         return when {
             lowerGroup.contains("series") || lowerGroup.contains("serie") -> ContentType.SERIES
             lowerGroup.contains("vod") || lowerGroup.contains("movie") || lowerGroup.contains("film") -> ContentType.VOD
-            lowerUrl.endsWith(".mp4") || lowerUrl.endsWith(".mkv") || lowerUrl.endsWith(".avi") -> ContentType.VOD
-            lowerUrl.contains("/movie/") -> ContentType.VOD
-            lowerUrl.contains("/series/") -> ContentType.SERIES
             else -> ContentType.LIVE
         }
     }

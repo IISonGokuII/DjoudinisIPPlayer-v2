@@ -74,6 +74,25 @@ class SyncScheduler @Inject constructor(
     }
 
     /**
+     * Schedule periodic Trakt sync (default: every 24 hours).
+     */
+    fun schedulePeriodicTraktSync(intervalHours: Long = 24) {
+        val request = PeriodicWorkRequestBuilder<TraktSyncWorker>(
+            intervalHours, TimeUnit.HOURS,
+            1, TimeUnit.HOURS, // flex interval
+        )
+            .setConstraints(networkConstraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            TraktSyncWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
+    }
+
+    /**
      * Trigger a one-shot playlist sync now.
      */
     fun syncPlaylistNow(playlistId: Long = -1L) {
@@ -110,6 +129,21 @@ class SyncScheduler @Inject constructor(
     }
 
     /**
+     * Trigger a one-shot Trakt sync now.
+     */
+    fun syncTraktNow() {
+        val request = OneTimeWorkRequestBuilder<TraktSyncWorker>()
+            .setConstraints(networkConstraints)
+            .build()
+
+        workManager.enqueueUniqueWork(
+            TraktSyncWorker.WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request,
+        )
+    }
+
+    /**
      * Cancel all scheduled sync work.
      */
     fun cancelAll() {
@@ -117,5 +151,6 @@ class SyncScheduler @Inject constructor(
         workManager.cancelUniqueWork(EpgSyncWorker.WORK_NAME_PERIODIC)
         workManager.cancelUniqueWork(PlaylistSyncWorker.WORK_NAME_ONESHOT)
         workManager.cancelUniqueWork(EpgSyncWorker.WORK_NAME_ONESHOT)
+        workManager.cancelUniqueWork(TraktSyncWorker.WORK_NAME)
     }
 }

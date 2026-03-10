@@ -80,8 +80,12 @@ import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.presentation.components.ContentCard
 import com.djoudini.iplayer.presentation.components.PosterCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
+import com.djoudini.iplayer.presentation.viewmodel.ChannelWithEpg
 import com.djoudini.iplayer.presentation.viewmodel.SortMode
 import com.djoudini.iplayer.presentation.viewmodel.ViewMode
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // --- Shared collapsible category sidebar composable ---
 
@@ -341,6 +345,7 @@ fun LiveCategoriesScreen(
 
     // Preview state
     var previewChannel by remember { mutableStateOf<PreviewChannel?>(null) }
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     Scaffold(
         topBar = {
@@ -388,25 +393,34 @@ fun LiveCategoriesScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    items(channels, key = { it.id }) { channel ->
+                                    items(channels, key = { it.channel.id }) { channelWithEpg ->
+                                        val epgNow = channelWithEpg.currentProgram?.let { program ->
+                                            "${timeFormat.format(Date(program.startTime))} ${program.title}"
+                                        }
+                                        val epgNext = channelWithEpg.nextProgram?.let { program ->
+                                            "${stringResource(R.string.next_short)}: ${timeFormat.format(Date(program.startTime))} ${program.title}"
+                                        }
+                                        val epgText = if (epgNow != null && epgNext != null) {
+                                            "$epgNow • $epgNext"
+                                        } else epgNow ?: epgNext
+
                                         ContentCard(
-                                            name = channel.name,
-                                            logoUrl = channel.logoUrl,
+                                            name = channelWithEpg.channel.name,
+                                            logoUrl = channelWithEpg.channel.logoUrl,
                                             onClick = {
-                                                if (previewChannel?.id == channel.id) {
-                                                    // Second tap on same channel → fullscreen
-                                                    onChannelClick(channel.id)
+                                                if (previewChannel?.id == channelWithEpg.channel.id) {
+                                                    onChannelClick(channelWithEpg.channel.id)
                                                 } else {
-                                                    // First tap → preview
                                                     previewChannel = PreviewChannel(
-                                                        id = channel.id,
-                                                        name = channel.name,
-                                                        streamUrl = channel.streamUrl,
+                                                        id = channelWithEpg.channel.id,
+                                                        name = channelWithEpg.channel.name,
+                                                        streamUrl = channelWithEpg.channel.streamUrl,
                                                     )
                                                 }
                                             },
-                                            isFavorite = channel.isFavorite,
-                                            onFavoriteClick = { viewModel.toggleFavorite(channel.id, channel.isFavorite) },
+                                            isFavorite = channelWithEpg.channel.isFavorite,
+                                            onFavoriteClick = { viewModel.toggleFavorite(channelWithEpg.channel.id, channelWithEpg.channel.isFavorite) },
+                                            epgNow = epgText,
                                         )
                                     }
                                 }
@@ -419,18 +433,18 @@ fun LiveCategoriesScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    items(channels, key = { it.id }) { channel ->
+                                    items(channels, key = { it.channel.id }) { channelWithEpg ->
                                         PosterCard(
-                                            name = channel.name,
-                                            posterUrl = channel.logoUrl,
+                                            name = channelWithEpg.channel.name,
+                                            posterUrl = channelWithEpg.channel.logoUrl,
                                             onClick = {
-                                                if (previewChannel?.id == channel.id) {
-                                                    onChannelClick(channel.id)
+                                                if (previewChannel?.id == channelWithEpg.channel.id) {
+                                                    onChannelClick(channelWithEpg.channel.id)
                                                 } else {
                                                     previewChannel = PreviewChannel(
-                                                        id = channel.id,
-                                                        name = channel.name,
-                                                        streamUrl = channel.streamUrl,
+                                                        id = channelWithEpg.channel.id,
+                                                        name = channelWithEpg.channel.name,
+                                                        streamUrl = channelWithEpg.channel.streamUrl,
                                                     )
                                                 }
                                             },

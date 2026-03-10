@@ -24,7 +24,11 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["playlist_id"]),
         Index(value = ["playlist_id", "content_type", "content_id"], unique = true),
+        // Optimiert für observeContinueWatching: Filter nach is_completed, Sortierung nach last_watched_at
+        Index(value = ["playlist_id", "is_completed", "last_watched_at"]),
         Index(value = ["last_watched_at"]),
+        // Optimiert für Trakt-Sync
+        Index(value = ["trakt_synced"]),
     ]
 )
 data class WatchProgressEntity(

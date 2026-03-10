@@ -13,6 +13,10 @@
     <string name="next">Next</string>
     <string name="all">All</string>
     <string name="none">None</string>
+    <string name="now">Now</string>
+    <string name="next_short">Next</string>
+    <string name="now_playing">Now: %s</string>
+    <string name="next_playing">Next: %s</string>
 
     <!-- Dashboard -->
     <string name="expires_format">Expires: %s</string>

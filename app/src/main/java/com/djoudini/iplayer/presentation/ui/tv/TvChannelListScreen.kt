@@ -60,9 +60,9 @@ fun TvChannelListScreen(
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(channels, key = { it.id }) { channel ->
+            items(channels, key = { it.channel.id }) { channelWithEpg ->
                 FocusableCard(
-                    onClick = { onChannelClick(channel.id) },
+                    onClick = { onChannelClick(channelWithEpg.channel.id) },
                     focusScale = 1.03f,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -72,10 +72,10 @@ fun TvChannelListScreen(
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (!channel.logoUrl.isNullOrBlank()) {
+                        if (!channelWithEpg.channel.logoUrl.isNullOrBlank()) {
                             AsyncImage(
-                                model = channel.logoUrl,
-                                contentDescription = channel.name,
+                                model = channelWithEpg.channel.logoUrl,
+                                contentDescription = channelWithEpg.channel.name,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .size(64.dp)
@@ -86,22 +86,24 @@ fun TvChannelListScreen(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = channel.name,
+                                text = channelWithEpg.channel.name,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            channel.tvgName?.let {
+                            channelWithEpg.currentProgram?.let { program ->
                                 Text(
-                                    text = it,
+                                    text = program.title,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }
 
-                        if (channel.isFavorite) {
+                        if (channelWithEpg.channel.isFavorite) {
                             Text(
                                 text = stringResource(R.string.fav),
                                 style = MaterialTheme.typography.labelSmall,
