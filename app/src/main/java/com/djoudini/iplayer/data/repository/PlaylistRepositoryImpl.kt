@@ -138,7 +138,7 @@ class PlaylistRepositoryImpl @Inject constructor(
                     _syncProgress.value = SyncProgress.failed(
                         e.localizedMessage ?: "Sync failed"
                     )
-                    throw e
+                    // Don't re-throw - allow partial sync
                 }
             }
         }
@@ -528,7 +528,7 @@ class PlaylistRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "EPG sync failed")
             _syncProgress.value = SyncProgress.failed(e.localizedMessage ?: "EPG sync failed")
-            throw e
+            // Don't re-throw - allow partial EPG sync
         }
     }
 
@@ -594,7 +594,8 @@ class PlaylistRepositoryImpl @Inject constructor(
                     _syncProgress.value = SyncProgress.failed(
                         e.localizedMessage ?: "Stream sync failed"
                     )
-                    throw e  // CRITICAL FIX: Re-throw exception so caller knows sync failed
+                    // Don't re-throw - let sync continue partially if possible
+                    // This prevents total failure when one category has issues
                 }
             }
         }
