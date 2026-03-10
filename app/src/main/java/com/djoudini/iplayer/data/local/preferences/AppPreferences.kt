@@ -13,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -124,11 +125,8 @@ class AppPreferences @Inject constructor(
     }
 
     suspend fun getTraktRefreshToken(): String? {
-        var token: String? = null
-        dataStore.data.collect { prefs ->
-            token = prefs[TraktKeys.REFRESH_TOKEN]
-        }
-        return token
+        // FIX: Use first() instead of collect() - collect() blocks forever on DataStore
+        return dataStore.data.first()[TraktKeys.REFRESH_TOKEN]
     }
 
     suspend fun clearTraktTokens() {

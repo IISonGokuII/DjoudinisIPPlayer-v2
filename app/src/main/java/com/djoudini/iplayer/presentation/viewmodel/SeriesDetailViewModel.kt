@@ -14,6 +14,8 @@ import com.djoudini.iplayer.domain.model.PlaylistType
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.presentation.navigation.NavArgs
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +36,10 @@ class SeriesDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val seriesId: Long = savedStateHandle.get<Long>(NavArgs.SERIES_ID) ?: 0L
+    
+    // FIX: Track active collection jobs to prevent memory leaks
+    private var episodesJob: Job? = null
+    private var progressJob: Job? = null
 
     private val _series = MutableStateFlow<SeriesEntity?>(null)
     val series: StateFlow<SeriesEntity?> = _series.asStateFlow()

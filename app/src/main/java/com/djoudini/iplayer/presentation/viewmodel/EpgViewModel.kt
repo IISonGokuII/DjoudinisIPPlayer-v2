@@ -12,8 +12,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
+@Immutable
 data class ChannelEpgData(
     val channelDbId: Long,
     val channelId: String,
@@ -37,6 +40,7 @@ class EpgViewModel @Inject constructor(
 
     private fun loadEpg() {
         viewModelScope.launch {
+            val startTime = System.currentTimeMillis()
             val playlist = playlistRepository.getActive() ?: return@launch
 
             // Get channels that have tvg_id for EPG matching
@@ -44,15 +48,26 @@ class EpgViewModel @Inject constructor(
                 .filter { !it.tvgId.isNullOrBlank() }
                 .take(100) // Limit for performance
 
+            if (channels.isEmpty()) {
+                _epgData.value = emptyList()
+                return@launch
+            }
+
             val now = System.currentTimeMillis()
             val endTime = now + 24 * 60 * 60 * 1000 // Next 24 hours
 
+            // FIX: Batch query instead of N+1 queries
+            // Old: 100+ individual queries (one per channel)
+            // New: 1 query for all channels
+            val channelIds = channels.mapNotNull { it.tvgId }
+            val programsByChannel = epgRepository.getProgramsForChannels(
+                channelIds = channelIds,
+                fromTime = now - 2 * 60 * 60 * 1000, // 2 hours back
+                toTime = endTime,
+            )
+
             val epgList = channels.mapNotNull { channel ->
-                val programs = epgRepository.getProgramsForRange(
-                    channelId = channel.tvgId ?: return@mapNotNull null,
-                    fromTime = now - 2 * 60 * 60 * 1000, // 2 hours back
-                    toTime = endTime,
-                )
+                val programs = programsByChannel[channel.tvgId] ?: return@mapNotNull null
                 if (programs.isEmpty()) return@mapNotNull null
                 ChannelEpgData(
                     channelDbId = channel.id,
@@ -63,6 +78,9 @@ class EpgViewModel @Inject constructor(
             }
 
             _epgData.value = epgList
+            
+            val duration = System.currentTimeMillis() - startTime
+            Timber.d("[EPG] Loaded ${epgList.size} channels with EPG data in ${duration}ms (batch query)")
         }
     }
 }

@@ -19,12 +19,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.runtime.Immutable
 
+@Immutable
 data class SearchResult(
     val id: Long,
     val name: String,
@@ -176,10 +179,12 @@ class ContentListViewModel @Inject constructor(
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     val searchResults: StateFlow<List<SearchResult>> =
-        _searchQuery.flatMapLatest { query ->
-            if (query.length < 2) {
-                flowOf(emptyList())
-            } else {
+        _searchQuery
+            .debounce(300) // FIX: Wait 300ms after user stops typing before searching
+            .flatMapLatest { query ->
+                if (query.length < 2) {
+                    flowOf(emptyList())
+                } else {
                 playlistRepository.observeActive().flatMapLatest { playlist ->
                     if (playlist == null) {
                         flowOf(emptyList())

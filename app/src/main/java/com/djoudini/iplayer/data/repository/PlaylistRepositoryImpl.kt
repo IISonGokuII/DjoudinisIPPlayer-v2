@@ -138,6 +138,7 @@ class PlaylistRepositoryImpl @Inject constructor(
                     _syncProgress.value = SyncProgress.failed(
                         e.localizedMessage ?: "Sync failed"
                     )
+                    throw e
                 }
             }
         }
@@ -252,16 +253,26 @@ class PlaylistRepositoryImpl @Inject constructor(
         }
 
         val allCategories = categoryDao.getAllByPlaylist(playlist.id)
+        Timber.d("[Sync] Loaded ${allCategories.size} categories from DB for playlist ${playlist.id}")
+        
         for (cat in allCategories) {
             categoryIdMap[categoryKey(cat.categoryType, cat.remoteId)] = cat.id
             if (cat.isSelected) {
                 selectedRemoteIds[cat.categoryType]?.add(cat.remoteId)
             }
         }
+        
+        Timber.d("[Sync] Selected categories: Live=${selectedRemoteIds[ContentType.LIVE.value]?.size}, Vod=${selectedRemoteIds[ContentType.VOD.value]?.size}, Series=${selectedRemoteIds[ContentType.SERIES.value]?.size}")
 
         val selectedLive = selectedRemoteIds[ContentType.LIVE.value] ?: emptySet()
         val selectedVod = selectedRemoteIds[ContentType.VOD.value] ?: emptySet()
         val selectedSeries = selectedRemoteIds[ContentType.SERIES.value] ?: emptySet()
+
+        // Validate that at least one category is selected
+        if (selectedLive.isEmpty() && selectedVod.isEmpty() && selectedSeries.isEmpty()) {
+            Timber.w("[Sync] No categories selected for playlist ${playlist.id}, skipping stream sync")
+            throw IllegalStateException("No categories selected. Please select at least one category to sync.")
+        }
 
         val totalSteps = (if (selectedLive.isNotEmpty()) 1 else 0) +
                 (if (selectedVod.isNotEmpty()) 1 else 0) +
@@ -282,7 +293,13 @@ class PlaylistRepositoryImpl @Inject constructor(
             val channelEntities = mutableListOf<ChannelEntity>()
             selectedLive.forEachIndexed { index, remoteId ->
                 val streams = xtreamApi.getLiveStreams(apiUrl, username, password, categoryId = remoteId)
-                val catId = categoryIdMap[categoryKey(ContentType.LIVE.value, remoteId)] ?: return@forEachIndexed
+                val catKey = categoryKey(ContentType.LIVE.value, remoteId)
+                val catId = categoryIdMap[catKey]
+                if (catId == null) {
+                    Timber.w("[Sync] Live category not found in map for remoteId=$remoteId, key=$catKey")
+                    return@forEachIndexed
+                }
+                Timber.d("[Sync] Fetched ${streams.size} live streams for category $remoteId")
                 streams.mapNotNullTo(channelEntities) { dto ->
                     dto.toChannelEntity(playlist, catId, serverUrl, username, password)
                 }
@@ -294,8 +311,10 @@ class PlaylistRepositoryImpl @Inject constructor(
                 )
             }
             channelDao.insertAll(channelEntities)
+            Timber.d("[Sync] Inserted ${channelEntities.size} channels into DB")
             currentStep++
         } else {
+            Timber.d("[Sync] No live categories selected, deleting all channels")
             channelDao.deleteByPlaylist(playlist.id)
         }
 
@@ -307,7 +326,13 @@ class PlaylistRepositoryImpl @Inject constructor(
             val vodEntities = mutableListOf<VodEntity>()
             selectedVod.forEachIndexed { index, remoteId ->
                 val streams = xtreamApi.getVodStreams(apiUrl, username, password, categoryId = remoteId)
-                val catId = categoryIdMap[categoryKey(ContentType.VOD.value, remoteId)] ?: return@forEachIndexed
+                val catKey = categoryKey(ContentType.VOD.value, remoteId)
+                val catId = categoryIdMap[catKey]
+                if (catId == null) {
+                    Timber.w("[Sync] VOD category not found in map for remoteId=$remoteId, key=$catKey")
+                    return@forEachIndexed
+                }
+                Timber.d("[Sync] Fetched ${streams.size} VOD streams for category $remoteId")
                 streams.mapNotNullTo(vodEntities) { dto ->
                     dto.toVodEntity(playlist, catId, serverUrl, username, password)
                 }
@@ -319,8 +344,10 @@ class PlaylistRepositoryImpl @Inject constructor(
                 )
             }
             vodDao.insertAll(vodEntities)
+            Timber.d("[Sync] Inserted ${vodEntities.size} VOD items into DB")
             currentStep++
         } else {
+            Timber.d("[Sync] No VOD categories selected, deleting all VOD items")
             vodDao.deleteByPlaylist(playlist.id)
         }
 
@@ -333,7 +360,13 @@ class PlaylistRepositoryImpl @Inject constructor(
             val seriesEntities = mutableListOf<SeriesEntity>()
             selectedSeries.forEachIndexed { index, remoteId ->
                 val streams = xtreamApi.getSeries(apiUrl, username, password, categoryId = remoteId)
-                val catId = categoryIdMap[categoryKey(ContentType.SERIES.value, remoteId)] ?: return@forEachIndexed
+                val catKey = categoryKey(ContentType.SERIES.value, remoteId)
+                val catId = categoryIdMap[catKey]
+                if (catId == null) {
+                    Timber.w("[Sync] Series category not found in map for remoteId=$remoteId, key=$catKey")
+                    return@forEachIndexed
+                }
+                Timber.d("[Sync] Fetched ${streams.size} series for category $remoteId")
                 streams.mapNotNullTo(seriesEntities) { dto ->
                     dto.toSeriesEntity(playlist, catId)
                 }
@@ -345,8 +378,10 @@ class PlaylistRepositoryImpl @Inject constructor(
                 )
             }
             seriesDao.insertAll(seriesEntities)
+            Timber.d("[Sync] Inserted ${seriesEntities.size} series into DB")
             currentStep++
         } else {
+            Timber.d("[Sync] No series categories selected, deleting all series")
             seriesDao.deleteByPlaylist(playlist.id)
             episodeDao.deleteByPlaylist(playlist.id)
         }
@@ -493,6 +528,7 @@ class PlaylistRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "EPG sync failed")
             _syncProgress.value = SyncProgress.failed(e.localizedMessage ?: "EPG sync failed")
+            throw e
         }
     }
 
@@ -537,14 +573,20 @@ class PlaylistRepositoryImpl @Inject constructor(
         coroutineScope {
             syncJob = launch {
                 try {
+                    Timber.d("[Sync] Starting stream sync for playlist $playlistId (type=${playlist.type})")
                     _syncProgress.value = SyncProgress.indeterminate("Preparing sync...")
                     when (PlaylistType.fromValue(playlist.type)) {
                         PlaylistType.XTREAM -> syncXtreamSelectedStreams(playlist)
-                        PlaylistType.M3U -> { /* Already synced during categoriesOnly */ }
+                        PlaylistType.M3U -> { 
+                            Timber.d("[Sync] M3U playlist - streams already synced during categories")
+                            /* Already synced during categoriesOnly */ 
+                        }
                     }
                     playlistDao.updateLastSynced(playlistId, System.currentTimeMillis())
                     _syncProgress.value = SyncProgress.completed()
+                    Timber.d("[Sync] Stream sync completed successfully for playlist $playlistId")
                 } catch (e: CancellationException) {
+                    Timber.d("[Sync] Stream sync cancelled for playlist $playlistId")
                     _syncProgress.value = SyncProgress.Idle
                     throw e
                 } catch (e: Exception) {
@@ -552,6 +594,7 @@ class PlaylistRepositoryImpl @Inject constructor(
                     _syncProgress.value = SyncProgress.failed(
                         e.localizedMessage ?: "Stream sync failed"
                     )
+                    throw e  // CRITICAL FIX: Re-throw exception so caller knows sync failed
                 }
             }
         }

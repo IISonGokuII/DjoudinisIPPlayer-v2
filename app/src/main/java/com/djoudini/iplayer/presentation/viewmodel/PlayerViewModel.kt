@@ -23,8 +23,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
+@Immutable
 data class AudioTrackInfo(
     val index: Int,
     val language: String,
@@ -32,6 +34,7 @@ data class AudioTrackInfo(
     val isSelected: Boolean,
 )
 
+@Immutable
 data class SubtitleTrackInfo(
     val index: Int,
     val language: String,
@@ -39,6 +42,7 @@ data class SubtitleTrackInfo(
     val isSelected: Boolean,
 )
 
+@Immutable
 data class PlayerUiState(
     val title: String = "",
     val streamUrl: String = "",

@@ -53,6 +53,23 @@ interface EpgProgramDao {
     """)
     suspend fun getProgramsForRange(channelId: String, fromTime: Long, toTime: Long): List<EpgProgramEntity>
 
+    /** 
+     * Batch query for EPG grid - loads programs for multiple channels in a single query.
+     * Fixes N+1 problem: 1 query instead of 100+ queries for EPG grid.
+     */
+    @Query("""
+        SELECT * FROM epg_programs
+        WHERE epg_channel_id IN (:channelIds)
+        AND start_time >= :fromTime
+        AND start_time < :toTime
+        ORDER BY epg_channel_id ASC, start_time ASC
+    """)
+    suspend fun getProgramsForChannels(
+        channelIds: List<String>, 
+        fromTime: Long, 
+        toTime: Long
+    ): List<EpgProgramEntity>
+
     @Query("DELETE FROM epg_programs WHERE playlist_id = :playlistId")
     suspend fun deleteByPlaylist(playlistId: Long)
 

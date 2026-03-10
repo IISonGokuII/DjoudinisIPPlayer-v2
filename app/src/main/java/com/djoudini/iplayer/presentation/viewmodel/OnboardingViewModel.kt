@@ -17,13 +17,16 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import androidx.compose.runtime.Immutable
 import javax.inject.Inject
 
+@Immutable
 data class LoginState(
     val isLoading: Boolean = false,
     val error: String? = null,
 )
 
+@Immutable
 data class CategoryFilterState(
     val liveCategories: List<CategoryEntity> = emptyList(),
     val vodCategories: List<CategoryEntity> = emptyList(),
@@ -176,12 +179,16 @@ class OnboardingViewModel @Inject constructor(
 
     fun syncSelectedContent(playlistId: Long) {
         viewModelScope.launch {
+            Timber.d("[Onboarding] Starting selected content sync for playlist $playlistId")
             _filterState.update { it.copy(isSyncing = true) }
             try {
                 playlistRepository.syncSelectedStreams(playlistId)
+                Timber.d("[Onboarding] Stream sync completed for playlist $playlistId")
                 _filterState.update { it.copy(isSyncing = false) }
                 _syncComplete.emit(Unit)
+                Timber.d("[Onboarding] Sync complete event emitted")
             } catch (e: Exception) {
+                Timber.e(e, "[Onboarding] Stream sync failed for playlist $playlistId")
                 _filterState.update { it.copy(isSyncing = false) }
                 _loginState.update {
                     it.copy(error = e.localizedMessage ?: "Sync failed")
