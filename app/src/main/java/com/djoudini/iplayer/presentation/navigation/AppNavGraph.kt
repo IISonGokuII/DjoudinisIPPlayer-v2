@@ -27,6 +27,7 @@ import com.djoudini.iplayer.presentation.ui.tv.TvLoginXtreamScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLoginM3uScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvCategoryFilterScreen
 
 @Composable
 fun AppNavGraph(
@@ -104,14 +105,25 @@ fun AppNavGraph(
             arguments = listOf(navArgument(NavArgs.PLAYLIST_ID) { type = NavType.LongType }),
         ) { backStackEntry ->
             val playlistId = backStackEntry.arguments?.getLong(NavArgs.PLAYLIST_ID) ?: return@composable
-            CategoryFilterScreen(
-                playlistId = playlistId,
-                onComplete = {
-                    navController.navigate(Route.Dashboard.route) {
-                        popUpTo(Route.Onboarding.route) { inclusive = true }
-                    }
-                },
-            )
+            if (isTvDevice) {
+                TvCategoryFilterScreen(
+                    playlistId = playlistId,
+                    onComplete = {
+                        navController.navigate(Route.Dashboard.route) {
+                            popUpTo(Route.Onboarding.route) { inclusive = true }
+                        }
+                    },
+                )
+            } else {
+                CategoryFilterScreen(
+                    playlistId = playlistId,
+                    onComplete = {
+                        navController.navigate(Route.Dashboard.route) {
+                            popUpTo(Route.Onboarding.route) { inclusive = true }
+                        }
+                    },
+                )
+            }
         }
 
         // --- Dashboard ---
