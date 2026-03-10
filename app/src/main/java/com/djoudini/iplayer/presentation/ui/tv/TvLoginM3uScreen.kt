@@ -1,6 +1,5 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,6 +50,7 @@ fun TvLoginM3uScreen(
 ) {
     val loginState by viewModel.loginState.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     var name by remember { mutableStateOf("") }
     var m3uUrl by remember { mutableStateOf("") }
@@ -62,19 +64,23 @@ fun TvLoginM3uScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp)
+            .padding(horizontal = 48.dp, vertical = 32.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(0.6f).align(Alignment.Center),
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .align(Alignment.TopCenter)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Header with back button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FocusableCard(
                     onClick = onBack,
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(56.dp),
                     focusScale = 1.1f
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -82,17 +88,18 @@ fun TvLoginM3uScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(32.dp))
+                Spacer(modifier = Modifier.width(24.dp))
 
                 Text(
                     text = stringResource(R.string.m3u_playlist),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
+            // Input fields
             FocusableTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -101,7 +108,7 @@ fun TvLoginM3uScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             FocusableTextField(
                 value = m3uUrl,
@@ -114,16 +121,19 @@ fun TvLoginM3uScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Error message
             if (loginState is Resource.Error) {
                 Text(
                     text = (loginState as Resource.Error).message ?: "Unknown error",
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
 
+            // Progress or Button - always at the bottom
             if (syncProgress.isActive) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -138,7 +148,7 @@ fun TvLoginM3uScreen(
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     if (!syncProgress.isIndeterminate) {
                         LinearProgressIndicator(
                             progress = { syncProgress.progress },
@@ -159,7 +169,7 @@ fun TvLoginM3uScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp),
+                        .height(56.dp),
                     focusScale = 1.05f
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -175,6 +185,9 @@ fun TvLoginM3uScreen(
                     }
                 }
             }
+            
+            // Extra space at bottom for scrolling
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

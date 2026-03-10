@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +52,7 @@ fun TvLoginXtreamScreen(
 ) {
     val loginState by viewModel.loginState.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
     var name by remember { mutableStateOf("") }
     var serverUrl by remember { mutableStateOf("") }
@@ -65,19 +68,23 @@ fun TvLoginXtreamScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp)
+            .padding(horizontal = 48.dp, vertical = 32.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(0.6f).align(Alignment.Center),
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .align(Alignment.TopCenter)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Header with back button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FocusableCard(
                     onClick = onBack,
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(56.dp),
                     focusScale = 1.1f
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -85,17 +92,18 @@ fun TvLoginXtreamScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(32.dp))
+                Spacer(modifier = Modifier.width(24.dp))
 
                 Text(
                     text = stringResource(R.string.xtream_codes_login),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
+            // Input fields
             FocusableTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -104,7 +112,7 @@ fun TvLoginXtreamScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             FocusableTextField(
                 value = serverUrl,
@@ -117,7 +125,7 @@ fun TvLoginXtreamScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             FocusableTextField(
                 value = username,
@@ -127,7 +135,7 @@ fun TvLoginXtreamScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             FocusableTextField(
                 value = password,
@@ -141,16 +149,19 @@ fun TvLoginXtreamScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Error message
             if (loginState is Resource.Error) {
                 Text(
                     text = (loginState as Resource.Error).message ?: "Unknown error",
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
 
+            // Progress or Button - always at the bottom
             if (syncProgress.isActive) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -165,7 +176,7 @@ fun TvLoginXtreamScreen(
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     if (!syncProgress.isIndeterminate) {
                         LinearProgressIndicator(
                             progress = { syncProgress.progress },
@@ -186,7 +197,7 @@ fun TvLoginXtreamScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp),
+                        .height(56.dp),
                     focusScale = 1.05f
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -202,6 +213,9 @@ fun TvLoginXtreamScreen(
                     }
                 }
             }
+            
+            // Extra space at bottom for scrolling
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
