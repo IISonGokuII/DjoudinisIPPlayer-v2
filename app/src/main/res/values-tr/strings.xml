@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Djoudini\'s IP Player</string>
+
+    <!-- Common -->
+    <string name="back">Geri</string>
+    <string name="close">Kapat</string>
+    <string name="cancel">İptal</string>
+    <string name="retry">Tekrar dene</string>
+    <string name="search">Ara</string>
+    <string name="sync">Senkronize et</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="next">İleri</string>
+    <string name="all">Tümü</string>
+    <string name="none">Hiçbiri</string>
+
+    <!-- Dashboard -->
+    <string name="expires_format">Bitiş tarihi: %s</string>
+    <string name="continue_watching">İzlemeye devam et</string>
+    <string name="favorites">Favoriler</string>
+    <string name="recently_watched">Son izlenenler</string>
+    <string name="live_tv">Canlı TV</string>
+    <string name="movies">Filmler</string>
+    <string name="series">Diziler</string>
+    <string name="epg_guide">TV Rehberi</string>
+    <string name="multi_view">Çoklu Görünüm</string>
+    <string name="settings">Ayarlar</string>
+    <string name="account_info">Hesap Bilgileri</string>
+    <string name="status">Durum</string>
+    <string name="max_connections">Maks. Bağlantı</string>
+    <string name="expiration">Son Kullanma</string>
+    <string name="last_synced">Son Senkronizasyon</string>
+    <string name="items_processed">%d öğe işlendi</string>
+
+    <!-- Onboarding -->
+    <string name="add_playlist_hint">Başlamak için IPTV oynatma listeni ekle</string>
+    <string name="xtream_codes_login">Xtream Codes Girişi</string>
+    <string name="m3u_playlist_url">M3U Oynatma Listesi URL</string>
+
+    <!-- Login -->
+    <string name="m3u_playlist">M3U Oynatma Listesi</string>
+    <string name="m3u_url">M3U URL</string>
+    <string name="playlist_name">Oynatma Listesi Adı</string>
+    <string name="server_url">Sunucu URL</string>
+    <string name="username">Kullanıcı Adı</string>
+    <string name="password">Şifre</string>
+    <string name="connect_and_sync">Bağlan &amp; Senkronize Et</string>
+    <string name="import_and_sync">İçe Aktar &amp; Senkronize Et</string>
+    <string name="items_count">%d öğe</string>
+
+    <!-- Category Filter -->
+    <string name="movies_vod">Filmler (VOD)</string>
+    <string name="step_format">%1$s (%2$d/3)</string>
+    <string name="loading_categories">Kategoriler yükleniyor…</string>
+    <string name="syncing">Senkronize ediliyor…</string>
+    <string name="select_categories_format">İçe aktarılacak %s kategorilerini seçin:</string>
+    <string name="no_categories_format">%s kategorisi bulunamadı</string>
+    <string name="sync_and_continue">Senkronize Et &amp; Devam</string>
+
+    <!-- Content Lists -->
+    <string name="select_a_category">Bir kategori seçin</string>
+    <string name="search_channels">Kanal ara…</string>
+    <string name="search_movies">Film ara…</string>
+    <string name="search_series">Dizi ara…</string>
+    <string name="channels_count">Kanallar (%d)</string>
+    <string name="movies_count">Filmler (%d)</string>
+    <string name="series_count">Diziler (%d)</string>
+    <string name="no_results_found">Sonuç bulunamadı</string>
+    <string name="search_placeholder">Kanal, film, dizi ara…</string>
+    <string name="movie">Film</string>
+    <string name="live">Canlı</string>
+    <string name="fav">FAV</string>
+    <string name="clear">Temizle</string>
+    <string name="sort">Sırala</string>
+    <string name="view_mode">Görünüm modu</string>
+    <string name="account_expires_format">Hesap bitiş tarihi: %s</string>
+
+    <!-- Player -->
+    <string name="continue_watching_title">İzlemeye devam et?</string>
+    <string name="resume_message">%d dakikada kaldınız. Devam etmek mi yoksa baştan başlamak mı istersiniz?</string>
+    <string name="continue_btn">Devam et</string>
+    <string name="start_over">Baştan başla</string>
+    <string name="audio_track">Ses Parçası</string>
+    <string name="no_audio_tracks">Ses parçası bulunamadı</string>
+    <string name="track_number">Parça %d</string>
+    <string name="playback_speed">Oynatma Hızı</string>
+    <string name="playback_error">Oynatma Hatası</string>
+    <string name="rewind">Geri sar</string>
+    <string name="play_pause">Oynat/Duraklat</string>
+    <string name="forward">İleri sar</string>
+    <string name="fullscreen">Tam ekran</string>
+    <string name="speed">Hız</string>
+    <string name="next_program">Sıradaki: %s</string>
+
+    <!-- VOD Detail -->
+    <string name="year_format">Yıl: %s</string>
+    <string name="rating_format">Puan: %.1f/10</string>
+    <string name="duration_format">Süre: %s</string>
+    <string name="director_format">Yönetmen: %s</string>
+    <string name="cast_format">Oyuncular: %s</string>
+    <string name="continue_from_format">%d dk.\'dan devam et</string>
+    <string name="play_movie">Filmi Oynat</string>
+
+    <!-- Series Detail -->
+    <string name="season_format">S%d</string>
+    <string name="episode_format">B%1$d - %2$s</string>
+    <string name="rating_string_format">Puan: %s</string>
+    <string name="watched">İzlendi</string>
+    <string name="play">Oynat</string>
+
+    <!-- Multi View -->
+    <string name="select_channel">Kanal Seç</string>
+    <string name="add_channel">Kanal Ekle</string>
+    <string name="remove">Kaldır</string>
+    <string name="tap_to_fullscreen">Tam ekran için dokunun</string>
+
+    <!-- EPG -->
+    <string name="no_epg_data">EPG verisi bulunamadı.</string>
+    <string name="sync_epg_hint">Ayarlar veya Ana Ekran\'dan EPG\'yi senkronize edin.</string>
+    <string name="channel">Kanal</string>
+
+    <!-- Settings -->
+    <string name="playlist">Oynatma Listesi</string>
+    <string name="refresh_playlist">Oynatma Listesini Yenile</string>
+    <string name="refresh_playlist_desc">Kanalları, filmleri ve dizileri yeniden senkronize et</string>
+    <string name="sync_epg">EPG Senkronize Et</string>
+    <string name="sync_epg_desc">Güncel program rehberini indir</string>
+    <string name="auto_sync">Otomatik Senkronizasyon</string>
+    <string name="auto_sync_desc">Periyodik arka plan senkronizasyonu (6s liste, 12s EPG)</string>
+    <string name="player">Oynatıcı</string>
+    <string name="user_agent">User-Agent</string>
+    <string name="buffer_size">Tampon Boyutu</string>
+    <string name="buffer_size_format">%1$ds min / %2$ds maks</string>
+    <string name="software_decoder">Yazılım Çözücü</string>
+    <string name="software_decoder_desc">Donanım yerine yazılım çözümleme kullan</string>
+    <string name="tunneled_playback">Tunnel Oynatma</string>
+    <string name="tunneled_playback_desc">Android TV için donanım tüneli (düşük gecikme)</string>
+    <string name="preferred_audio_language">Tercih Edilen Ses Dili</string>
+    <string name="auto_system_default">Otomatik (sistem varsayılanı)</string>
+    <string name="preferred_subtitle_language">Tercih Edilen Altyazı Dili</string>
+    <string name="off">Kapalı</string>
+    <string name="trakt_tv">Trakt.tv</string>
+    <string name="connected">Bağlı</string>
+    <string name="connect_trakt">Trakt.tv Bağla</string>
+    <string name="watch_progress_synced">İzleme ilerlemesi senkronize edildi</string>
+    <string name="sync_watched_content">İzlenen film &amp; dizileri senkronize et</string>
+    <string name="appearance">Görünüm</string>
+    <string name="theme">Tema</string>
+    <string name="data_management">Veri Yönetimi</string>
+    <string name="clear_watch_history">İzleme Geçmişini Temizle</string>
+    <string name="clear_watch_history_desc">Tüm ilerleme ve devam verileri silinecek</string>
+    <string name="reset_all_settings">Tüm Ayarları Sıfırla</string>
+    <string name="reset_all_settings_desc">Tüm ayarları varsayılan değerlere sıfırla</string>
+    <string name="app_version">Djoudini\'s IP Player v1.0.0</string>
+</resources>

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Djoudini\'s IP Player</string>
+
+    <!-- Common -->
+    <string name="back">Retour</string>
+    <string name="close">Fermer</string>
+    <string name="cancel">Annuler</string>
+    <string name="retry">Réessayer</string>
+    <string name="search">Recherche</string>
+    <string name="sync">Synchroniser</string>
+    <string name="loading">Chargement…</string>
+    <string name="next">Suivant</string>
+    <string name="all">Tout</string>
+    <string name="none">Aucun</string>
+
+    <!-- Dashboard -->
+    <string name="expires_format">Expire le : %s</string>
+    <string name="continue_watching">Continuer à regarder</string>
+    <string name="favorites">Favoris</string>
+    <string name="recently_watched">Vus récemment</string>
+    <string name="live_tv">TV en direct</string>
+    <string name="movies">Films</string>
+    <string name="series">Séries</string>
+    <string name="epg_guide">Guide TV</string>
+    <string name="multi_view">Multi-écran</string>
+    <string name="settings">Paramètres</string>
+    <string name="account_info">Informations du compte</string>
+    <string name="status">Statut</string>
+    <string name="max_connections">Connexions max.</string>
+    <string name="expiration">Expiration</string>
+    <string name="last_synced">Dernière synchronisation</string>
+    <string name="items_processed">%d éléments traités</string>
+
+    <!-- Onboarding -->
+    <string name="add_playlist_hint">Ajoutez votre playlist IPTV pour commencer</string>
+    <string name="xtream_codes_login">Connexion Xtream Codes</string>
+    <string name="m3u_playlist_url">URL de playlist M3U</string>
+
+    <!-- Login -->
+    <string name="m3u_playlist">Playlist M3U</string>
+    <string name="m3u_url">URL M3U</string>
+    <string name="playlist_name">Nom de la playlist</string>
+    <string name="server_url">URL du serveur</string>
+    <string name="username">Nom d\'utilisateur</string>
+    <string name="password">Mot de passe</string>
+    <string name="connect_and_sync">Connecter &amp; Synchroniser</string>
+    <string name="import_and_sync">Importer &amp; Synchroniser</string>
+    <string name="items_count">%d éléments</string>
+
+    <!-- Category Filter -->
+    <string name="movies_vod">Films (VOD)</string>
+    <string name="step_format">%1$s (%2$d/3)</string>
+    <string name="loading_categories">Chargement des catégories…</string>
+    <string name="syncing">Synchronisation…</string>
+    <string name="select_categories_format">Sélectionnez les catégories %s à importer :</string>
+    <string name="no_categories_format">Aucune catégorie %s disponible</string>
+    <string name="sync_and_continue">Synchroniser &amp; Continuer</string>
+
+    <!-- Content Lists -->
+    <string name="select_a_category">Sélectionnez une catégorie</string>
+    <string name="search_channels">Rechercher des chaînes…</string>
+    <string name="search_movies">Rechercher des films…</string>
+    <string name="search_series">Rechercher des séries…</string>
+    <string name="channels_count">Chaînes (%d)</string>
+    <string name="movies_count">Films (%d)</string>
+    <string name="series_count">Séries (%d)</string>
+    <string name="no_results_found">Aucun résultat trouvé</string>
+    <string name="search_placeholder">Rechercher chaînes, films, séries…</string>
+    <string name="movie">Film</string>
+    <string name="live">Direct</string>
+    <string name="fav">FAV</string>
+    <string name="clear">Effacer</string>
+    <string name="sort">Trier</string>
+    <string name="view_mode">Mode d\'affichage</string>
+    <string name="account_expires_format">Le compte expire le : %s</string>
+
+    <!-- Player -->
+    <string name="continue_watching_title">Continuer à regarder ?</string>
+    <string name="resume_message">Vous vous êtes arrêté à %d min. Voulez-vous continuer ou recommencer ?</string>
+    <string name="continue_btn">Continuer</string>
+    <string name="start_over">Recommencer</string>
+    <string name="audio_track">Piste audio</string>
+    <string name="no_audio_tracks">Aucune piste audio disponible</string>
+    <string name="track_number">Piste %d</string>
+    <string name="playback_speed">Vitesse de lecture</string>
+    <string name="playback_error">Erreur de lecture</string>
+    <string name="rewind">Rembobiner</string>
+    <string name="play_pause">Lecture/Pause</string>
+    <string name="forward">Avancer</string>
+    <string name="fullscreen">Plein écran</string>
+    <string name="speed">Vitesse</string>
+    <string name="next_program">Suivant : %s</string>
+
+    <!-- VOD Detail -->
+    <string name="year_format">Année : %s</string>
+    <string name="rating_format">Note : %.1f/10</string>
+    <string name="duration_format">Durée : %s</string>
+    <string name="director_format">Réalisateur : %s</string>
+    <string name="cast_format">Distribution : %s</string>
+    <string name="continue_from_format">Reprendre à %d min</string>
+    <string name="play_movie">Lire le film</string>
+
+    <!-- Series Detail -->
+    <string name="season_format">S%d</string>
+    <string name="episode_format">E%1$d - %2$s</string>
+    <string name="rating_string_format">Note : %s</string>
+    <string name="watched">Vu</string>
+    <string name="play">Lire</string>
+
+    <!-- Multi View -->
+    <string name="select_channel">Sélectionner une chaîne</string>
+    <string name="add_channel">Ajouter une chaîne</string>
+    <string name="remove">Supprimer</string>
+    <string name="tap_to_fullscreen">Appuyez pour le plein écran</string>
+
+    <!-- EPG -->
+    <string name="no_epg_data">Aucune donnée EPG disponible.</string>
+    <string name="sync_epg_hint">Synchronisez l\'EPG depuis les paramètres ou le tableau de bord.</string>
+    <string name="channel">Chaîne</string>
+
+    <!-- Settings -->
+    <string name="playlist">Playlist</string>
+    <string name="refresh_playlist">Actualiser la playlist</string>
+    <string name="refresh_playlist_desc">Resynchroniser chaînes, films et séries</string>
+    <string name="sync_epg">Synchroniser EPG</string>
+    <string name="sync_epg_desc">Télécharger le guide des programmes</string>
+    <string name="auto_sync">Synchronisation automatique</string>
+    <string name="auto_sync_desc">Synchronisation périodique (6h playlist, 12h EPG)</string>
+    <string name="player">Lecteur</string>
+    <string name="user_agent">User-Agent</string>
+    <string name="buffer_size">Taille du tampon</string>
+    <string name="buffer_size_format">%1$ds min / %2$ds max</string>
+    <string name="software_decoder">Décodeur logiciel</string>
+    <string name="software_decoder_desc">Utiliser le décodage logiciel au lieu du matériel</string>
+    <string name="tunneled_playback">Lecture tunnelisée</string>
+    <string name="tunneled_playback_desc">Tunnel matériel pour Android TV (latence réduite)</string>
+    <string name="preferred_audio_language">Langue audio préférée</string>
+    <string name="auto_system_default">Auto (par défaut du système)</string>
+    <string name="preferred_subtitle_language">Langue des sous-titres préférée</string>
+    <string name="off">Désactivé</string>
+    <string name="trakt_tv">Trakt.tv</string>
+    <string name="connected">Connecté</string>
+    <string name="connect_trakt">Connecter Trakt.tv</string>
+    <string name="watch_progress_synced">Progression synchronisée</string>
+    <string name="sync_watched_content">Synchroniser films &amp; séries vus</string>
+    <string name="appearance">Apparence</string>
+    <string name="theme">Thème</string>
+    <string name="data_management">Gestion des données</string>
+    <string name="clear_watch_history">Effacer l\'historique</string>
+    <string name="clear_watch_history_desc">Supprimer toutes les données de progression</string>
+    <string name="reset_all_settings">Réinitialiser les paramètres</string>
+    <string name="reset_all_settings_desc">Restaurer tous les paramètres par défaut</string>
+    <string name="app_version">Djoudini\'s IP Player v1.0.0</string>
+</resources>
