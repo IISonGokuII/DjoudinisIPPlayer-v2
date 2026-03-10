@@ -1,71 +1,86 @@
 package com.djoudini.iplayer
 
 import android.app.Application
-import androidx.hilt.work.HiltWorkerFactory
+import android.content.Context
 import androidx.work.Configuration
+import androidx.work.WorkManager
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.request.CachePolicy
+import coil.util.DebugLogger
 import com.djoudini.iplayer.data.worker.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 
+/**
+ * Application class with optimized Coil image loading for TV/Fire TV.
+ * 
+ * Key optimizations:
+ * - Large memory cache for fast logo loading
+ * - Persistent disk cache for offline logo viewing
+ * - Aggressive caching policies
+ */
 @HiltAndroidApp
-class DjoudinisApp : Application(), Configuration.Provider, ImageLoaderFactory {
-
-    @Inject
-    lateinit var workerFactory: HiltWorkerFactory
+class DjoudinisApp : Application(), ImageLoaderFactory {
 
     @Inject
     lateinit var syncScheduler: SyncScheduler
 
     override fun onCreate() {
         super.onCreate()
+
+        // Initialize Timber for logging
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
 
-        // Schedule periodic background sync
-        syncScheduler.schedulePeriodicPlaylistSync()
-        syncScheduler.schedulePeriodicEpgSync()
+        // Initialize WorkManager
+        WorkManager.initialize(
+            this,
+            Configuration.Builder()
+                .setMinimumLoggingLevel(android.util.Log.INFO)
+                .build()
+        )
+
+        // Note: Background sync scheduling is handled by SettingsViewModel
+        // when user enables auto-sync
     }
 
-    override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .setMinimumLoggingLevel(
-                if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.INFO
-            )
-            .build()
-
     /**
-     * Configure Coil image loader with aggressive caching for logos/posters.
-     * - 20% of app memory for memory cache
-     * - 256MB disk cache
-     * - Crossfade animations for smoother loading
+     * Optimized Coil ImageLoader for fast channel/logo loading.
+     * Critical for Fire TV performance.
      */
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
+            // Memory cache: 25% of available memory for logos
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.25)
                     .build()
             }
+            // Disk cache: 100MB for persistent logo storage
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(512L * 1024 * 1024)
+                    .maxSizeBytes(100 * 1024 * 1024) // 100 MB
                     .build()
             }
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .diskCachePolicy(CachePolicy.ENABLED)
-            .networkCachePolicy(CachePolicy.ENABLED)
+            // Aggressive caching for logos
+            .respectCacheHeaders(false)
+            // Allow larger images for TV screens
+            .allowHardware(true)
+            // Crossfade animation for smooth loading
             .crossfade(true)
-            .crossfade(150)
-            .respectCacheHeaders(false) // Always cache IPTV logos regardless of headers
+            // Logger in debug mode
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    logger(DebugLogger())
+                }
+            }
             .build()
     }
 }

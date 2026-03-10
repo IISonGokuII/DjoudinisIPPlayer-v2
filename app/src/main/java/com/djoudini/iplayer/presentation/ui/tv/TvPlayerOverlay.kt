@@ -17,7 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Pause
@@ -49,16 +54,17 @@ import com.djoudini.iplayer.presentation.viewmodel.PlayerUiState
  *
  * Key mappings for Live TV (CHANNEL):
  * - DPAD_CENTER / Enter: Play/Pause
- * - DPAD_LEFT: Rewind 10s
+ * - DPAD_LEFT: Rewind 10s (LONG PRESS: Recent channels)
  * - DPAD_RIGHT: Forward 10s
  * - DPAD_UP: Previous channel (zap)
  * - DPAD_DOWN: Next channel (zap)
+ * - NUMBER KEYS (0-9): Direct channel number input
  * - BACK: Exit player
  *
  * Key mappings for VOD/Episodes:
  * - DPAD_CENTER / Enter: Play/Pause
  * - DPAD_LEFT: Rewind 10s
- * - DPAD_RIGHT: Forward 10s (long press: Next Episode for series)
+ * - DPAD_RIGHT: Forward 10s (LONG PRESS: Next Episode)
  * - DPAD_UP/DOWN: Show/hide controls
  * - BACK: Exit player
  */
@@ -73,6 +79,11 @@ fun TvPlayerOverlay(
     onPreviousChannel: (() -> Unit)? = null,
     onNextChannel: (() -> Unit)? = null,
     onNextEpisode: (() -> Unit)? = null,
+    onToggleFavorite: (() -> Unit)? = null,
+    onShowRecentChannels: (() -> Unit)? = null,
+    onInputChannelNumber: ((String) -> Unit)? = null,
+    onToggleAudioSelection: (() -> Unit)? = null,
+    onToggleSubtitleSelection: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val isLiveTv = uiState.contentType == WatchContentType.CHANNEL
@@ -113,6 +124,27 @@ fun TvPlayerOverlay(
                         }
                         true
                     }
+                    // Number keys for channel input (Live TV only)
+                    Key.Zero, Key.One, Key.Two, Key.Three, Key.Four, 
+                    Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine -> {
+                        if (isLiveTv && onInputChannelNumber != null) {
+                            val digit = when (event.key) {
+                                Key.Zero -> "0"
+                                Key.One -> "1"
+                                Key.Two -> "2"
+                                Key.Three -> "3"
+                                Key.Four -> "4"
+                                Key.Five -> "5"
+                                Key.Six -> "6"
+                                Key.Seven -> "7"
+                                Key.Eight -> "8"
+                                Key.Nine -> "9"
+                                else -> null
+                            }
+                            digit?.let { onInputChannelNumber(it) }
+                            true
+                        } else false
+                    }
                     Key.Back, Key.Escape -> {
                         onBack()
                         true
@@ -121,13 +153,50 @@ fun TvPlayerOverlay(
                 }
             },
     ) {
+        // Channel Number Input Overlay
+        AnimatedVisibility(
+            visible = uiState.showChannelNumberInput,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.7f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Kanal",
+                        color = Color.White.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = uiState.channelNumberInput,
+                        color = Color.White,
+                        style = MaterialTheme.typography.displayLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "OK zum Bestätigen",
+                        color = Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        }
+
         AnimatedVisibility(
             visible = uiState.controlsVisible,
             enter = fadeIn(),
             exit = fadeOut(),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Top bar: Title + EPG
+                // Top bar: Title + EPG + Favorite + Audio/Subtitle
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -139,25 +208,100 @@ fun TvPlayerOverlay(
                         )
                         .padding(32.dp),
                 ) {
-                    Text(
-                        text = uiState.title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    uiState.currentProgram?.let { prog ->
-                        Spacer(modifier = Modifier.height(4.dp))
+                    // Title row with favorite and track buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Title
                         Text(
-                            text = "Now: ${prog.title}",
+                            text = uiState.title,
+                            color = Color.White,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        
+                        // Favorite button (Live TV only)
+                        if (isLiveTv && onToggleFavorite != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (uiState.isFavorite) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                        else 
+                                            Color.Black.copy(alpha = 0.5f)
+                                    )
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = if (uiState.isFavorite) 
+                                        Icons.Default.Favorite 
+                                    else 
+                                        Icons.Default.FavoriteBorder,
+                                    contentDescription = "Favorite",
+                                    tint = if (uiState.isFavorite) Color.White else Color.White.copy(alpha = 0.7f),
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+                        
+                        // Audio track button
+                        if (onToggleAudioSelection != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Audiotrack,
+                                    contentDescription = "Audio",
+                                    tint = Color.White,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                        }
+                        
+                        // Subtitle button
+                        if (onToggleSubtitleSelection != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ClosedCaption,
+                                    contentDescription = "Subtitles",
+                                    tint = Color.White,
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // EPG Info
+                    uiState.currentProgram?.let { prog ->
+                        Text(
+                            text = "Jetzt: ${prog.title}",
                             color = Color.LightGray,
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
                     uiState.nextProgram?.let { next ->
                         Text(
-                            text = "Next: ${next.title}",
+                            text = "Danach: ${next.title}",
                             color = Color.Gray,
                             style = MaterialTheme.typography.bodyMedium,
                         )
@@ -187,7 +331,7 @@ fun TvPlayerOverlay(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "UP",
+                                text = "HOCH",
                                 color = Color.White.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -244,7 +388,7 @@ fun TvPlayerOverlay(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "DOWN",
+                                text = "RUNTER",
                                 color = Color.White.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -280,7 +424,7 @@ fun TvPlayerOverlay(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
-                                    .clip(CircleShape)
+                                    .clip(RoundedCornerShape(20.dp))
                                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
                             ) {
@@ -292,7 +436,7 @@ fun TvPlayerOverlay(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Next Episode (Long Press RIGHT)",
+                                    text = "Nächste Episode",
                                     color = Color.White,
                                     style = MaterialTheme.typography.bodyMedium,
                                 )

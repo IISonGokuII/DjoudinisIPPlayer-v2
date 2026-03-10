@@ -22,7 +22,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
+
+data class AudioTrackInfo(
+    val index: Int,
+    val language: String,
+    val label: String?,
+    val isSelected: Boolean,
+)
+
+data class SubtitleTrackInfo(
+    val index: Int,
+    val language: String,
+    val label: String?,
+    val isSelected: Boolean,
+)
 
 data class PlayerUiState(
     val title: String = "",
@@ -55,6 +70,17 @@ data class PlayerUiState(
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
     val hasNextEpisode: Boolean = false,
+    // Audio/Subtitle tracks
+    val audioTracks: List<AudioTrackInfo> = emptyList(),
+    val subtitleTracks: List<SubtitleTrackInfo> = emptyList(),
+    val showTrackSelection: Boolean = false,
+    // Favorite status
+    val isFavorite: Boolean = false,
+    // Recent channels (last 5)
+    val recentChannels: List<Long> = emptyList(),
+    // Channel number input
+    val channelNumberInput: String = "",
+    val showChannelNumberInput: Boolean = false,
 )
 
 @HiltViewModel
@@ -114,6 +140,10 @@ class PlayerViewModel @Inject constructor(
         // Build fallback URLs for LiveTV streams
         val fallbackUrls = buildStreamFallbacks(channel.streamUrl, channel.containerExtension)
 
+        // Load recent channels (last 5 watched)
+        val recentChannels = channelDao.getRecentlyWatchedIds(playlistId, limit = 5)
+            .filter { it != contentId } // Exclude current channel
+
         _uiState.update {
             it.copy(
                 title = channel.name,
@@ -129,6 +159,8 @@ class PlayerViewModel @Inject constructor(
                 userAgent = channel.userAgent,
                 fallbackUrls = fallbackUrls,
                 currentFallbackIndex = 0,
+                isFavorite = channel.isFavorite,
+                recentChannels = recentChannels,
             )
         }
     }
@@ -551,5 +583,124 @@ class PlayerViewModel @Inject constructor(
             }
         }
         return true
+    }
+
+    // ==================== FAVORITES ====================
+
+    /**
+     * Toggle favorite status for current channel.
+     */
+    fun toggleFavorite() {
+        val state = _uiState.value
+        if (state.contentType != WatchContentType.CHANNEL) return
+
+        viewModelScope.launch {
+            try {
+                val newFavoriteStatus = !state.isFavorite
+                channelDao.setFavorite(state.contentId, newFavoriteStatus)
+                _uiState.update { it.copy(isFavorite = newFavoriteStatus) }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to toggle favorite")
+            }
+        }
+    }
+
+    // ==================== AUDIO & SUBTITLE TRACKS ====================
+
+    /**
+     * Update available audio and subtitle tracks from ExoPlayer.
+     */
+    fun updateTracks(audioTracks: List<AudioTrackInfo>, subtitleTracks: List<SubtitleTrackInfo>) {
+        _uiState.update {
+            it.copy(
+                audioTracks = audioTracks,
+                subtitleTracks = subtitleTracks,
+            )
+        }
+    }
+
+    fun showTrackSelection(show: Boolean) {
+        _uiState.update { it.copy(showTrackSelection = show) }
+    }
+
+    // ==================== CHANNEL NUMBER INPUT ====================
+
+    /**
+     * Add a digit to the channel number input.
+     */
+    fun inputChannelNumber(digit: String) {
+        val current = _uiState.value.channelNumberInput
+        if (current.length < 4) {
+            _uiState.update { 
+                it.copy(
+                    channelNumberInput = current + digit,
+                    showChannelNumberInput = true,
+                )
+            }
+        }
+    }
+
+    /**
+     * Clear the channel number input.
+     */
+    fun clearChannelNumber() {
+        _uiState.update { 
+            it.copy(
+                channelNumberInput = "",
+                showChannelNumberInput = false,
+            )
+        }
+    }
+
+    /**
+     * Play the channel with the entered number.
+     */
+    fun playChannelByNumber() {
+        val number = _uiState.value.channelNumberInput.toIntOrNull() ?: return
+        val state = _uiState.value
+        
+        viewModelScope.launch {
+            try {
+                // Find channel by sort order (assuming channel number = sort order)
+                val channels = state.categoryId?.let { 
+                    channelDao.getByCategoryOrdered(it)
+                } ?: emptyList()
+                
+                // Try to find channel by number (1-indexed)
+                val channel = channels.getOrNull(number - 1)
+                
+                if (channel != null && channel.id != state.contentId) {
+                    // Load the channel
+                    channelRepository.updateLastWatched(channel.id)
+                    
+                    val currentProgram = channel.tvgId?.let { epgRepository.getCurrentProgram(it) }
+                    val nextProgram = channel.tvgId?.let { epgRepository.getNextProgram(it) }
+                    val fallbackUrls = buildStreamFallbacks(channel.streamUrl, channel.containerExtension)
+
+                    _uiState.update {
+                        it.copy(
+                            title = channel.name,
+                            streamUrl = channel.streamUrl,
+                            logoUrl = channel.logoUrl,
+                            contentId = channel.id,
+                            currentProgram = currentProgram,
+                            nextProgram = nextProgram,
+                            userAgent = channel.userAgent,
+                            fallbackUrls = fallbackUrls,
+                            currentFallbackIndex = 0,
+                            channelNumberInput = "",
+                            showChannelNumberInput = false,
+                            isFavorite = channel.isFavorite,
+                            error = null,
+                        )
+                    }
+                } else {
+                    clearChannelNumber()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to play channel by number")
+                clearChannelNumber()
+            }
+        }
     }
 }
