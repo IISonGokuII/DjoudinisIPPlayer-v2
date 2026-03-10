@@ -161,4 +161,9 @@
     <string name="reset_all_settings">Reset All Settings</string>
     <string name="reset_all_settings_desc">Restore all settings to defaults</string>
     <string name="app_version">Djoudini\'s IP Player v1.0.0</string>
+
+    <!-- Splash Screen -->
+    <string name="splash_welcome">Willkommen bei DjoudiniTV</string>
+    <string name="splash_subtitle">Dein IPTV Erlebnis</string>
+    <string name="splash_loading">Wird geladen…</string>
 </resources>

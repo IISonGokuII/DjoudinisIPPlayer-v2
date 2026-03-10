@@ -5,4 +5,11 @@
     <color name="primary">#FFE53935</color>
     <color name="primary_dark">#FF1A1A1A</color>
     <color name="accent">#FFB71C1C</color>
+    
+    <!-- Splash Screen Colors -->
+    <color name="splash_background">#FF0D1642</color>
+    <color name="splash_text_primary">#FFFFFFFF</color>
+    <color name="splash_text_secondary">#B3FFFFFF</color>
+    <color name="splash_text_shadow">#66000000</color>
+    <color name="splash_accent">#FF5C6BC0</color>
 </resources>

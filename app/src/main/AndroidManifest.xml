@@ -35,13 +35,13 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
 
-        <!-- Main Activity: handles both Mobile and TV -->
+        <!-- Splash Activity: First screen shown on launch -->
         <activity
-            android:name=".presentation.ui.MainActivity"
+            android:name=".presentation.ui.SplashActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-            android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustResize">
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|screenLayout">
 
             <!-- Mobile launcher -->
             <intent-filter>
@@ -55,6 +55,15 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Main Activity: handles both Mobile and TV -->
+        <activity
+            android:name=".presentation.ui.MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- Remove default WorkManagerInitializer for on-demand initialization -->
         <provider
             android:name="androidx.startup.InitializationProvider"
