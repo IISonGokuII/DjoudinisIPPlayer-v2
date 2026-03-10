@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
@@ -57,6 +58,7 @@ fun TvDashboardScreen(
     onNavigateEpg: () -> Unit,
     onNavigateSettings: () -> Unit,
     onNavigateSearch: () -> Unit,
+    onNavigateFavorites: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val playlist by viewModel.activePlaylist.collectAsStateWithLifecycle()
@@ -132,7 +134,7 @@ fun TvDashboardScreen(
         Spacer(modifier = Modifier.height(48.dp))
 
         // Main tile grid - 3 columns, 2 rows
-        // Use focusProperties to ensure navigation flows correctly
+        // Row 1: Live TV, Movies, Series
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -159,20 +161,21 @@ fun TvDashboardScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // Row 2: Favorites, EPG Guide, Settings
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             TvDashboardTile(
-                title = stringResource(R.string.epg_guide),
-                icon = Icons.Default.CalendarMonth,
-                onClick = onNavigateEpg,
+                title = stringResource(R.string.favorites),
+                icon = Icons.Default.Favorite,
+                onClick = onNavigateFavorites,
                 modifier = Modifier.weight(1f),
             )
             TvDashboardTile(
-                title = stringResource(R.string.multi_view),
-                icon = Icons.Default.GridView,
-                onClick = { /* TODO: Multi-View */ },
+                title = stringResource(R.string.epg_guide),
+                icon = Icons.Default.CalendarMonth,
+                onClick = onNavigateEpg,
                 modifier = Modifier.weight(1f),
             )
             TvDashboardTile(

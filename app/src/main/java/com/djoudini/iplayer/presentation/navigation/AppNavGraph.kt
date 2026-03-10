@@ -136,6 +136,7 @@ fun AppNavGraph(
                     onNavigateEpg = { navController.navigate(Route.EpgGrid.route) },
                     onNavigateSettings = { navController.navigate(Route.Settings.route) },
                     onNavigateSearch = { navController.navigate(Route.Search.route) },
+                    onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
                 )
             } else {
                 DashboardScreen(

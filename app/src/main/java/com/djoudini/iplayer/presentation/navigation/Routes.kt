@@ -55,6 +55,9 @@ sealed class Route(val route: String) {
 
     // --- Search ---
     data object Search : Route("search")
+    
+    // --- Favorites ---
+    data object Favorites : Route("favorites")
 }
 
 /** Navigation argument keys */

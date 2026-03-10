@@ -69,8 +69,12 @@ fun TvCategoryFilterScreen(
         }
     }
     
-    // Check for errors
+    // Check for errors and progress
     val errorMessage = loginState.error
+    val isSyncing = filterState.isSyncing
+    val hasCategories = filterState.liveCategories.isNotEmpty() || 
+                        filterState.vodCategories.isNotEmpty() || 
+                        filterState.seriesCategories.isNotEmpty()
 
     val stepTitles = listOf(
         stringResource(R.string.live_tv),
@@ -285,12 +289,19 @@ fun TvCategoryFilterScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Bottom navigation buttons - ALWAYS VISIBLE
+                val selectedCount = when (currentStep) {
+                    0 -> filterState.liveCategories.count { it.isSelected }
+                    1 -> filterState.vodCategories.count { it.isSelected }
+                    2 -> filterState.seriesCategories.count { it.isSelected }
+                    else -> 0
+                }
                 TvCategoryFilterNavigation(
                     currentStep = currentStep,
                     totalSteps = 3,
                     onPrevious = { viewModel.previousStep() },
                     onNext = { viewModel.nextStep() },
-                    onSync = { viewModel.syncSelectedContent(playlistId) }
+                    onSync = { viewModel.syncSelectedContent(playlistId) },
+                    selectedCount = selectedCount
                 )
             }
         }
@@ -445,78 +456,94 @@ private fun TvCategoryFilterNavigation(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onSync: () -> Unit,
+    selectedCount: Int = 0,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Back button (if not first step)
-        if (currentStep > 0) {
-            FocusableCard(
-                onClick = onPrevious,
-                modifier = Modifier
-                    .width(180.dp)
-                    .height(56.dp),
-                focusScale = 1.05f
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        stringResource(R.string.back),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
+        // Show selected count
+        if (selectedCount > 0) {
+            Text(
+                text = "$selectedCount Kategorien ausgewählt",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
-
-        // Next or Sync button
-        if (currentStep < totalSteps - 1) {
-            FocusableCard(
-                onClick = onNext,
-                modifier = Modifier
-                    .width(180.dp)
-                    .height(56.dp),
-                focusScale = 1.05f
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        ) {
+            // Back button (if not first step)
+            if (currentStep > 0) {
+                FocusableCard(
+                    onClick = onPrevious,
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(56.dp),
+                    focusScale = 1.05f
                 ) {
-                    Text(
-                        stringResource(R.string.next),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(24.dp))
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.back),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
-        } else {
-            FocusableCard(
-                onClick = onSync,
-                modifier = Modifier
-                    .width(240.dp)
-                    .height(56.dp),
-                focusScale = 1.05f
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+
+            // Next or Sync button
+            if (currentStep < totalSteps - 1) {
+                FocusableCard(
+                    onClick = onNext,
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(56.dp),
+                    focusScale = 1.05f
                 ) {
-                    Text(
-                        stringResource(R.string.sync_and_continue),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(R.string.next),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(24.dp))
+                    }
+                }
+            } else {
+                FocusableCard(
+                    onClick = onSync,
+                    modifier = Modifier
+                        .width(240.dp)
+                        .height(56.dp),
+                    focusScale = 1.05f
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            stringResource(R.string.sync_and_continue),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
