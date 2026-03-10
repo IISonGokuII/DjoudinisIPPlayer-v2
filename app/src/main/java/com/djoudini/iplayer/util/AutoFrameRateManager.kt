@@ -13,11 +13,12 @@ import javax.inject.Singleton
  * Auto Frame Rate (AFR) Manager.
  *
  * Automatically adjusts the TV display refresh rate to match the content's frame rate.
- * Supports common rates: 23.976, 24, 25, 29.97, 30, 50, 59.94, 60 fps.
+ * Supports common rates: 23.976, 24, 25, 29.97, 30, 50, 59.94, 60, 120 fps.
  *
  * Uses:
  * - Android 6.0+: Display.Mode API for preferred display mode
  * - Android 12+: Surface.setFrameRate() for seamless switching
+ * - Android 13+: 120Hz support for high refresh rate displays
  */
 @Singleton
 class AutoFrameRateManager @Inject constructor() {
@@ -65,6 +66,7 @@ class AutoFrameRateManager @Inject constructor() {
 
     /**
      * Android 6+: Match by selecting the best display mode.
+     * Supports 120Hz and other high refresh rate displays.
      */
     private fun matchFrameRateViaDisplayMode(activity: Activity, targetFps: Float) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
@@ -82,6 +84,7 @@ class AutoFrameRateManager @Inject constructor() {
             // Find the best matching mode:
             // 1. Same resolution as current
             // 2. Closest refresh rate to target (or exact multiple)
+            // 3. Prefer 120Hz for high frame rate content
             val bestMode = supportedModes
                 .filter { mode ->
                     mode.physicalWidth == currentMode.physicalWidth &&
@@ -89,13 +92,15 @@ class AutoFrameRateManager @Inject constructor() {
                 }
                 .minByOrNull { mode ->
                     val modeRate = mode.refreshRate
-                    // Prefer exact match or integer multiple
+                    // Prefer exact match or integer multiple (including 120Hz)
                     val diff = if (isMultiple(modeRate, targetFps)) {
                         0f
                     } else {
                         kotlin.math.abs(modeRate - targetFps)
                     }
-                    diff
+                    // Add small penalty for non-120Hz modes when content is high FPS
+                    val penalty = if (targetFps >= 60f && modeRate != 120f) 0.1f else 0f
+                    diff + penalty
                 }
 
             if (bestMode != null && bestMode.modeId != currentMode.modeId) {
@@ -163,5 +168,11 @@ class AutoFrameRateManager @Inject constructor() {
         const val FPS_50 = 50f
         const val FPS_59_94 = 59.94f
         const val FPS_60 = 60f
+        
+        /** High refresh rate displays (120Hz) */
+        const val FPS_120 = 120f
+        
+        /** Common display refresh rates */
+        val DISPLAY_RATES = listOf(24f, 30f, 48f, 50f, 60f, 72f, 90f, 120f, 144f)
     }
 }

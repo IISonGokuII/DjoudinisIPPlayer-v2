@@ -155,10 +155,9 @@ fun PlayerScreen(
     // Don't start playback while resume dialog is shown
     val shouldPlay = uiState.streamUrl.isNotBlank() && !uiState.showResumeDialog
 
-    // Create player only when stream URL is available and dialog dismissed
-    // CRITICAL FIX: Player instance is reused across stream changes to prevent video freeze
+    // CRITICAL FIX: Create player once and keep it alive
+    // The player is created regardless of shouldPlay state, then media is loaded when ready
     val exoPlayer = remember {
-        if (!shouldPlay) return@remember null
         viewModel.playerFactory.create(
             userAgentOverride = uiState.userAgent,
         )
@@ -166,12 +165,17 @@ fun PlayerScreen(
 
     // Set media item and play on streamUrl change
     LaunchedEffect(uiState.streamUrl, exoPlayer) {
-        if (!shouldPlay || exoPlayer == null) return@LaunchedEffect
+        // Wait for valid stream URL
+        if (uiState.streamUrl.isBlank()) return@LaunchedEffect
+        
+        // Don't start if resume dialog is shown
+        if (uiState.showResumeDialog) return@LaunchedEffect
 
         // CRITICAL: Stop current playback before loading new stream
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
 
+        // Add error listener
         exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 // If error is from renderer (e.g. bad track selection), clear overrides and retry
