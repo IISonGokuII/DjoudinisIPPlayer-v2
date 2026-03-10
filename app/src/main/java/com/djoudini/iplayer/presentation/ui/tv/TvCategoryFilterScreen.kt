@@ -57,6 +57,7 @@ fun TvCategoryFilterScreen(
 ) {
     val filterState by viewModel.filterState.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val loginState by viewModel.loginState.collectAsStateWithLifecycle()
 
     LaunchedEffect(playlistId) {
         viewModel.loadCategories(playlistId)
@@ -67,6 +68,9 @@ fun TvCategoryFilterScreen(
             onComplete()
         }
     }
+    
+    // Check for errors
+    val errorMessage = loginState.error
 
     val stepTitles = listOf(
         stringResource(R.string.live_tv),
@@ -80,6 +84,40 @@ fun TvCategoryFilterScreen(
             .fillMaxSize()
             .padding(horizontal = 48.dp, vertical = 32.dp)
     ) {
+        // Show error if present
+        if (errorMessage != null) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "Error: $errorMessage",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                FocusableCard(
+                    onClick = { viewModel.clearError() },
+                    modifier = Modifier
+                        .width(200.dp)
+                        .height(56.dp),
+                    focusScale = 1.05f
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Retry",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
+            }
+            return@Box
+        }
+        
         if (filterState.isLoading) {
             Column(
                 modifier = Modifier.fillMaxSize(),

@@ -59,6 +59,9 @@ fun TvLoginXtreamScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    // Show error if sync failed
+    val errorMessage = (loginState as? Resource.Error)?.message
+
     LaunchedEffect(loginState) {
         if (loginState is Resource.Success<*>) {
             onLoginSuccess((loginState as Resource.Success<Long>).data)

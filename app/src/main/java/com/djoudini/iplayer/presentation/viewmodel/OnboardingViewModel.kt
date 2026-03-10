@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 data class LoginState(
@@ -103,15 +104,22 @@ class OnboardingViewModel @Inject constructor(
         categoryCollectJob?.cancel()
         categoryCollectJob = viewModelScope.launch {
             _filterState.update { it.copy(isLoading = true) }
-            // Single snapshot load instead of 3 racing Flow collectors
-            val allCategories = categoryDao.getAllByPlaylist(playlistId)
-            _filterState.update {
-                it.copy(
-                    liveCategories = allCategories.filter { c -> c.categoryType == "live" },
-                    vodCategories = allCategories.filter { c -> c.categoryType == "vod" },
-                    seriesCategories = allCategories.filter { c -> c.categoryType == "series" },
-                    isLoading = false,
-                )
+            try {
+                // Single snapshot load instead of 3 racing Flow collectors
+                val allCategories = categoryDao.getAllByPlaylist(playlistId)
+                Timber.d("Loaded ${allCategories.size} categories for playlist $playlistId")
+                _filterState.update {
+                    it.copy(
+                        liveCategories = allCategories.filter { c -> c.categoryType == "live" },
+                        vodCategories = allCategories.filter { c -> c.categoryType == "vod" },
+                        seriesCategories = allCategories.filter { c -> c.categoryType == "series" },
+                        isLoading = false,
+                    )
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load categories for playlist $playlistId")
+                _filterState.update { it.copy(isLoading = false) }
+                _loginState.update { it.copy(error = e.localizedMessage ?: "Failed to load categories") }
             }
         }
     }
