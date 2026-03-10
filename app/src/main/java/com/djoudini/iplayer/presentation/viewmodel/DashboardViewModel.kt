@@ -3,8 +3,10 @@ package com.djoudini.iplayer.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.dao.ChannelDao
+import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.data.local.entity.PlaylistEntity
+import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.domain.model.SyncProgress
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
@@ -23,6 +25,7 @@ class DashboardViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val watchProgressRepository: WatchProgressRepository,
     private val channelDao: ChannelDao,
+    private val vodDao: VodDao,
 ) : ViewModel() {
 
     val activePlaylist: StateFlow<PlaylistEntity?> = playlistRepository
@@ -44,6 +47,12 @@ class DashboardViewModel @Inject constructor(
     val recentlyWatched: StateFlow<List<ChannelEntity>> =
         playlistRepository.observeActive().flatMapLatest { playlist ->
             playlist?.let { channelDao.observeRecentlyWatched(it.id) }
+                ?: flowOf(emptyList())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val favoriteVod: StateFlow<List<VodEntity>> =
+        playlistRepository.observeActive().flatMapLatest { playlist ->
+            playlist?.let { vodDao.observeFavorites(it.id) }
                 ?: flowOf(emptyList())
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

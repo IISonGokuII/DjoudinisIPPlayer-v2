@@ -28,6 +28,7 @@ import com.djoudini.iplayer.presentation.ui.tv.TvLoginM3uScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvCategoryFilterScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvFavoritesScreen
 
 @Composable
 fun AppNavGraph(
@@ -272,6 +273,19 @@ fun AppNavGraph(
         composable(Route.Settings.route) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
+            )
+        }
+        
+        // --- Favorites ---
+        composable(Route.Favorites.route) {
+            TvFavoritesScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onChannelClick = { channelId ->
+                    navController.navigate(Route.Player.create("channel", channelId))
+                },
+                onVodClick = { vodId ->
+                    navController.navigate(Route.VodDetail.create(vodId))
+                },
             )
         }
     }
