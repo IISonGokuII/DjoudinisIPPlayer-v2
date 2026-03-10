@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 
+        Dies wird SOFORT beim App-Start angezeigt - noch bevor die App geladen ist!
+        Verhindert den schwarzen Bildschirm auf Fire TV.
+    -->
+    
+    <!-- Hintergrund: Dunkelblau/Schwarz Gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="50%"
+                android:centerY="40%"
+                android:gradientRadius="80%"
+                android:startColor="#1a237e"
+                android:centerColor="#0d1642"
+                android:endColor="#000000" />
+        </shape>
+    </item>
+    
+    <!-- Logo-Platzhalter - Kreis mit Icon -->
+    <item
+        android:gravity="center"
+        android:top="-60dp">
+        <shape android:shape="oval">
+            <size
+                android:width="140dp"
+                android:height="140dp" />
+            <gradient
+                android:type="linear"
+                android:angle="135"
+                android:startColor="#3949ab"
+                android:endColor="#1a237e" />
+        </shape>
+    </item>
+    
+    <!-- Innerer Glüheffekt -->
+    <item
+        android:gravity="center"
+        android:top="-60dp"
+        android:left="6dp"
+        android:right="6dp"
+        android:bottom="6dp">
+        <shape android:shape="oval">
+            <size
+                android:width="128dp"
+                android:height="128dp" />
+            <gradient
+                android:type="radial"
+                android:gradientRadius="60%"
+                android:startColor="#5c6bc0"
+                android:endColor="#1a237e" />
+        </shape>
+    </item>
+    
+    <!-- Statischer Text: Willkommen -->
+    <item
+        android:gravity="center"
+        android:top="100dp">
+        <shape android:shape="rectangle">
+            <size
+                android:width="300dp"
+                android:height="40dp" />
+            <solid android:color="#00FFFFFF" />
+        </shape>
+    </item>
+    
+    <!-- Ladebalken unten -->
+    <item
+        android:gravity="center|bottom"
+        android:bottom="80dp">
+        <shape android:shape="rectangle">
+            <size
+                android:width="200dp"
+                android:height="4dp" />
+            <solid android:color="#5C6BC0" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</layer-list>

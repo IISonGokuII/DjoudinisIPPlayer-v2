@@ -1,95 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_background"
-    tools:context=".presentation.ui.SplashActivity">
+    android:background="@drawable/splash_gradient_background">
 
-    <!-- Background gradient overlay for visual depth -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/splash_gradient_background" />
+    <!-- Logo mit Animation -->
+    <ImageView
+        android:id="@+id/splash_logo"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:layout_gravity="center"
+        android:layout_marginBottom="60dp"
+        android:src="@mipmap/ic_launcher"
+        android:background="@drawable/splash_logo_background"
+        android:padding="20dp"
+        android:elevation="8dp" />
 
-    <!-- Main content container -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="48dp">
-
-        <!-- App Logo with pulsing animation -->
-        <ImageView
-            android:id="@+id/splash_logo"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:contentDescription="@string/app_name"
-            android:src="@mipmap/ic_launcher"
-            android:scaleType="centerInside"
-            android:background="@drawable/splash_logo_background" />
-
-        <!-- Spacing between logo and text -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="48dp" />
-
-        <!-- Welcome Text - Willkommen bei DjoudiniTV -->
-        <TextView
-            android:id="@+id/splash_welcome_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/splash_welcome"
-            android:textColor="@color/splash_text_primary"
-            android:textSize="42sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif"
-            android:gravity="center"
-            android:shadowColor="@color/splash_text_shadow"
-            android:shadowDx="0"
-            android:shadowDy="4"
-            android:shadowRadius="8" />
-
-        <!-- Spacing between title and subtitle -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="16dp" />
-
-        <!-- Subtitle / Tagline -->
-        <TextView
-            android:id="@+id/splash_subtitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/splash_subtitle"
-            android:textColor="@color/splash_text_secondary"
-            android:textSize="24sp"
-            android:fontFamily="sans-serif-light"
-            android:gravity="center"
-            android:alpha="0.8" />
-
-    </LinearLayout>
-
-    <!-- Bottom decorative element (optional progress indicator area) -->
-    <LinearLayout
-        android:layout_width="match_parent"
+    <!-- Willkommen Text -->
+    <TextView
+        android:id="@+id/splash_welcome_text"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp">
+        android:layout_gravity="center"
+        android:layout_marginTop="100dp"
+        android:text="@string/splash_welcome"
+        android:textColor="@color/splash_text_primary"
+        android:textSize="38sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif"
+        android:shadowColor="@color/splash_text_shadow"
+        android:shadowDx="0"
+        android:shadowDy="4"
+        android:shadowRadius="8" />
 
-        <!-- Loading dots animation -->
-        <TextView
-            android:id="@+id/splash_loading_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/splash_loading"
-            android:textColor="@color/splash_text_secondary"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-light"
-            android:alpha="0.6" />
+    <!-- Untertitel -->
+    <TextView
+        android:id="@+id/splash_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="160dp"
+        android:text="@string/splash_subtitle"
+        android:textColor="@color/splash_text_secondary"
+        android:textSize="22sp"
+        android:fontFamily="sans-serif-light" />
 
-    </LinearLayout>
+    <!-- Lade-Indikator -->
+    <ProgressBar
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center|bottom"
+        android:layout_marginBottom="60dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/splash_accent" />
+
+    <!-- Version/Loading Text -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center|bottom"
+        android:layout_marginBottom="20dp"
+        android:text="@string/splash_loading"
+        android:textColor="@color/splash_text_secondary"
+        android:textSize="16sp"
+        android:alpha="0.7" />
 
 </FrameLayout>

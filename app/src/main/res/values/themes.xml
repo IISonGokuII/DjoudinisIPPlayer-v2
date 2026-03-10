@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+        Splash Theme - wird sofort beim App-Start angezeigt,
+        noch bevor irgendetwas geladen ist.
+        Verhindert den schwarzen Bildschirm!
+    -->
+    <style name="Theme.DjoudinisSplash" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <!-- Sofortiger Hintergrund beim Kaltstart -->
+        <item name="android:windowBackground">@drawable/splash_window_background</item>
+        
+        <!-- Keine Animation beim Öffnen -->
+        <item name="android:windowAnimationStyle">@null</item>
+        
+        <!-- Statusleiste ausblenden -->
+        <item name="android:windowFullscreen">true</item>
+        
+        <!-- Keine ActionBar -->
+        <item name="android:windowActionBar">false</item>
+        
+        <!-- Verhindert flackern -->
+        <item name="android:windowContentOverlay">@null</item>
+        
+        <!-- Hardware Acceleration -->
+        <item name="android:hardwareAccelerated">true</item>
+    </style>
+
+    <!-- Haupt-Theme für die App -->
+    <style name="Theme.Djoudinis" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:colorPrimary">@color/primary</item>
+        <item name="android:colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:colorAccent">@color/accent</item>
+    </style>
+</resources>

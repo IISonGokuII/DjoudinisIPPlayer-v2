@@ -1,55 +1,46 @@
 package com.djoudini.iplayer.presentation.ui
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
-import androidx.core.animation.doOnEnd
 import androidx.lifecycle.lifecycleScope
 import com.djoudini.iplayer.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * TV-optimized Splash Screen with pulsing logo animation.
+ * Splash Screen mit SOFORTIGER Anzeige.
  * 
- * Shows a welcoming splash screen with:
- * - Pulsing app logo (heartbeat animation)
- * - "Willkommen bei DjoudiniTV" text
- * - Smooth fade-out transition to MainActivity
+ * Wichtig: Das Theme (@style/Theme.DjoudinisSplash) zeigt sofort ein statisches
+ * Bild an, noch bevor diese Activity geladen ist. Dadurch gibt es keinen 
+ * schwarzen Bildschirm beim Start auf Fire TV.
  * 
- * This prevents the black screen issue during app startup on Fire TV.
+ * Diese Activity fügt dann die Animation hinzu (5-10 Sekunden).
  */
 class SplashActivity : ComponentActivity() {
-
-    private lateinit var logoImageView: ImageView
-    private lateinit var welcomeTextView: TextView
-    private lateinit var subtitleTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Set the splash screen layout
+        // Sofort das Layout laden (Theme war schon sichtbar!)
         setContentView(R.layout.activity_splash)
 
-        // Initialize views
-        logoImageView = findViewById(R.id.splash_logo)
-        welcomeTextView = findViewById(R.id.splash_welcome_text)
-        subtitleTextView = findViewById(R.id.splash_subtitle)
+        // Views finden
+        val logoImageView = findViewById<ImageView>(R.id.splash_logo)
+        val welcomeTextView = findViewById<TextView>(R.id.splash_welcome_text)
+        val subtitleTextView = findViewById<TextView>(R.id.splash_subtitle)
 
-        // Start animations
-        startPulsingAnimation()
-        startTextAnimations()
+        // Sofort Animationen starten
+        startPulsingAnimation(logoImageView)
+        startTextAnimations(welcomeTextView, subtitleTextView)
 
-        // Navigate to MainActivity after delay
+        // Nach 5-10 Sekunden zur MainActivity
+        // Die Zeit kannst du hier anpassen (5000ms = 5s, 10000ms = 10s)
         lifecycleScope.launch {
             delay(SPLASH_DURATION_MS)
             navigateToMainActivity()
@@ -57,106 +48,77 @@ class SplashActivity : ComponentActivity() {
     }
 
     /**
-     * Creates a pulsing/heartbeat animation for the logo.
-     * The logo gently scales up and down to create a breathing effect.
+     * Pulsierende Animation für das Logo.
+     * Läuft 5-10 Sekunden.
      */
-    private fun startPulsingAnimation() {
-        // Scale animation (pulsing effect)
-        val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 1.0f, 1.15f, 1.0f)
-        val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 1.0f, 1.15f, 1.0f)
+    private fun startPulsingAnimation(logoImageView: ImageView) {
+        // Scale Animation (Herzschlag-Effekt)
+        val scaleX = PropertyValuesHolder.ofFloat("scaleX", 1.0f, 1.2f, 1.0f)
+        val scaleY = PropertyValuesHolder.ofFloat("scaleY", 1.0f, 1.2f, 1.0f)
         
-        val pulseAnimator = ObjectAnimator.ofPropertyValuesHolder(logoImageView, scaleX, scaleY).apply {
+        ObjectAnimator.ofPropertyValuesHolder(logoImageView, scaleX, scaleY).apply {
             duration = PULSE_DURATION_MS
             repeatCount = ObjectAnimator.INFINITE
-            repeatMode = ObjectAnimator.RESTART
             interpolator = AccelerateDecelerateInterpolator()
+            start()
         }
-        
-        pulseAnimator.start()
 
-        // Add a subtle rotation animation for extra visual interest
-        val rotateAnimator = ObjectAnimator.ofFloat(logoImageView, View.ROTATION, -3f, 3f).apply {
+        // Leichte Rotation für visuelles Interesse
+        ObjectAnimator.ofFloat(logoImageView, "rotation", -2f, 2f).apply {
             duration = ROTATION_DURATION_MS
             repeatCount = ObjectAnimator.INFINITE
             repeatMode = ObjectAnimator.REVERSE
             interpolator = AccelerateDecelerateInterpolator()
+            start()
         }
-        
-        rotateAnimator.start()
     }
 
     /**
-     * Animates the welcome text with a fade-in effect.
+     * Text-Fade-In Animationen.
      */
-    private fun startTextAnimations() {
-        // Welcome text fade in
-        welcomeTextView.alpha = 0f
-        welcomeTextView.animate()
+    private fun startTextAnimations(welcomeText: TextView, subtitleText: TextView) {
+        // Willkommen Text
+        welcomeText.alpha = 0f
+        welcomeText.animate()
             .alpha(1f)
-            .setDuration(FADE_IN_DURATION_MS)
-            .setStartDelay(TEXT_DELAY_MS)
+            .setDuration(800)
+            .setStartDelay(300)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
 
-        // Subtitle fade in with more delay
-        subtitleTextView.alpha = 0f
-        subtitleTextView.animate()
+        // Untertitel
+        subtitleText.alpha = 0f
+        subtitleText.animate()
             .alpha(1f)
-            .setDuration(FADE_IN_DURATION_MS)
-            .setStartDelay(TEXT_DELAY_MS + 300)
+            .setDuration(800)
+            .setStartDelay(600)
             .setInterpolator(AccelerateDecelerateInterpolator())
             .start()
     }
 
     /**
-     * Navigates to MainActivity with a smooth fade-out transition.
+     * Wechsel zur MainActivity.
      */
     private fun navigateToMainActivity() {
-        // Fade out all views
-        val fadeOutViews = listOf(logoImageView, welcomeTextView, subtitleTextView)
-        
-        fadeOutViews.forEach { view ->
-            view.animate()
-                .alpha(0f)
-                .setDuration(FADE_OUT_DURATION_MS)
-                .setInterpolator(LinearInterpolator())
-                .start()
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-
-        // Start MainActivity after fade out begins
-        lifecycleScope.launch {
-            delay(FADE_OUT_DURATION_MS / 2)
-            
-            val intent = Intent(this@SplashActivity, MainActivity::class.java).apply {
-                // Prevent going back to splash
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
-            
-            // Optional: Add a transition animation
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-            
-            finish()
-        }
+        startActivity(intent)
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
     }
 
     companion object {
-        // Total splash duration: 2.5 seconds (enough to see the animation but not too long)
-        private const val SPLASH_DURATION_MS = 2500L
+        // Hier kannst du die Dauer einstellen:
+        // 5000L = 5 Sekunden
+        // 8000L = 8 Sekunden  
+        // 10000L = 10 Sekunden
+        private const val SPLASH_DURATION_MS = 7000L // 7 Sekunden
         
-        // Pulse animation duration: 1.2 seconds per pulse
-        private const val PULSE_DURATION_MS = 1200L
+        // Ein Puls dauert 1.5 Sekunden
+        private const val PULSE_DURATION_MS = 1500L
         
-        // Gentle rotation duration
-        private const val ROTATION_DURATION_MS = 3000L
-        
-        // Fade in animation duration
-        private const val FADE_IN_DURATION_MS = 600L
-        
-        // Fade out animation duration
-        private const val FADE_OUT_DURATION_MS = 400L
-        
-        // Delay before text appears
-        private const val TEXT_DELAY_MS = 200L
+        // Rotation dauert 4 Sekunden
+        private const val ROTATION_DURATION_MS = 4000L
     }
 }
