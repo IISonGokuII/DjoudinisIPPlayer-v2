@@ -23,6 +23,7 @@ import com.djoudini.iplayer.domain.model.SyncProgress
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,7 +114,9 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        cancelSync()
+        // Wait for previous sync to fully cancel before starting new one
+        syncJob?.cancelAndJoin()
+        syncJob = null
 
         coroutineScope {
             syncJob = launch {
@@ -220,9 +223,9 @@ class PlaylistRepositoryImpl @Inject constructor(
             }
         }
 
-        // Insert one by one to track auto-generated IDs
-        for (entity in allCategoryEntities) {
-            categoryDao.insert(entity)
+        // Batch insert for better performance - uses single transaction
+        if (allCategoryEntities.isNotEmpty()) {
+            categoryDao.insertAll(allCategoryEntities)
         }
 
         _syncProgress.value = SyncProgress.completed()
@@ -497,7 +500,9 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        cancelSync()
+        // Wait for previous sync to fully cancel before starting new one
+        syncJob?.cancelAndJoin()
+        syncJob = null
 
         coroutineScope {
             syncJob = launch {
@@ -525,7 +530,9 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        cancelSync()
+        // Wait for previous sync to fully cancel before starting new one
+        syncJob?.cancelAndJoin()
+        syncJob = null
 
         coroutineScope {
             syncJob = launch {

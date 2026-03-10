@@ -140,9 +140,8 @@ class PlayerViewModel @Inject constructor(
         // Build fallback URLs for LiveTV streams
         val fallbackUrls = buildStreamFallbacks(channel.streamUrl, channel.containerExtension)
 
-        // Load recent channels (last 5 watched)
-        val recentChannels = channelDao.getRecentlyWatchedIds(playlistId, limit = 5)
-            .filter { it != contentId } // Exclude current channel
+        // Load recent channels (last 5 watched), excluding current
+        val recentChannels = channelDao.getRecentlyWatchedIds(playlistId, excludeId = contentId, limit = 5)
 
         _uiState.update {
             it.copy(

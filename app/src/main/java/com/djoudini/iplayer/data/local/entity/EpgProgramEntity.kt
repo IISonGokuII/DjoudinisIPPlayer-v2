@@ -24,6 +24,7 @@ import androidx.room.PrimaryKey
         Index(value = ["playlist_id"]),
         Index(value = ["epg_channel_id"]),
         Index(value = ["start_time"]),
+        Index(value = ["stop_time"]),  // For getCurrentProgram queries
         Index(value = ["epg_channel_id", "start_time"]),
         Index(value = ["playlist_id", "epg_channel_id", "start_time"], unique = true),
     ]

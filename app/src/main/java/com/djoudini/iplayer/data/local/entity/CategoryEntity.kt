@@ -21,7 +21,7 @@ import androidx.room.PrimaryKey
         )
     ],
     indices = [
-        Index(value = ["playlist_id"]),
+        // Composite indices cover playlist_id lookups - no single-column index needed
         Index(value = ["playlist_id", "category_type"]),
         Index(value = ["playlist_id", "remote_id"], unique = true),
     ]

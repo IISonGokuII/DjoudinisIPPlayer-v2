@@ -41,8 +41,8 @@ interface ChannelDao {
     @Query("SELECT * FROM channels WHERE playlist_id = :playlistId AND last_watched_at IS NOT NULL ORDER BY last_watched_at DESC LIMIT :limit")
     fun observeRecentlyWatched(playlistId: Long, limit: Int = 20): Flow<List<ChannelEntity>>
 
-    @Query("SELECT id FROM channels WHERE playlist_id = :playlistId AND last_watched_at IS NOT NULL ORDER BY last_watched_at DESC LIMIT :limit")
-    suspend fun getRecentlyWatchedIds(playlistId: Long, limit: Int = 5): List<Long>
+    @Query("SELECT id FROM channels WHERE playlist_id = :playlistId AND last_watched_at IS NOT NULL AND id != :excludeId ORDER BY last_watched_at DESC LIMIT :limit")
+    suspend fun getRecentlyWatchedIds(playlistId: Long, excludeId: Long = 0, limit: Int = 5): List<Long>
 
     @Query("DELETE FROM channels WHERE playlist_id = :playlistId")
     suspend fun deleteByPlaylist(playlistId: Long)
