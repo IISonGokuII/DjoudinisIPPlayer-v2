@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import com.djoudini.iplayer.presentation.ui.mobile.CategoryFilterScreen
 import com.djoudini.iplayer.presentation.ui.mobile.DashboardScreen
 import com.djoudini.iplayer.presentation.ui.mobile.EpgGridScreen
+import com.djoudini.iplayer.presentation.ui.mobile.FavoritesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LoginM3uScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LoginXtreamScreen
 import com.djoudini.iplayer.presentation.ui.mobile.OnboardingScreen
@@ -148,6 +149,7 @@ fun AppNavGraph(
                     onNavigateSettings = { navController.navigate(Route.Settings.route) },
                     onNavigateSearch = { navController.navigate(Route.Search.route) },
                     onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
+                    onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
                             "vod" -> navController.navigate(Route.VodDetail.create(contentId))
@@ -278,15 +280,30 @@ fun AppNavGraph(
         
         // --- Favorites ---
         composable(Route.Favorites.route) {
-            TvFavoritesScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onChannelClick = { channelId ->
-                    navController.navigate(Route.Player.create("channel", channelId))
-                },
-                onVodClick = { vodId ->
-                    navController.navigate(Route.VodDetail.create(vodId))
-                },
-            )
+            if (isTvDevice) {
+                TvFavoritesScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onVodClick = { vodId ->
+                        navController.navigate(Route.VodDetail.create(vodId))
+                    },
+                )
+            } else {
+                FavoritesScreen(
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onVodClick = { vodId ->
+                        navController.navigate(Route.VodDetail.create(vodId))
+                    },
+                    onSeriesClick = { seriesId ->
+                        navController.navigate(Route.SeriesDetail.create(seriesId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
     }
 }

@@ -70,6 +70,7 @@ fun DashboardScreen(
     onNavigateSettings: () -> Unit,
     onNavigateSearch: () -> Unit,
     onNavigateMultiView: () -> Unit = {},
+    onNavigateFavorites: () -> Unit = {},
     onContinueWatchingClick: (contentType: String, contentId: Long) -> Unit = { _, _ -> },
     onChannelClick: (Long) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -217,7 +218,7 @@ fun DashboardScreen(
                 DashboardTile(
                     title = stringResource(R.string.favorites),
                     icon = Icons.Default.Favorite,
-                    onClick = { /* Navigate to favorites or show favorites list */ },
+                    onClick = onNavigateFavorites,
                     modifier = Modifier.weight(1f),
                     showCount = favoriteChannels.size,
                 )

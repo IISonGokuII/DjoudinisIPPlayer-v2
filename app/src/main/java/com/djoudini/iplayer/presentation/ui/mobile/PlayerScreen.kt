@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -108,6 +109,7 @@ fun PlayerScreen(
     var showAudioTrackDialog by remember { mutableStateOf(false) }
     var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var showAudioDelayDialog by remember { mutableStateOf(false) }
     var currentPlaybackSpeed by remember { mutableStateOf(1f) }
 
     // Immersive fullscreen mode
@@ -154,16 +156,21 @@ fun PlayerScreen(
     val shouldPlay = uiState.streamUrl.isNotBlank() && !uiState.showResumeDialog
 
     // Create player only when stream URL is available and dialog dismissed
-    val exoPlayer = remember(uiState.streamUrl, shouldPlay) {
+    // CRITICAL FIX: Player instance is reused across stream changes to prevent video freeze
+    val exoPlayer = remember {
         if (!shouldPlay) return@remember null
         viewModel.playerFactory.create(
             userAgentOverride = uiState.userAgent,
         )
     }
 
-    // Set media item and play
+    // Set media item and play on streamUrl change
     LaunchedEffect(uiState.streamUrl, exoPlayer) {
         if (!shouldPlay || exoPlayer == null) return@LaunchedEffect
+
+        // CRITICAL: Stop current playback before loading new stream
+        exoPlayer.stop()
+        exoPlayer.clearMediaItems()
 
         exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
@@ -204,6 +211,15 @@ fun PlayerScreen(
 
         exoPlayer.playWhenReady = true
         viewModel.startProgressTracking()
+    }
+
+    // CRITICAL: Release player when leaving screen
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer?.stop()
+            exoPlayer?.clearMediaItems()
+            exoPlayer?.release()
+        }
     }
 
     // Track playback state
@@ -402,6 +418,74 @@ fun PlayerScreen(
         )
     }
 
+    // NEW: Audio Delay Dialog
+    if (showAudioDelayDialog) {
+        AlertDialog(
+            onDismissRequest = { showAudioDelayDialog = false },
+            title = { Text("Audio-Synchronisation") },
+            text = {
+                Column {
+                    Text(
+                        text = "Aktuelle Verzögerung: ${uiState.audioDelayMs}ms",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        // Minus button
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(
+                                onClick = { viewModel.adjustAudioDelay(-100) },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    "Weniger",
+                                    modifier = Modifier.rotate(180f),
+                                )
+                            }
+                            Text("-100ms", style = MaterialTheme.typography.labelSmall)
+                        }
+                        // Reset button
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(
+                                onClick = { viewModel.resetAudioDelay() },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(Icons.Default.Refresh, "Zurücksetzen")
+                            }
+                            Text("Reset", style = MaterialTheme.typography.labelSmall)
+                        }
+                        // Plus button
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            IconButton(
+                                onClick = { viewModel.adjustAudioDelay(100) },
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Mehr")
+                            }
+                            Text("+100ms", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Tipp: Bei Lip-Sync-Problemen schrittweise anpassen",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAudioDelayDialog = false }) {
+                    Text(stringResource(R.string.close))
+                }
+            },
+        )
+    }
+
     // NEW: Auto-Play Countdown Overlay
     if (uiState.showAutoPlayCountdown) {
         Box(
@@ -551,7 +635,7 @@ fun PlayerScreen(
                 onClick = { viewModel.toggleControls() },
             ),
     ) {
-        // Video surface with Pinch-to-Zoom
+        // Video surface with Pinch-to-Zoom and Aspect Ratio
         if (exoPlayer != null) {
             AndroidView(
                 factory = { ctx ->
@@ -562,6 +646,36 @@ fun PlayerScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT,
                         )
+                        // CRITICAL FIX: Set aspect ratio mode
+                        videoSurfaceView?.apply {
+                            layoutParams = FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                            ).apply {
+                                // Apply aspect ratio based on current mode
+                                when (uiState.aspectRatio) {
+                                    AspectRatio.FIT_16_9 -> {
+                                        // Default - let player handle
+                                    }
+                                    AspectRatio.FIT_4_3 -> {
+                                        // Force 4:3 by adjusting layout
+                                        width = (height * 4 / 3).toInt()
+                                    }
+                                    AspectRatio.ZOOM -> {
+                                        // Zoom to fill - scale up
+                                        scaleX = 1.33f
+                                        scaleY = 1.33f
+                                    }
+                                    AspectRatio.STRETCH -> {
+                                        // Stretch to fill - let parent handle
+                                    }
+                                    AspectRatio.ORIGINAL -> {
+                                        // Original video aspect ratio
+                                        // Player handles this automatically
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
@@ -699,6 +813,14 @@ fun PlayerScreen(
                                 imageVector = Icons.Default.Bedtime,
                                 contentDescription = "Sleep Timer",
                                 tint = if (uiState.sleepTimerActive) MaterialTheme.colorScheme.error else Color.White,
+                            )
+                        }
+                        // NEW: Audio Delay
+                        IconButton(onClick = { showAudioDelayDialog = true }) {
+                            Icon(
+                                Icons.Default.Audiotrack,
+                                contentDescription = "Audio Delay",
+                                tint = if (uiState.audioDelayMs != 0) MaterialTheme.colorScheme.error else Color.White,
                             )
                         }
                         // NEW: Aspect Ratio

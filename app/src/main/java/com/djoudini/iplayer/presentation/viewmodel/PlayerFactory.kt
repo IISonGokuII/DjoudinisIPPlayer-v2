@@ -38,12 +38,14 @@ class PlayerFactory @Inject constructor(
      *
      * @param config Player configuration for buffer, UA, and decoding options.
      * @param userAgentOverride Per-channel UA override (takes priority over config).
+     * @param videoScale Video scale factor for zoom (0.5f - 3.0f).
      * @return Configured [ExoPlayer] instance. Caller is responsible for releasing it.
      */
     @OptIn(UnstableApi::class)
     fun create(
         config: PlayerConfig = PlayerConfig(),
         userAgentOverride: String? = null,
+        videoScale: Float = 1.0f,
     ): ExoPlayer {
         val effectiveUserAgent = userAgentOverride ?: config.userAgent
 
@@ -54,7 +56,7 @@ class PlayerFactory @Inject constructor(
                 mapOf("User-Agent" to effectiveUserAgent)
             )
 
-        // --- Buffer Control ---
+        // --- Buffer Control: Use preset or custom values ---
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 config.minBufferMs,
