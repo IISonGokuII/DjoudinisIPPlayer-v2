@@ -100,6 +100,15 @@
     <string name="cast_format">Cast: %s</string>
     <string name="continue_from_format">Continue from %dmin</string>
     <string name="play_movie">Play Movie</string>
+    <string name="plot_synopsis">Plot Synopsis</string>
+    <string name="no_plot_available">No plot description available.</string>
+    <string name="additional_info">Additional Information</string>
+    <string name="director_colon">Director:</string>
+    <string name="cast_colon">Cast:</string>
+    <string name="duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="duration_minutes">%1$dm</string>
+    <string name="error_loading_content">Error Loading Content</string>
+    <string name="unknown_error">Unknown error</string>
 
     <!-- Series Detail -->
     <string name="season_format">S%d</string>

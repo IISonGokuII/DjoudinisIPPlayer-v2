@@ -8,6 +8,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -50,14 +52,26 @@ fun FocusableCard(
     )
 
     val borderStroke = if (isFocused) {
-        BorderStroke(2.dp, focusBorderColor)
+        BorderStroke(5.dp, focusBorderColor)
     } else {
         null
     }
 
+    val shadowElevation by animateFloatAsState(
+        targetValue = if (isFocused) 16.dp.value else 2.dp.value,
+        animationSpec = tween(150),
+        label = "shadowElevation",
+    )
+
     Card(
         modifier = modifier
             .scale(scale)
+            .shadow(
+                elevation = shadowElevation.dp,
+                shape = RoundedCornerShape(12.dp),
+                spotColor = if (isFocused) focusBorderColor else Color.Transparent,
+                ambientColor = if (isFocused) focusBorderColor else Color.Transparent,
+            )
             .focusable(interactionSource = interactionSource)
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyUp &&
@@ -70,15 +84,16 @@ fun FocusableCard(
                 }
             },
         border = borderStroke,
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isFocused) {
-                MaterialTheme.colorScheme.surfaceVariant
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
             } else {
                 MaterialTheme.colorScheme.surface
             }
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isFocused) 8.dp else 2.dp,
+            defaultElevation = if (isFocused) 16.dp else 2.dp,
         ),
     ) {
         Box(content = content)

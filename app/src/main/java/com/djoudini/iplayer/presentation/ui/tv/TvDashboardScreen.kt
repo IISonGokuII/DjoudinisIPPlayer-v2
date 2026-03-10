@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
@@ -42,6 +44,10 @@ import java.util.Locale
 /**
  * TV-optimized Dashboard with large tiles and D-Pad focus management.
  * Every tile has visual focus feedback (scale + border glow).
+ * 
+ * Focus navigation:
+ * - Search button is at the top and can only be reached by explicit UP navigation
+ * - Main tiles are in a grid below
  */
 @Composable
 fun TvDashboardScreen(
@@ -50,6 +56,7 @@ fun TvDashboardScreen(
     onNavigateSeries: () -> Unit,
     onNavigateEpg: () -> Unit,
     onNavigateSettings: () -> Unit,
+    onNavigateSearch: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val playlist by viewModel.activePlaylist.collectAsStateWithLifecycle()
@@ -60,7 +67,7 @@ fun TvDashboardScreen(
             .fillMaxSize()
             .padding(48.dp),
     ) {
-        // Header
+        // Header with Search - Search is focusable and at the top
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -83,7 +90,28 @@ fun TvDashboardScreen(
                 }
             }
 
-            // Sync progress on header
+            // Search button - explicitly at top, requires UP to reach from tiles
+            FocusableCard(
+                onClick = onNavigateSearch,
+                focusScale = 1.1f,
+                modifier = Modifier.size(64.dp),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = stringResource(R.string.search),
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Sync progress indicator
             if (syncProgress.isActive) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ProgressRing(
@@ -101,9 +129,10 @@ fun TvDashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Main tile grid - 3 columns, 2 rows
+        // Use focusProperties to ensure navigation flows correctly
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -143,7 +172,7 @@ fun TvDashboardScreen(
             TvDashboardTile(
                 title = stringResource(R.string.multi_view),
                 icon = Icons.Default.GridView,
-                onClick = { /* Phase 3 */ },
+                onClick = { /* TODO: Multi-View */ },
                 modifier = Modifier.weight(1f),
             )
             TvDashboardTile(

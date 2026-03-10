@@ -22,11 +22,17 @@ import com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.MultiViewScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvOnboardingScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvLoginXtreamScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvLoginM3uScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
 
 @Composable
 fun AppNavGraph(
     navController: NavHostController,
     startDestination: String,
+    isTvDevice: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -36,32 +42,61 @@ fun AppNavGraph(
     ) {
         // --- Onboarding ---
         composable(Route.Onboarding.route) {
-            OnboardingScreen(
-                onXtreamLogin = { navController.navigate(Route.LoginXtream.route) },
-                onM3uLogin = { navController.navigate(Route.LoginM3u.route) },
-            )
+            if (isTvDevice) {
+                TvOnboardingScreen(
+                    onXtreamLogin = { navController.navigate(Route.LoginXtream.route) },
+                    onM3uLogin = { navController.navigate(Route.LoginM3u.route) },
+                )
+            } else {
+                OnboardingScreen(
+                    onXtreamLogin = { navController.navigate(Route.LoginXtream.route) },
+                    onM3uLogin = { navController.navigate(Route.LoginM3u.route) },
+                )
+            }
         }
 
         composable(Route.LoginXtream.route) {
-            LoginXtreamScreen(
-                onLoginSuccess = { playlistId ->
-                    navController.navigate(Route.CategoryFilter.create(playlistId)) {
-                        popUpTo(Route.Onboarding.route) { inclusive = false }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvLoginXtreamScreen(
+                    onLoginSuccess = { playlistId ->
+                        navController.navigate(Route.CategoryFilter.create(playlistId)) {
+                            popUpTo(Route.Onboarding.route) { inclusive = false }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                LoginXtreamScreen(
+                    onLoginSuccess = { playlistId ->
+                        navController.navigate(Route.CategoryFilter.create(playlistId)) {
+                            popUpTo(Route.Onboarding.route) { inclusive = false }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(Route.LoginM3u.route) {
-            LoginM3uScreen(
-                onLoginSuccess = { playlistId ->
-                    navController.navigate(Route.CategoryFilter.create(playlistId)) {
-                        popUpTo(Route.Onboarding.route) { inclusive = false }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvLoginM3uScreen(
+                    onLoginSuccess = { playlistId ->
+                        navController.navigate(Route.CategoryFilter.create(playlistId)) {
+                            popUpTo(Route.Onboarding.route) { inclusive = false }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                LoginM3uScreen(
+                    onLoginSuccess = { playlistId ->
+                        navController.navigate(Route.CategoryFilter.create(playlistId)) {
+                            popUpTo(Route.Onboarding.route) { inclusive = false }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(
@@ -81,21 +116,32 @@ fun AppNavGraph(
 
         // --- Dashboard ---
         composable(Route.Dashboard.route) {
-            DashboardScreen(
-                onNavigateLive = { navController.navigate(Route.LiveCategories.route) },
-                onNavigateVod = { navController.navigate(Route.VodCategories.route) },
-                onNavigateSeries = { navController.navigate(Route.SeriesCategories.route) },
-                onNavigateEpg = { navController.navigate(Route.EpgGrid.route) },
-                onNavigateSettings = { navController.navigate(Route.Settings.route) },
-                onNavigateSearch = { navController.navigate(Route.Search.route) },
-                onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
-                onContinueWatchingClick = { contentType, contentId ->
-                    when (contentType) {
-                        "vod" -> navController.navigate(Route.VodDetail.create(contentId))
-                        else -> navController.navigate(Route.Player.create(contentType, contentId))
-                    }
-                },
-            )
+            if (isTvDevice) {
+                TvDashboardScreen(
+                    onNavigateLive = { navController.navigate(Route.LiveCategories.route) },
+                    onNavigateVod = { navController.navigate(Route.VodCategories.route) },
+                    onNavigateSeries = { navController.navigate(Route.SeriesCategories.route) },
+                    onNavigateEpg = { navController.navigate(Route.EpgGrid.route) },
+                    onNavigateSettings = { navController.navigate(Route.Settings.route) },
+                    onNavigateSearch = { navController.navigate(Route.Search.route) },
+                )
+            } else {
+                DashboardScreen(
+                    onNavigateLive = { navController.navigate(Route.LiveCategories.route) },
+                    onNavigateVod = { navController.navigate(Route.VodCategories.route) },
+                    onNavigateSeries = { navController.navigate(Route.SeriesCategories.route) },
+                    onNavigateEpg = { navController.navigate(Route.EpgGrid.route) },
+                    onNavigateSettings = { navController.navigate(Route.Settings.route) },
+                    onNavigateSearch = { navController.navigate(Route.Search.route) },
+                    onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
+                    onContinueWatchingClick = { contentType, contentId ->
+                        when (contentType) {
+                            "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            else -> navController.navigate(Route.Player.create(contentType, contentId))
+                        }
+                    },
+                )
+            }
         }
 
         // --- Content Lists (Split-pane: categories left, content right) ---
@@ -126,12 +172,21 @@ fun AppNavGraph(
                 navArgument(NavArgs.CONTENT_ID) { type = NavType.LongType },
             ),
         ) {
-            VodDetailScreen(
-                onPlay = { vodId ->
-                    navController.navigate(Route.Player.create("vod", vodId))
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvVodDetailScreen(
+                    onPlay = { vodId ->
+                        navController.navigate(Route.Player.create("vod", vodId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                VodDetailScreen(
+                    onPlay = { vodId ->
+                        navController.navigate(Route.Player.create("vod", vodId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(Route.SeriesCategories.route) {

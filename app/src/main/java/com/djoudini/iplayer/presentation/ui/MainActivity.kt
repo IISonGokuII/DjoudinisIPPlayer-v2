@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    AppContent(playlistRepository = playlistRepository)
+                    AppContent(playlistRepository = playlistRepository, isTvDevice = isTvDevice)
                 }
             }
         }
@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AppContent(playlistRepository: PlaylistRepository) {
+private fun AppContent(playlistRepository: PlaylistRepository, isTvDevice: Boolean) {
     val navController = rememberNavController()
 
     // Determine start destination: Dashboard if playlist exists, else Onboarding
@@ -83,6 +83,7 @@ private fun AppContent(playlistRepository: PlaylistRepository) {
         AppNavGraph(
             navController = navController,
             startDestination = start,
+            isTvDevice = isTvDevice,
         )
     }
 }

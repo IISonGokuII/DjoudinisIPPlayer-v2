@@ -30,4 +30,30 @@ interface EpisodeDao {
 
     @Query("DELETE FROM episodes WHERE playlist_id = :playlistId")
     suspend fun deleteByPlaylist(playlistId: Long)
+
+    /**
+     * Get the next episode in the series for binge-watching.
+     * Returns the episode with the next episode number in the same season,
+     * or the first episode of the next season if at the end of current season.
+     */
+    @Query("""
+        SELECT * FROM episodes 
+        WHERE series_id = :seriesId 
+        AND ((season_number = :currentSeason AND episode_number > :currentEpisode) 
+             OR season_number > :currentSeason)
+        ORDER BY season_number ASC, episode_number ASC 
+        LIMIT 1
+    """)
+    suspend fun getNextEpisode(seriesId: Long, currentSeason: Int, currentEpisode: Int): EpisodeEntity?
+
+    /**
+     * Check if there is a next episode available.
+     */
+    @Query("""
+        SELECT COUNT(*) > 0 FROM episodes 
+        WHERE series_id = :seriesId 
+        AND ((season_number = :currentSeason AND episode_number > :currentEpisode) 
+             OR season_number > :currentSeason)
+    """)
+    suspend fun hasNextEpisode(seriesId: Long, currentSeason: Int, currentEpisode: Int): Boolean
 }

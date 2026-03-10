@@ -31,6 +31,7 @@ data class PlayerUiState(
     val contentType: WatchContentType = WatchContentType.CHANNEL,
     val contentId: Long = 0L,
     val playlistId: Long = 0L,
+    val categoryId: Long? = null, // For channel zapping
     val isLoading: Boolean = true,
     val error: String? = null,
     // EPG
@@ -49,6 +50,11 @@ data class PlayerUiState(
     // Stream fallback URLs for LiveTV retry
     val fallbackUrls: List<String> = emptyList(),
     val currentFallbackIndex: Int = 0,
+    // Series info for next episode
+    val seriesId: Long? = null,
+    val seasonNumber: Int? = null,
+    val episodeNumber: Int? = null,
+    val hasNextEpisode: Boolean = false,
 )
 
 @HiltViewModel
@@ -116,6 +122,7 @@ class PlayerViewModel @Inject constructor(
                 contentType = contentType,
                 contentId = contentId,
                 playlistId = playlistId,
+                categoryId = channel.categoryId,
                 isLoading = false,
                 currentProgram = currentProgram,
                 nextProgram = nextProgram,
@@ -214,6 +221,13 @@ class PlayerViewModel @Inject constructor(
         val progress = watchProgressRepository.getProgress(playlistId, contentType, contentId)
         val hasProgress = (progress?.positionMs ?: 0L) > 10_000 && !(progress?.isCompleted ?: true)
 
+        // Check if there's a next episode
+        val hasNext = episodeDao.hasNextEpisode(
+            episode.seriesId,
+            episode.seasonNumber,
+            episode.episodeNumber
+        )
+
         _uiState.update {
             it.copy(
                 title = episode.name,
@@ -225,6 +239,10 @@ class PlayerViewModel @Inject constructor(
                 isLoading = false,
                 resumePositionMs = progress?.positionMs ?: 0L,
                 showResumeDialog = hasProgress,
+                seriesId = episode.seriesId,
+                seasonNumber = episode.seasonNumber,
+                episodeNumber = episode.episodeNumber,
+                hasNextEpisode = hasNext,
             )
         }
     }
@@ -297,5 +315,241 @@ class PlayerViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         progressSaveJob?.cancel()
+    }
+
+    // ==================== CHANNEL ZAPPING (Live TV) ====================
+
+    /**
+     * Play the previous channel in the current category.
+     * Used for D-PAD_UP channel zapping.
+     * Returns true if a previous channel was found and loaded.
+     */
+    fun playPreviousChannel(): Boolean {
+        val state = _uiState.value
+        if (state.contentType != WatchContentType.CHANNEL || state.categoryId == null) {
+            return false
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            try {
+                val currentChannel = channelDao.getById(state.contentId) ?: return@launch
+                val previousChannel = channelDao.getPreviousChannelInCategory(
+                    state.categoryId,
+                    state.contentId,
+                    currentChannel.sortOrder
+                )
+
+                if (previousChannel != null) {
+                    // Update state with new channel info
+                    channelRepository.updateLastWatched(previousChannel.id)
+                    
+                    val currentProgram = previousChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
+                    val nextProgram = previousChannel.tvgId?.let { epgRepository.getNextProgram(it) }
+                    val fallbackUrls = buildStreamFallbacks(previousChannel.streamUrl, previousChannel.containerExtension)
+
+                    _uiState.update {
+                        it.copy(
+                            title = previousChannel.name,
+                            streamUrl = previousChannel.streamUrl,
+                            logoUrl = previousChannel.logoUrl,
+                            contentId = previousChannel.id,
+                            isLoading = false,
+                            currentProgram = currentProgram,
+                            nextProgram = nextProgram,
+                            userAgent = previousChannel.userAgent,
+                            fallbackUrls = fallbackUrls,
+                            currentFallbackIndex = 0,
+                            error = null,
+                        )
+                    }
+                } else {
+                    // No previous channel - wrap around to the last channel in category
+                    val channelsInCategory = channelDao.getByCategoryOrdered(state.categoryId)
+                    if (channelsInCategory.isNotEmpty()) {
+                        val lastChannel = channelsInCategory.last()
+                        channelRepository.updateLastWatched(lastChannel.id)
+                        
+                        val currentProgram = lastChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
+                        val nextProgram = lastChannel.tvgId?.let { epgRepository.getNextProgram(it) }
+                        val fallbackUrls = buildStreamFallbacks(lastChannel.streamUrl, lastChannel.containerExtension)
+
+                        _uiState.update {
+                            it.copy(
+                                title = lastChannel.name,
+                                streamUrl = lastChannel.streamUrl,
+                                logoUrl = lastChannel.logoUrl,
+                                contentId = lastChannel.id,
+                                isLoading = false,
+                                currentProgram = currentProgram,
+                                nextProgram = nextProgram,
+                                userAgent = lastChannel.userAgent,
+                                fallbackUrls = fallbackUrls,
+                                currentFallbackIndex = 0,
+                                error = null,
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false) }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
+            }
+        }
+        return true
+    }
+
+    /**
+     * Play the next channel in the current category.
+     * Used for D-PAD_DOWN channel zapping.
+     * Returns true if a next channel was found and loaded.
+     */
+    fun playNextChannel(): Boolean {
+        val state = _uiState.value
+        if (state.contentType != WatchContentType.CHANNEL || state.categoryId == null) {
+            return false
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            try {
+                val currentChannel = channelDao.getById(state.contentId) ?: return@launch
+                val nextChannel = channelDao.getNextChannelInCategory(
+                    state.categoryId,
+                    state.contentId,
+                    currentChannel.sortOrder
+                )
+
+                if (nextChannel != null) {
+                    // Update state with new channel info
+                    channelRepository.updateLastWatched(nextChannel.id)
+                    
+                    val currentProgram = nextChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
+                    val nextEpgProgram = nextChannel.tvgId?.let { epgRepository.getNextProgram(it) }
+                    val fallbackUrls = buildStreamFallbacks(nextChannel.streamUrl, nextChannel.containerExtension)
+
+                    _uiState.update {
+                        it.copy(
+                            title = nextChannel.name,
+                            streamUrl = nextChannel.streamUrl,
+                            logoUrl = nextChannel.logoUrl,
+                            contentId = nextChannel.id,
+                            isLoading = false,
+                            currentProgram = currentProgram,
+                            nextProgram = nextEpgProgram,
+                            userAgent = nextChannel.userAgent,
+                            fallbackUrls = fallbackUrls,
+                            currentFallbackIndex = 0,
+                            error = null,
+                        )
+                    }
+                } else {
+                    // No next channel - wrap around to the first channel in category
+                    val channelsInCategory = channelDao.getByCategoryOrdered(state.categoryId)
+                    if (channelsInCategory.isNotEmpty()) {
+                        val firstChannel = channelsInCategory.first()
+                        channelRepository.updateLastWatched(firstChannel.id)
+                        
+                        val currentProgram = firstChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
+                        val nextEpgProgram = firstChannel.tvgId?.let { epgRepository.getNextProgram(it) }
+                        val fallbackUrls = buildStreamFallbacks(firstChannel.streamUrl, firstChannel.containerExtension)
+
+                        _uiState.update {
+                            it.copy(
+                                title = firstChannel.name,
+                                streamUrl = firstChannel.streamUrl,
+                                logoUrl = firstChannel.logoUrl,
+                                contentId = firstChannel.id,
+                                isLoading = false,
+                                currentProgram = currentProgram,
+                                nextProgram = nextEpgProgram,
+                                userAgent = firstChannel.userAgent,
+                                fallbackUrls = fallbackUrls,
+                                currentFallbackIndex = 0,
+                                error = null,
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false) }
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
+            }
+        }
+        return true
+    }
+
+    // ==================== NEXT EPISODE (Binge Watching) ====================
+
+    /**
+     * Load and play the next episode in the series.
+     * Used for binge-watching TV series.
+     * Returns true if a next episode was found and loaded.
+     */
+    fun loadNextEpisode(): Boolean {
+        val state = _uiState.value
+        if (state.contentType != WatchContentType.EPISODE || 
+            state.seriesId == null || 
+            state.seasonNumber == null || 
+            state.episodeNumber == null) {
+            return false
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            try {
+                val nextEpisode = episodeDao.getNextEpisode(
+                    state.seriesId,
+                    state.seasonNumber,
+                    state.episodeNumber
+                )
+
+                if (nextEpisode != null) {
+                    // Save progress of current episode first
+                    saveProgress()
+
+                    // Check for progress on next episode
+                    val progress = watchProgressRepository.getProgress(
+                        state.playlistId, 
+                        WatchContentType.EPISODE, 
+                        nextEpisode.id
+                    )
+                    val hasProgress = (progress?.positionMs ?: 0L) > 10_000 && !(progress?.isCompleted ?: true)
+
+                    // Check if there's another episode after this one
+                    val hasNext = episodeDao.hasNextEpisode(
+                        nextEpisode.seriesId,
+                        nextEpisode.seasonNumber,
+                        nextEpisode.episodeNumber
+                    )
+
+                    _uiState.update {
+                        it.copy(
+                            title = nextEpisode.name,
+                            streamUrl = nextEpisode.streamUrl,
+                            logoUrl = nextEpisode.coverUrl,
+                            contentId = nextEpisode.id,
+                            isLoading = false,
+                            resumePositionMs = progress?.positionMs ?: 0L,
+                            showResumeDialog = hasProgress,
+                            seasonNumber = nextEpisode.seasonNumber,
+                            episodeNumber = nextEpisode.episodeNumber,
+                            hasNextEpisode = hasNext,
+                            error = null,
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.localizedMessage) }
+            }
+        }
+        return true
     }
 }

@@ -19,9 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Forward10
+import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,16 +41,25 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.presentation.viewmodel.PlayerUiState
 
 /**
  * TV-optimized player overlay with D-Pad key handling.
  *
- * Key mappings:
+ * Key mappings for Live TV (CHANNEL):
  * - DPAD_CENTER / Enter: Play/Pause
  * - DPAD_LEFT: Rewind 10s
  * - DPAD_RIGHT: Forward 10s
- * - DPAD_UP: Show controls
+ * - DPAD_UP: Previous channel (zap)
+ * - DPAD_DOWN: Next channel (zap)
+ * - BACK: Exit player
+ *
+ * Key mappings for VOD/Episodes:
+ * - DPAD_CENTER / Enter: Play/Pause
+ * - DPAD_LEFT: Rewind 10s
+ * - DPAD_RIGHT: Forward 10s (long press: Next Episode for series)
+ * - DPAD_UP/DOWN: Show/hide controls
  * - BACK: Exit player
  */
 @Composable
@@ -59,14 +70,20 @@ fun TvPlayerOverlay(
     onSeekBackward: () -> Unit,
     onShowControls: () -> Unit,
     onBack: () -> Unit,
+    onPreviousChannel: (() -> Unit)? = null,
+    onNextChannel: (() -> Unit)? = null,
+    onNextEpisode: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    val isLiveTv = uiState.contentType == WatchContentType.CHANNEL
+    
     Box(
         modifier = modifier
             .fillMaxSize()
             .focusable()
             .onKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter -> {
                         onPlayPause()
@@ -80,8 +97,20 @@ fun TvPlayerOverlay(
                         onSeekForward()
                         true
                     }
-                    Key.DirectionUp, Key.DirectionDown -> {
-                        onShowControls()
+                    Key.DirectionUp -> {
+                        if (isLiveTv && onPreviousChannel != null) {
+                            onPreviousChannel()
+                        } else {
+                            onShowControls()
+                        }
+                        true
+                    }
+                    Key.DirectionDown -> {
+                        if (isLiveTv && onNextChannel != null) {
+                            onNextChannel()
+                        } else {
+                            onShowControls()
+                        }
                         true
                     }
                     Key.Back, Key.Escape -> {
@@ -141,6 +170,30 @@ fun TvPlayerOverlay(
                     horizontalArrangement = Arrangement.spacedBy(48.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // Channel Zap Indicator (Live TV only)
+                    if (isLiveTv) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NavigateNext,
+                                contentDescription = "Previous Channel",
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.3f))
+                                    .padding(4.dp),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "UP",
+                                color = Color.White.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+
                     Icon(
                         imageVector = Icons.Default.Replay10,
                         contentDescription = "Rewind",
@@ -173,10 +226,34 @@ fun TvPlayerOverlay(
                             .background(Color.Black.copy(alpha = 0.5f))
                             .padding(8.dp),
                     )
+
+                    // Channel Zap Indicator (Live TV only)
+                    if (isLiveTv) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipNext,
+                                contentDescription = "Next Channel",
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.3f))
+                                    .padding(4.dp),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "DOWN",
+                                color = Color.White.copy(alpha = 0.5f),
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
                 }
 
-                // Bottom: Time / duration
-                if (uiState.durationMs > 0) {
+                // Bottom: Time / duration + Next Episode button for series
+                if (uiState.durationMs > 0 || uiState.hasNextEpisode) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -189,17 +266,50 @@ fun TvPlayerOverlay(
                             .padding(32.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = formatTvDuration(uiState.currentPositionMs),
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = formatTvDuration(uiState.durationMs),
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
+                        if (uiState.durationMs > 0) {
+                            Text(
+                                text = formatTvDuration(uiState.currentPositionMs),
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                        
+                        // Next Episode button for series
+                        if (uiState.hasNextEpisode && onNextEpisode != null) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SkipNext,
+                                    contentDescription = "Next Episode",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Next Episode (Long Press RIGHT)",
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                            if (uiState.durationMs > 0) {
+                                Spacer(modifier = Modifier.width(16.dp))
+                            }
+                        }
+                        
+                        if (uiState.durationMs > 0) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(
+                                text = formatTvDuration(uiState.durationMs),
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
                     }
                 }
             }

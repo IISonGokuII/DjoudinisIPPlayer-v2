@@ -58,6 +58,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -172,6 +175,7 @@ private fun ViewModeIcon(viewMode: ViewMode) {
     )
 }
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 private fun SearchBar(
     query: String,
@@ -185,7 +189,12 @@ private fun SearchBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .focusProperties {
+                // Verhindere, dass man von unten (z.B. der Liste) beim Navigieren nach rechts in die Suche springt.
+                // Man muss explizit nach oben navigieren, um in die Suchleiste zu kommen.
+                down = FocusRequester.Default
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
@@ -226,7 +235,7 @@ private data class PreviewChannel(
     val streamUrl: String,
 )
 
-@OptIn(UnstableApi::class)
+@OptIn(androidx.media3.common.util.UnstableApi::class, androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 private fun ChannelPreviewPlayer(
     channel: PreviewChannel,
@@ -315,6 +324,7 @@ private fun ChannelPreviewPlayer(
 
 // ======================== Live TV ========================
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun LiveCategoriesScreen(
     onCategoryClick: (Long) -> Unit,
@@ -354,7 +364,13 @@ fun LiveCategoriesScreen(
                 CategorySidebar(categories, selectedCategoryId) { viewModel.selectCategory(it) }
                 VerticalDivider()
 
-                Column(modifier = Modifier.weight(1f)) {
+                val focusRequester = remember { FocusRequester() }
+                
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester)
+                ) {
                     SearchBar(inlineSearch, viewModel::updateInlineSearch, stringResource(R.string.search_channels), viewMode,
                         onToggleViewMode = { viewModel.cycleViewMode() },
                         sortMode = sortMode,
@@ -447,6 +463,7 @@ fun LiveCategoriesScreen(
 
 // ======================== Movies (VOD) ========================
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun VodCategoriesScreen(
     onCategoryClick: (Long) -> Unit,
@@ -481,7 +498,13 @@ fun VodCategoriesScreen(
             CategorySidebar(categories, selectedCategoryId) { viewModel.selectCategory(it) }
             VerticalDivider()
 
-            Column(modifier = Modifier.weight(1f)) {
+            val focusRequester = remember { FocusRequester() }
+            
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester)
+            ) {
                 SearchBar(inlineSearch, viewModel::updateInlineSearch, stringResource(R.string.search_movies), viewMode,
                     onToggleViewMode = { viewModel.cycleViewMode() },
                     sortMode = sortMode,
@@ -536,6 +559,7 @@ fun VodCategoriesScreen(
 
 // ======================== Series ========================
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun SeriesCategoriesScreen(
     onCategoryClick: (Long) -> Unit,
@@ -570,7 +594,13 @@ fun SeriesCategoriesScreen(
             CategorySidebar(categories, selectedCategoryId) { viewModel.selectCategory(it) }
             VerticalDivider()
 
-            Column(modifier = Modifier.weight(1f)) {
+            val focusRequester = remember { FocusRequester() }
+            
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester)
+            ) {
                 SearchBar(inlineSearch, viewModel::updateInlineSearch, stringResource(R.string.search_series), viewMode,
                     onToggleViewMode = { viewModel.cycleViewMode() },
                     sortMode = sortMode,

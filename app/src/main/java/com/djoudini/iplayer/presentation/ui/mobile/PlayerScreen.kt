@@ -82,6 +82,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.djoudini.iplayer.R
+import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 
@@ -381,13 +382,43 @@ fun PlayerScreen(
                         viewModel.showControls()
                         true
                     }
-                    KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
                         exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
                         viewModel.showControls()
                         true
                     }
-                    KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        viewModel.toggleControls()
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        if (uiState.contentType == WatchContentType.CHANNEL) {
+                            viewModel.playPreviousChannel()
+                        } else {
+                            viewModel.toggleControls()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if (uiState.contentType == WatchContentType.CHANNEL) {
+                            viewModel.playNextChannel()
+                        } else {
+                            viewModel.toggleControls()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        // Long press detection for next episode in series
+                        if (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode) {
+                            // For simplicity, we trigger next episode on regular RIGHT press when at end
+                            // or we could implement a long-press detector
+                            exoPlayer?.let { 
+                                if (uiState.durationMs > 0 && it.currentPosition >= uiState.durationMs - 5000) {
+                                    viewModel.loadNextEpisode()
+                                } else {
+                                    it.seekTo(it.currentPosition + 10_000)
+                                }
+                            }
+                        } else {
+                            exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
+                        }
+                        viewModel.showControls()
                         true
                     }
                     KeyEvent.KEYCODE_MEDIA_PLAY -> {

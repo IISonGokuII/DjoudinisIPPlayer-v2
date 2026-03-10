@@ -49,4 +49,37 @@ interface ChannelDao {
 
     @Query("SELECT COUNT(*) FROM channels WHERE category_id = :categoryId")
     suspend fun countByCategory(categoryId: Long): Int
+
+    /**
+     * Get all channels in a category ordered for channel zapping.
+     * Returns channels sorted by their order in the playlist.
+     */
+    @Query("SELECT * FROM channels WHERE category_id = :categoryId ORDER BY sort_order ASC, name ASC")
+    suspend fun getByCategoryOrdered(categoryId: Long): List<ChannelEntity>
+
+    /**
+     * Get the previous channel in the category for zapping.
+     * Returns the channel with the highest sort_order that is less than the current channel's sort_order.
+     */
+    @Query("""
+        SELECT * FROM channels 
+        WHERE category_id = :categoryId 
+        AND (sort_order < :currentSortOrder OR (sort_order = :currentSortOrder AND name < (SELECT name FROM channels WHERE id = :currentChannelId)))
+        ORDER BY sort_order DESC, name DESC 
+        LIMIT 1
+    """)
+    suspend fun getPreviousChannelInCategory(categoryId: Long, currentChannelId: Long, currentSortOrder: Int): ChannelEntity?
+
+    /**
+     * Get the next channel in the category for zapping.
+     * Returns the channel with the lowest sort_order that is greater than the current channel's sort_order.
+     */
+    @Query("""
+        SELECT * FROM channels 
+        WHERE category_id = :categoryId 
+        AND (sort_order > :currentSortOrder OR (sort_order = :currentSortOrder AND name > (SELECT name FROM channels WHERE id = :currentChannelId)))
+        ORDER BY sort_order ASC, name ASC 
+        LIMIT 1
+    """)
+    suspend fun getNextChannelInCategory(categoryId: Long, currentChannelId: Long, currentSortOrder: Int): ChannelEntity?
 }
