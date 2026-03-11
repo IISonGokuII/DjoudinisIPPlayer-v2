@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -172,137 +173,238 @@ fun TvCategoryFilterScreen(
                 }
             }
         } else {
-            Column(
+            // NEW LAYOUT: Categories on left, Navigation buttons on right
+            Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                // Header with step indicator
-                TvCategoryFilterHeader(
-                    stepTitles = stepTitles,
-                    currentStep = currentStep,
-                    onBack = { if (currentStep > 0) viewModel.previousStep() }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Instruction text
-                Text(
-                    text = stringResource(R.string.select_categories_format, stepTitles[currentStep]),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Select All / None buttons in a row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                // Left side: Category selection (70% width)
+                Column(
+                    modifier = Modifier.weight(7f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    FocusableCard(
-                        onClick = { viewModel.selectAllInStep(true) },
-                        modifier = Modifier
-                            .width(160.dp)
-                            .height(48.dp),
-                        focusScale = 1.05f
+                    // Header with step indicator
+                    TvCategoryFilterHeader(
+                        stepTitles = stepTitles,
+                        currentStep = currentStep,
+                        onBack = { if (currentStep > 0) viewModel.previousStep() }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Instruction text
+                    Text(
+                        text = stringResource(R.string.select_categories_format, stepTitles[currentStep]),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Select All / None buttons in a row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                        FocusableCard(
+                            onClick = { viewModel.selectAllInStep(true) },
+                            modifier = Modifier
+                                .width(140.dp)
+                                .height(48.dp),
+                            focusScale = 1.05f
                         ) {
-                            Text(
-                                text = stringResource(R.string.all),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.all),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        FocusableCard(
+                            onClick = { viewModel.selectAllInStep(false) },
+                            modifier = Modifier
+                                .width(140.dp)
+                                .height(48.dp),
+                            focusScale = 1.05f
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.none),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
 
-                    FocusableCard(
-                        onClick = { viewModel.selectAllInStep(false) },
-                        modifier = Modifier
-                            .width(160.dp)
-                            .height(48.dp),
-                        focusScale = 1.05f
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.none),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Category list - COMPACT (max 5 items visible)
+                    AnimatedContent(
+                        targetState = currentStep,
+                        modifier = Modifier.height(280.dp), // Reduced from 320dp
+                        transitionSpec = {
+                            if (targetState > initialState) {
+                                slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                            } else {
+                                slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
+                            }
+                        },
+                        label = "step",
+                    ) { step ->
+                        val stepCategories = when (step) {
+                            0 -> filterState.liveCategories
+                            1 -> filterState.vodCategories
+                            2 -> filterState.seriesCategories
+                            else -> emptyList()
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Category list - FIXED HEIGHT so buttons are always visible
-                val categories = when (currentStep) {
-                    0 -> filterState.liveCategories
-                    1 -> filterState.vodCategories
-                    2 -> filterState.seriesCategories
-                    else -> emptyList()
-                }
-
-                AnimatedContent(
-                    targetState = currentStep,
-                    modifier = Modifier.height(320.dp), // Fixed height for ~6 items
-                    transitionSpec = {
-                        if (targetState > initialState) {
-                            slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
+                        if (stepCategories.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.no_categories_format, stepTitles[step]),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         } else {
-                            slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-                        }
-                    },
-                    label = "step",
-                ) { step ->
-                    val stepCategories = when (step) {
-                        0 -> filterState.liveCategories
-                        1 -> filterState.vodCategories
-                        2 -> filterState.seriesCategories
-                        else -> emptyList()
-                    }
-
-                    if (stepCategories.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = stringResource(R.string.no_categories_format, stepTitles[step]),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            TvCategoryCheckboxList(
+                                categories = stepCategories,
+                                onToggle = { id, checked -> viewModel.toggleCategory(id, checked) },
                             )
                         }
-                    } else {
-                        TvCategoryCheckboxList(
-                            categories = stepCategories,
-                            onToggle = { id, checked -> viewModel.toggleCategory(id, checked) },
+                    }
+                }
+
+                // Right side: Navigation buttons (30% width) - ALWAYS VISIBLE
+                Column(
+                    modifier = Modifier
+                        .weight(3f)
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Show selected count
+                    val selectedCount = when (currentStep) {
+                        0 -> filterState.liveCategories.count { it.isSelected }
+                        1 -> filterState.vodCategories.count { it.isSelected }
+                        2 -> filterState.seriesCategories.count { it.isSelected }
+                        else -> 0
+                    }
+                    
+                    if (selectedCount > 0) {
+                        Text(
+                            text = "$selectedCount ausgewählt",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 24.dp)
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    // Navigation buttons stacked vertically
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Back button (if not first step)
+                        if (currentStep > 0) {
+                            FocusableCard(
+                                onClick = { viewModel.previousStep() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp),
+                                focusScale = 1.05f
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        null,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        stringResource(R.string.back),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
 
-                // Bottom navigation buttons - ALWAYS VISIBLE
-                val selectedCount = when (currentStep) {
-                    0 -> filterState.liveCategories.count { it.isSelected }
-                    1 -> filterState.vodCategories.count { it.isSelected }
-                    2 -> filterState.seriesCategories.count { it.isSelected }
-                    else -> 0
+                        // Next button (if not last step)
+                        if (currentStep < 2) {
+                            FocusableCard(
+                                onClick = { viewModel.nextStep() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp),
+                                focusScale = 1.05f
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        stringResource(R.string.next),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                        null,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            // Sync button (last step)
+                            FocusableCard(
+                                onClick = { viewModel.syncSelectedContent(playlistId) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(64.dp),
+                                focusScale = 1.05f
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.PlayArrow,
+                                        null,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        stringResource(R.string.sync_and_continue),
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-                TvCategoryFilterNavigation(
-                    currentStep = currentStep,
-                    totalSteps = 3,
-                    onPrevious = { viewModel.previousStep() },
-                    onNext = { viewModel.nextStep() },
-                    onSync = { viewModel.syncSelectedContent(playlistId) },
-                    selectedCount = selectedCount
-                )
             }
         }
     }
