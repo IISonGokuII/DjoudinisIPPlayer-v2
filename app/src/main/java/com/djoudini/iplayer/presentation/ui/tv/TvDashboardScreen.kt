@@ -148,7 +148,7 @@ fun TvDashboardScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Continue Watching section
+        // Continue Watching section - SCROLLABLE to prevent overflow
         if (continueWatching.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.continue_watching),
@@ -159,7 +159,7 @@ fun TvDashboardScreen(
             Spacer(modifier = Modifier.height(12.dp))
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(end = 8.dp),
+                contentPadding = PaddingValues(end = 16.dp),
             ) {
                 items(continueWatching, key = { it.id }) { progress ->
                     ContinueWatchingCard(
@@ -168,7 +168,7 @@ fun TvDashboardScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // Main tile grid - 3 columns, 2 rows
