@@ -55,9 +55,17 @@ fun TvLoginM3uScreen(
     var name by remember { mutableStateOf("") }
     var m3uUrl by remember { mutableStateOf("") }
 
-    LaunchedEffect(loginState) {
-        if (loginState is Resource.Success<*>) {
-            onLoginSuccess((loginState as Resource.Success<Long>).data)
+    // Handle login success via loginSuccess SharedFlow (same as mobile)
+    LaunchedEffect(Unit) {
+        viewModel.loginSuccess.collect { playlistId ->
+            onLoginSuccess(playlistId)
+        }
+    }
+
+    // Show error when login fails
+    LaunchedEffect(loginState.error) {
+        loginState.error?.let {
+            // Error is displayed in the UI directly
         }
     }
 
