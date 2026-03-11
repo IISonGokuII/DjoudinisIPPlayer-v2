@@ -24,6 +24,7 @@ import com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.MultiViewScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvLiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvOnboardingScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLoginXtreamScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLoginM3uScreen
@@ -177,13 +178,22 @@ fun AppNavGraph(
 
         // --- Content Lists (Split-pane: categories left, content right) ---
         composable(Route.LiveCategories.route) {
-            LiveCategoriesScreen(
-                onCategoryClick = {},
-                onChannelClick = { channelId ->
-                    navController.navigate(Route.Player.create("channel", channelId))
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvLiveCategoriesScreen(
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                LiveCategoriesScreen(
+                    onCategoryClick = {},
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(Route.VodCategories.route) {
