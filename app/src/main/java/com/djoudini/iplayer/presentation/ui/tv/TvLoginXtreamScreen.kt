@@ -62,9 +62,13 @@ fun TvLoginXtreamScreen(
     // Show error if sync failed
     val errorMessage = (loginState as? Resource.Error)?.message
 
+    // Handle login success - navigate to category filter
     LaunchedEffect(loginState) {
-        if (loginState is Resource.Success<*>) {
-            onLoginSuccess((loginState as Resource.Success<Long>).data)
+        when (val state = loginState) {
+            is Resource.Success<Long> -> {
+                onLoginSuccess(state.data)
+            }
+            else -> {}
         }
     }
 
@@ -191,10 +195,11 @@ fun TvLoginXtreamScreen(
                 }
             } else {
                 val isLoading = loginState is Resource.Loading
-                
+                val allFieldsFilled = name.isNotBlank() && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
+
                 FocusableCard(
                     onClick = {
-                        if (!isLoading && name.isNotBlank() && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()) {
+                        if (!isLoading && allFieldsFilled) {
                             viewModel.loginXtream(name, serverUrl, username, password)
                         }
                     },
@@ -214,6 +219,16 @@ fun TvLoginXtreamScreen(
                             )
                         }
                     }
+                }
+                
+                // Helper text
+                if (!allFieldsFilled) {
+                    Text(
+                        text = "Alle Felder ausfüllen zum Fortfahren",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
                 }
             }
             
