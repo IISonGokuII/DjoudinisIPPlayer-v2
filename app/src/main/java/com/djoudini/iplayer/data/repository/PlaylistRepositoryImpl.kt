@@ -564,11 +564,24 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        val epgUrl = playlist.epgUrl ?: return
+        val epgUrl = playlist.epgUrl
+        
+        // Log for debugging
+        Timber.d("[EPG Sync] Starting EPG sync for playlist $playlistId")
+        Timber.d("[EPG Sync] EPG URL: $epgUrl")
+
+        if (epgUrl.isNullOrBlank()) {
+            Timber.e("[EPG Sync] No EPG URL configured for playlist $playlistId")
+            _syncProgress.value = SyncProgress.failed("Keine EPG-URL konfiguriert. Bitte Xtream-Login erneut durchführen.")
+            return
+        }
 
         try {
             _syncProgress.value = SyncProgress.active("Downloading EPG...", 0.05f)
+            Timber.d("[EPG Sync] Downloading EPG from: $epgUrl")
+            
             val responseBody = xtreamApi.fetchRawUrl(epgUrl)
+            Timber.d("[EPG Sync] Download complete, size: ${responseBody.byteStream().available()} bytes")
 
             _syncProgress.value = SyncProgress.active("Parsing EPG...", 0.1f)
             epgProgramDao.deleteByPlaylist(playlistId)
@@ -580,6 +593,7 @@ class PlaylistRepositoryImpl @Inject constructor(
                 batchSize = 500,
                 onBatch = { batch ->
                     epgProgramDao.insertBatch(batch)
+                    Timber.d("[EPG Sync] Inserted batch of ${batch.size} programs")
                 },
                 onProgress = { count ->
                     totalPrograms = count
@@ -595,13 +609,14 @@ class PlaylistRepositoryImpl @Inject constructor(
 
             playlistDao.updateEpgLastSynced(playlistId, System.currentTimeMillis())
             _syncProgress.value = SyncProgress.completed()
-            Timber.i("EPG sync complete: $totalPrograms programs")
+            Timber.i("[EPG Sync] Complete: $totalPrograms programs for playlist $playlistId")
         } catch (e: CancellationException) {
+            Timber.w("[EPG Sync] Cancelled by user")
             _syncProgress.value = SyncProgress.Idle
             throw e
         } catch (e: Exception) {
-            Timber.e(e, "EPG sync failed")
-            _syncProgress.value = SyncProgress.failed(e.localizedMessage ?: "EPG sync failed")
+            Timber.e(e, "[EPG Sync] Failed for playlist $playlistId")
+            _syncProgress.value = SyncProgress.failed("EPG Sync fehlgeschlagen: ${e.localizedMessage ?: "Unbekannter Fehler"}")
             // Don't re-throw - allow partial EPG sync
         }
     }

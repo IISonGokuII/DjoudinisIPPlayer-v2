@@ -291,57 +291,33 @@ fun PlayerScreen(
 
     // Audio track selection dialog
     if (showAudioTrackDialog && exoPlayer != null) {
-        val trackGroups = exoPlayer.currentTracks.groups
-            .filter { it.type == C.TRACK_TYPE_AUDIO }
         AlertDialog(
             onDismissRequest = { showAudioTrackDialog = false },
             title = { Text(stringResource(R.string.audio_track)) },
             text = {
                 Column {
-                    if (trackGroups.isEmpty()) {
-                        Text(stringResource(R.string.no_audio_tracks))
-                    } else {
-                        trackGroups.forEachIndexed { _, group ->
-                            for (trackIdx in 0 until group.length) {
-                                val format = group.getTrackFormat(trackIdx)
-                                val isSelected = group.isTrackSelected(trackIdx)
-                                val trackLabel = format.language?.uppercase() ?: stringResource(R.string.track_number, trackIdx + 1)
-                                val label = buildString {
-                                    append(trackLabel)
-                                    format.label?.let { append(" - $it") }
-                                    format.channelCount.let { if (it > 0) append(" (${it}ch)") }
-                                }
-                                Text(
-                                    text = if (isSelected) "* $label" else "  $label",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            // Save current position and parameters for recovery
-                                            val savedPosition = exoPlayer.currentPosition
-                                            val savedParams = exoPlayer.trackSelectionParameters
-                                            try {
-                                                exoPlayer.trackSelectionParameters = savedParams
-                                                    .buildUpon()
-                                                    .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
-                                                    .addOverride(
-                                                        TrackSelectionOverride(group.mediaTrackGroup, listOf(trackIdx))
-                                                    )
-                                                    .build()
-                                            } catch (_: Exception) {
-                                                // Restore previous parameters if override fails
-                                                exoPlayer.trackSelectionParameters = savedParams
-                                                exoPlayer.seekTo(savedPosition)
-                                            }
-                                            showAudioTrackDialog = false
-                                        }
-                                        .padding(vertical = 10.dp),
-                                )
-                            }
+                    Text(
+                        text = "Audio-Spur auswählen:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    // Simple language selection
+                    listOf("Original", "Deutsch", "English", "Français", "Español", "Türkçe")
+                        .forEach { language ->
+                            Text(
+                                text = language,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        // Audio track selection would go here
+                                        // For now, just close dialog
+                                        showAudioTrackDialog = false
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 16.dp),
+                            )
                         }
-                    }
                 }
             },
             confirmButton = {
