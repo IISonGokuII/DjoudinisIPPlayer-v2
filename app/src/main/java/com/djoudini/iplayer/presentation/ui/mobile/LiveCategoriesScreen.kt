@@ -51,6 +51,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -247,40 +249,44 @@ private fun ChannelPreviewPlayer(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    val exoPlayer = remember(channel.id) {
-        ExoPlayer.Builder(context).build().apply {
+    
+    // FIXED: Create player once, update media item when channel changes
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build()
+    }
+    
+    // Update media item when channel changes
+    LaunchedEffect(channel.id) {
+        exoPlayer.apply {
+            stop()
+            clearMediaItems()
             setMediaItem(MediaItem.fromUri(channel.streamUrl))
             prepare()
             playWhenReady = true
         }
     }
 
-    DisposableEffect(channel.id) {
-        onDispose { exoPlayer.release() }
+    DisposableEffect(Unit) {
+        onDispose { 
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+            exoPlayer.release() 
+        }
     }
 
-    Column(
+    // NEW LAYOUT: Larger preview, compact channel list
+    Row(
         modifier = Modifier
-            .width(220.dp)
-            .fillMaxHeight()
-            .background(Color.Black),
+            .fillMaxSize(),
     ) {
-        // Close button row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Close, stringResource(R.string.close), tint = Color.White, modifier = Modifier.size(18.dp))
-            }
-        }
-
-        // Preview video
+        // Preview video - LARGER (60% width)
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
+                    // Keep screen on during preview
+                    keepScreenOn = true
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -288,40 +294,68 @@ private fun ChannelPreviewPlayer(
                 }
             },
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(4.dp))
+                .weight(0.6f)
+                .fillMaxHeight()
+                .background(Color.Black)
                 .clickable { onFullscreen() },
         )
-
-        // Info + fullscreen button
+        
+        // Channel info sidebar - COMPACT (40% width)
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .weight(0.4f)
+                .fillMaxHeight()
+                .background(Color.Black.copy(alpha = 0.8f))
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Close button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, stringResource(R.string.close), tint = Color.White)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Channel name
             Text(
                 text = channel.name,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
-                maxLines = 2,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
             Text(
-                text = stringResource(R.string.tap_to_fullscreen),
+                text = "Tippen für Vollbild",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
             )
-        }
-
-        // Fullscreen button
-        IconButton(
-            onClick = onFullscreen,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        ) {
-            Icon(Icons.Default.Fullscreen, stringResource(R.string.fullscreen), tint = Color.White)
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            // Fullscreen button
+            IconButton(
+                onClick = onFullscreen,
+                modifier = Modifier.size(64.dp),
+            ) {
+                Icon(
+                    Icons.Default.Fullscreen,
+                    stringResource(R.string.fullscreen),
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
