@@ -227,4 +227,12 @@ class OnboardingViewModel @Inject constructor(
     fun clearError() {
         _loginState.update { it.copy(error = null) }
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Cancel all coroutines to prevent memory leaks
+        categoryCollectJob?.cancel()
+        categoryCollectJob = null
+        Timber.d("[Onboarding] ViewModel cleared, jobs cancelled")
+    }
 }

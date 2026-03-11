@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
+import timber.log.Timber
 import javax.inject.Inject
 import androidx.compose.runtime.Immutable
 
@@ -278,5 +279,11 @@ class ContentListViewModel @Inject constructor(
         viewModelScope.launch {
             channelRepository.setFavorite(channelId, !currentFavorite)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // ViewModel is being destroyed, all flows are automatically cancelled by viewModelScope
+        Timber.d("[ContentList] ViewModel cleared")
     }
 }

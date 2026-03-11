@@ -142,4 +142,14 @@ class SeriesDetailViewModel @Inject constructor(
             }
         }
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Cancel all coroutines to prevent memory leaks
+        episodesJob?.cancel()
+        episodesJob = null
+        progressJob?.cancel()
+        progressJob = null
+        Timber.d("[SeriesDetail] ViewModel cleared, jobs cancelled")
+    }
 }
