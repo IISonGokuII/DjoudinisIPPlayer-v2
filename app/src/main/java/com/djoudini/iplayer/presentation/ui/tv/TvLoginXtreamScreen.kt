@@ -59,16 +59,17 @@ fun TvLoginXtreamScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Show error if sync failed
-    val errorMessage = (loginState as? Resource.Error)?.message
+    // Handle login success via loginSuccess SharedFlow (same as mobile)
+    LaunchedEffect(Unit) {
+        viewModel.loginSuccess.collect { playlistId ->
+            onLoginSuccess(playlistId)
+        }
+    }
 
-    // Handle login success - navigate to category filter
-    LaunchedEffect(loginState) {
-        when (val state = loginState) {
-            is Resource.Success<Long> -> {
-                onLoginSuccess(state.data)
-            }
-            else -> {}
+    // Show error snackbar when login fails
+    LaunchedEffect(loginState.error) {
+        loginState.error?.let {
+            // Error is displayed in the UI directly
         }
     }
 
