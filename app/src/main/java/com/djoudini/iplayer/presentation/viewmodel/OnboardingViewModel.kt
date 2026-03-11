@@ -60,22 +60,49 @@ class OnboardingViewModel @Inject constructor(
 
     fun loginXtream(name: String, serverUrl: String, username: String, password: String) {
         if (name.isBlank() || serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
-            _loginState.update { it.copy(error = "All fields are required") }
+            _loginState.update { it.copy(error = "Alle Felder müssen ausgefüllt werden") }
+            Timber.e("Login failed: Empty fields")
             return
         }
+
+        // Normalize server URL (remove trailing slash)
+        val normalizedUrl = serverUrl.trimEnd('/')
+
+        Timber.d("Login attempt: name=$name, url=$normalizedUrl, username=$username")
 
         viewModelScope.launch {
             _loginState.update { it.copy(isLoading = true, error = null) }
             try {
-                val playlistId = playlistRepository.addXtreamPlaylist(name, serverUrl, username, password)
+                Timber.d("Adding Xtream playlist...")
+                val playlistId = playlistRepository.addXtreamPlaylist(name, normalizedUrl, username, password)
+                Timber.d("Playlist added with ID: $playlistId")
+                
+                Timber.d("Setting playlist as active...")
                 playlistRepository.setActive(playlistId)
+                
                 // Phase 1: Only fetch categories (fast!)
+                Timber.d("Syncing categories only...")
                 playlistRepository.syncCategoriesOnly(playlistId)
+                
+                Timber.d("Login successful, playlist ID: $playlistId")
                 _loginState.update { it.copy(isLoading = false) }
                 _loginSuccess.emit(playlistId)
             } catch (e: Exception) {
+                Timber.e(e, "Login failed for playlist: $name, URL: $normalizedUrl")
+                val errorMessage = when {
+                    e.message?.contains("timeout", ignoreCase = true) == true -> 
+                        "Zeitüberschreitung. Bitte Internetverbindung prüfen."
+                    e.message?.contains("401", ignoreCase = true) == true || 
+                    e.message?.contains("403", ignoreCase = true) == true -> 
+                        "Ungültige Zugangsdaten. Bitte Benutzername und Passwort prüfen."
+                    e.message?.contains("404", ignoreCase = true) == true -> 
+                        "Server nicht gefunden. Bitte Server-URL prüfen."
+                    e.message?.contains("Unable to resolve host", ignoreCase = true) == true -> 
+                        "Server nicht erreichbar. Bitte Internetverbindung prüfen."
+                    else -> "Login fehlgeschlagen: ${e.localizedMessage ?: "Unbekannter Fehler"}"
+                }
                 _loginState.update {
-                    it.copy(isLoading = false, error = e.localizedMessage ?: "Login failed")
+                    it.copy(isLoading = false, error = errorMessage)
                 }
             }
         }

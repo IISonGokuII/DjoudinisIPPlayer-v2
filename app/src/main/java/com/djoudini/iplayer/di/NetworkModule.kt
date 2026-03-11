@@ -40,10 +40,10 @@ object NetworkModule {
         val cache = Cache(context.cacheDir.resolve("http_cache"), cacheSize)
         return OkHttpClient.Builder()
             .cache(cache)
-            // Längere Timeouts für langsame IPTV-Server
+            // Längere Timeouts für langsame IPTV-Server und Fire TV
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS) // Erhöht für große Playlists/EPG
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(180, TimeUnit.SECONDS) // Erhöht von 120s auf 180s für Fire TV
+            .writeTimeout(60, TimeUnit.SECONDS) // Erhöht für langsame Uploads
             .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
             .retryOnConnectionFailure(true)
             .addInterceptor { chain ->

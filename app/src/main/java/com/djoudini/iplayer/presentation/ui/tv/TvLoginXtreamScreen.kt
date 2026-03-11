@@ -158,14 +158,43 @@ fun TvLoginXtreamScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Error message
+            // Error message - more visible
             if (loginState is Resource.Error) {
-                Text(
-                    text = (loginState as Resource.Error).message ?: "Unknown error",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                FocusableCard(
+                    onClick = { },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    focusScale = 1f
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "❌ Fehler",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = (loginState as Resource.Error).message ?: "Unbekannter Fehler",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Tipp: Internetverbindung und Server-URL prüfen",
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
 
             // Progress or Button - always at the bottom
