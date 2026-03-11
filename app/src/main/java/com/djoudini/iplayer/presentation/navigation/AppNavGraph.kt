@@ -26,6 +26,8 @@ import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.MultiViewScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvEpgGridScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLiveCategoriesScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvMultiViewScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvSearchScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSeriesCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSeriesDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodCategoriesScreen
@@ -317,23 +319,47 @@ fun AppNavGraph(
 
         // --- Multi-View ---
         composable(Route.MultiView.route) {
-            MultiViewScreen(
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvMultiViewScreen(
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                MultiViewScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         // --- Search ---
         composable(Route.Search.route) {
-            SearchScreen(
-                onItemClick = { contentType, contentId ->
-                    when (contentType) {
-                        "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
-                        "vod" -> navController.navigate(Route.VodDetail.create(contentId))
-                        else -> navController.navigate(Route.Player.create(contentType, contentId))
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvSearchScreen(
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onVodClick = { vodId ->
+                        navController.navigate(Route.VodDetail.create(vodId))
+                    },
+                    onSeriesClick = { seriesId ->
+                        navController.navigate(Route.SeriesDetail.create(seriesId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                SearchScreen(
+                    onItemClick = { contentType, contentId ->
+                        when (contentType) {
+                            "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
+                            "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            else -> navController.navigate(Route.Player.create(contentType, contentId))
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         // --- Settings ---
