@@ -116,6 +116,39 @@ private fun TvVodDetailContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Play button - MOST PROMINENT, auto-focused for TV
+            FocusableCard(
+                onClick = onPlay,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp),
+                focusScale = 1.1f,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = if (hasResume) {
+                            stringResource(R.string.continue_watching)
+                        } else {
+                            stringResource(R.string.play)
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Movie poster
             val posterUrl = vod.logoUrl
             if (!posterUrl.isNullOrBlank()) {
@@ -142,39 +175,6 @@ private fun TvVodDetailContent(
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Play button - prominent for TV
-            FocusableCard(
-                onClick = onPlay,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                focusScale = 1.05f,
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = if (hasResume) {
-                            stringResource(R.string.continue_from_format, resumePositionMs / 60_000)
-                        } else {
-                            stringResource(R.string.play)
-                        },
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
