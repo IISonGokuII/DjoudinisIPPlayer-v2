@@ -19,6 +19,7 @@ import com.djoudini.iplayer.presentation.ui.mobile.SearchScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SeriesDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SettingsScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvSettingsScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
@@ -287,9 +288,15 @@ fun AppNavGraph(
 
         // --- Settings ---
         composable(Route.Settings.route) {
-            SettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
         
         // --- Favorites ---
