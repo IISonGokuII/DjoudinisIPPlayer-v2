@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -118,15 +119,23 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Timer,
                     title = stringResource(R.string.buffer_size),
-                    subtitle = stringResource(R.string.buffer_size_format, playerConfig.minBufferMs / 1000, playerConfig.maxBufferMs / 1000),
+                    subtitle = when {
+                        playerConfig.maxBufferMs <= 30_000 -> "Minimal (5-30s)"
+                        playerConfig.maxBufferMs <= 60_000 -> "Ausgewogen (15-60s)"
+                        playerConfig.maxBufferMs <= 120_000 -> "Groß (30-120s)"
+                        else -> "Sehr groß (60-240s)"
+                    },
                     onClick = {
+                        // Cycle through buffer presets
                         when {
                             playerConfig.maxBufferMs <= 30_000 ->
-                                viewModel.setBufferSizes(15_000, 60_000, 2_500, 5_000)
+                                viewModel.setBufferSizes(15_000, 60_000, 2_500, 5_000) // Balanced
                             playerConfig.maxBufferMs <= 60_000 ->
-                                viewModel.setBufferSizes(30_000, 120_000, 5_000, 10_000)
+                                viewModel.setBufferSizes(30_000, 120_000, 5_000, 10_000) // Large
+                            playerConfig.maxBufferMs <= 120_000 ->
+                                viewModel.setBufferSizes(60_000, 240_000, 10_000, 20_000) // Very Large
                             else ->
-                                viewModel.setBufferSizes(5_000, 30_000, 1_500, 3_000)
+                                viewModel.setBufferSizes(5_000, 30_000, 1_500, 3_000) // Minimal
                         }
                     },
                 )
@@ -143,6 +152,12 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.tunneled_playback_desc),
                     checked = playerConfig.enableTunneledPlayback,
                     onCheckedChange = { viewModel.toggleTunneledPlayback(it) },
+                )
+                SettingsItem(
+                    icon = Icons.Default.AspectRatio,
+                    title = "Video-Format (Aspect Ratio)",
+                    subtitle = "Im Player über Button einstellbar",
+                    onClick = { /* Info only - actual setting in Player */ },
                 )
                 SettingsItem(
                     icon = Icons.Default.Language,

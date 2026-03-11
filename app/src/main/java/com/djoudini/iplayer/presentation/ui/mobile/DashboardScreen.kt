@@ -231,11 +231,25 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 DashboardTile(
+                    title = stringResource(R.string.multi_view),
+                    icon = Icons.Default.GridView,
+                    onClick = onNavigateMultiView,
+                    modifier = Modifier.weight(1f),
+                )
+                DashboardTile(
                     title = stringResource(R.string.epg_guide),
                     icon = Icons.Default.CalendarMonth,
                     onClick = onNavigateEpg,
                     modifier = Modifier.weight(1f),
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 DashboardTile(
                     title = stringResource(R.string.settings),
                     icon = Icons.Default.Settings,

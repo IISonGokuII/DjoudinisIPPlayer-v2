@@ -153,7 +153,12 @@ fun AppNavGraph(
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
                             "vod" -> navController.navigate(Route.VodDetail.create(contentId))
-                            else -> navController.navigate(Route.Player.create(contentType, contentId))
+                            "episode" -> navController.navigate(Route.Player.create("episode", contentId))
+                            "channel" -> navController.navigate(Route.Player.create("channel", contentId))
+                            else -> {
+                                // Try to navigate to player with original content type
+                                navController.navigate(Route.Player.create(contentType, contentId))
+                            }
                         }
                     },
                 )

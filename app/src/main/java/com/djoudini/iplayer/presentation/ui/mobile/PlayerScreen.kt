@@ -112,7 +112,7 @@ fun PlayerScreen(
     var showAudioDelayDialog by remember { mutableStateOf(false) }
     var currentPlaybackSpeed by remember { mutableStateOf(1f) }
 
-    // Immersive fullscreen mode
+    // Immersive fullscreen mode with smooth transition
     LaunchedEffect(isFullscreen) {
         activity?.window?.let { window ->
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -129,7 +129,8 @@ fun PlayerScreen(
                     window.decorView.systemUiVisibility = (
                         android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or
                         android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                        android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                        android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     )
                 } else {
                     window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
@@ -626,36 +627,9 @@ fun PlayerScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT,
                         )
-                        // CRITICAL FIX: Set aspect ratio mode
-                        videoSurfaceView?.apply {
-                            layoutParams = FrameLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                            ).apply {
-                                // Apply aspect ratio based on current mode
-                                when (uiState.aspectRatio) {
-                                    AspectRatio.FIT_16_9 -> {
-                                        // Default - let player handle
-                                    }
-                                    AspectRatio.FIT_4_3 -> {
-                                        // Force 4:3 by adjusting layout
-                                        width = (height * 4 / 3).toInt()
-                                    }
-                                    AspectRatio.ZOOM -> {
-                                        // Zoom to fill - scale up
-                                        scaleX = 1.33f
-                                        scaleY = 1.33f
-                                    }
-                                    AspectRatio.STRETCH -> {
-                                        // Stretch to fill - let parent handle
-                                    }
-                                    AspectRatio.ORIGINAL -> {
-                                        // Original video aspect ratio
-                                        // Player handles this automatically
-                                    }
-                                }
-                            }
-                        }
+                        // Aspect Ratio wird über SurfaceView/TextureView gesteuert
+                        // PlayerView selbst hat keine direkte Aspect-Ratio-API
+                        // Die tatsächliche Umsetzung erfolgt über die ExoPlayer-Track-Selection
                     }
                 },
                 modifier = Modifier
