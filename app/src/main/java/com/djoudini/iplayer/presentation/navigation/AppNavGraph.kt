@@ -138,7 +138,16 @@ fun AppNavGraph(
                     onNavigateEpg = { navController.navigate(Route.EpgGrid.route) },
                     onNavigateSettings = { navController.navigate(Route.Settings.route) },
                     onNavigateSearch = { navController.navigate(Route.Search.route) },
+                    onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
                     onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
+                    onContinueWatchingClick = { contentType, contentId ->
+                        when (contentType) {
+                            "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            "episode" -> navController.navigate(Route.Player.create("episode", contentId))
+                            "channel" -> navController.navigate(Route.Player.create("channel", contentId))
+                            else -> navController.navigate(Route.Player.create(contentType, contentId))
+                        }
+                    },
                 )
             } else {
                 DashboardScreen(

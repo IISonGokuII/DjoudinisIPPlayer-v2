@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
@@ -35,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
+import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.components.ProgressRing
 import com.djoudini.iplayer.presentation.viewmodel.DashboardViewModel
@@ -44,11 +49,17 @@ import java.util.Locale
 
 /**
  * TV-optimized Dashboard with large tiles and D-Pad focus management.
- * Every tile has visual focus feedback (scale + border glow).
  * 
+ * Features:
+ * - Continue Watching section
+ * - Main tile grid (3x2)
+ * - MultiView support
+ * - Search, Sync, Settings
+ *
  * Focus navigation:
- * - Search button is at the top and can only be reached by explicit UP navigation
+ * - Search button is at the top
  * - Main tiles are in a grid below
+ * - Continue Watching at bottom
  */
 @Composable
 fun TvDashboardScreen(
@@ -58,18 +69,22 @@ fun TvDashboardScreen(
     onNavigateEpg: () -> Unit,
     onNavigateSettings: () -> Unit,
     onNavigateSearch: () -> Unit,
+    onNavigateMultiView: () -> Unit,
     onNavigateFavorites: () -> Unit,
+    onContinueWatchingClick: (contentType: String, contentId: Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val playlist by viewModel.activePlaylist.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
+    val continueWatching by viewModel.continueWatching.collectAsStateWithLifecycle()
+    val favoriteChannels by viewModel.favoriteChannels.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(48.dp),
     ) {
-        // Header with Search - Search is focusable and at the top
+        // Header with Search
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -92,7 +107,7 @@ fun TvDashboardScreen(
                 }
             }
 
-            // Search button - explicitly at top, requires UP to reach from tiles
+            // Search button
             FocusableCard(
                 onClick = onNavigateSearch,
                 focusScale = 1.1f,
@@ -131,7 +146,30 @@ fun TvDashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Continue Watching section
+        if (continueWatching.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.continue_watching),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(end = 8.dp),
+            ) {
+                items(continueWatching, key = { it.id }) { progress ->
+                    ContinueWatchingCard(
+                        progress = progress,
+                        onClick = { onContinueWatchingClick(progress.contentType, progress.contentId) },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+        }
 
         // Main tile grid - 3 columns, 2 rows
         // Row 1: Live TV, Movies, Series
@@ -161,7 +199,7 @@ fun TvDashboardScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Row 2: Favorites, EPG Guide, Settings
+        // Row 2: Favorites, MultiView, EPG Guide
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -173,16 +211,78 @@ fun TvDashboardScreen(
                 modifier = Modifier.weight(1f),
             )
             TvDashboardTile(
+                title = stringResource(R.string.multi_view),
+                icon = Icons.Default.GridView,
+                onClick = onNavigateMultiView,
+                modifier = Modifier.weight(1f),
+            )
+            TvDashboardTile(
                 title = stringResource(R.string.epg_guide),
                 icon = Icons.Default.CalendarMonth,
                 onClick = onNavigateEpg,
                 modifier = Modifier.weight(1f),
             )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Row 3: Settings (centered, single tile)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+        ) {
             TvDashboardTile(
                 title = stringResource(R.string.settings),
                 icon = Icons.Default.Settings,
                 onClick = onNavigateSettings,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.width(200.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContinueWatchingCard(
+    progress: WatchProgressEntity,
+    onClick: () -> Unit,
+) {
+    FocusableCard(
+        onClick = onClick,
+        modifier = Modifier.width(200.dp),
+        focusScale = 1.05f,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            // Icon based on content type
+            androidx.compose.material3.Icon(
+                imageVector = when (progress.contentType) {
+                    "vod" -> Icons.Default.Movie
+                    "episode" -> Icons.Default.Tv
+                    else -> Icons.Default.PlayArrow
+                },
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Content name
+            Text(
+                text = progress.contentName.ifBlank { "ID: ${progress.contentId}" },
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // Progress percentage
+            Text(
+                text = "${(progress.progressPercent * 100).toInt()}% abgeschlossen",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
