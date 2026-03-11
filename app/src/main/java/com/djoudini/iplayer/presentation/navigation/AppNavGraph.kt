@@ -25,6 +25,8 @@ import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.MultiViewScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLiveCategoriesScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvSeriesCategoriesScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvVodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvOnboardingScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLoginXtreamScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLoginM3uScreen
@@ -197,13 +199,22 @@ fun AppNavGraph(
         }
 
         composable(Route.VodCategories.route) {
-            VodCategoriesScreen(
-                onCategoryClick = {},
-                onVodClick = { vodId ->
-                    navController.navigate(Route.VodDetail.create(vodId))
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvVodCategoriesScreen(
+                    onVodClick = { vodId ->
+                        navController.navigate(Route.VodDetail.create(vodId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                VodCategoriesScreen(
+                    onCategoryClick = {},
+                    onVodClick = { vodId ->
+                        navController.navigate(Route.VodDetail.create(vodId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(
@@ -231,13 +242,22 @@ fun AppNavGraph(
         }
 
         composable(Route.SeriesCategories.route) {
-            SeriesCategoriesScreen(
-                onCategoryClick = {},
-                onSeriesClick = { seriesId ->
-                    navController.navigate(Route.SeriesDetail.create(seriesId))
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvSeriesCategoriesScreen(
+                    onSeriesClick = { seriesId ->
+                        navController.navigate(Route.SeriesDetail.create(seriesId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                SeriesCategoriesScreen(
+                    onCategoryClick = {},
+                    onSeriesClick = { seriesId ->
+                        navController.navigate(Route.SeriesDetail.create(seriesId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         composable(
