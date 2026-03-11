@@ -471,19 +471,19 @@ private fun TvCategoryFilterNavigation(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
         ) {
-            // Back button (if not first step)
+            // Back button (if not first step) - ALWAYS VISIBLE AND FOCUSABLE
             if (currentStep > 0) {
                 FocusableCard(
                     onClick = onPrevious,
                     modifier = Modifier
-                        .width(180.dp)
+                        .weight(1f)
                         .height(56.dp),
                     focusScale = 1.05f
                 ) {
@@ -503,12 +503,12 @@ private fun TvCategoryFilterNavigation(
                 }
             }
 
-            // Next or Sync button
+            // Next or Sync button - ALWAYS VISIBLE AND FOCUSABLE
             if (currentStep < totalSteps - 1) {
                 FocusableCard(
                     onClick = onNext,
                     modifier = Modifier
-                        .width(180.dp)
+                        .weight(1f)
                         .height(56.dp),
                     focusScale = 1.05f
                 ) {
@@ -530,7 +530,7 @@ private fun TvCategoryFilterNavigation(
                 FocusableCard(
                     onClick = onSync,
                     modifier = Modifier
-                        .width(240.dp)
+                        .weight(1f)
                         .height(56.dp),
                     focusScale = 1.05f
                 ) {
@@ -545,6 +545,11 @@ private fun TvCategoryFilterNavigation(
                         )
                     }
                 }
+            }
+            
+            // If first step, add spacer to center the Next button
+            if (currentStep == 0) {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
