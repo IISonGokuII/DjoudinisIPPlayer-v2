@@ -24,8 +24,10 @@ import com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.MultiViewScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvEpgGridScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSeriesCategoriesScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvSeriesDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvOnboardingScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLoginXtreamScreen
@@ -264,12 +266,21 @@ fun AppNavGraph(
             route = Route.SeriesDetail.route,
             arguments = listOf(navArgument(NavArgs.SERIES_ID) { type = NavType.LongType }),
         ) {
-            SeriesDetailScreen(
-                onEpisodeClick = { episodeId ->
-                    navController.navigate(Route.Player.create("episode", episodeId))
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvSeriesDetailScreen(
+                    onEpisodeClick = { episodeId ->
+                        navController.navigate(Route.Player.create("episode", episodeId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                SeriesDetailScreen(
+                    onEpisodeClick = { episodeId ->
+                        navController.navigate(Route.Player.create("episode", episodeId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         // --- Player ---
@@ -287,12 +298,21 @@ fun AppNavGraph(
 
         // --- EPG ---
         composable(Route.EpgGrid.route) {
-            EpgGridScreen(
-                onChannelClick = { channelId ->
-                    navController.navigate(Route.Player.create("channel", channelId))
-                },
-                onBack = { navController.popBackStack() },
-            )
+            if (isTvDevice) {
+                TvEpgGridScreen(
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                EpgGridScreen(
+                    onChannelClick = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
         }
 
         // --- Multi-View ---
