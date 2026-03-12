@@ -319,9 +319,3 @@ private fun CastMemberCard(
         }
     }
 }
-
-data class CastMember(
-    val name: String,
-    val character: String?,
-    val profilePath: String?,
-)
