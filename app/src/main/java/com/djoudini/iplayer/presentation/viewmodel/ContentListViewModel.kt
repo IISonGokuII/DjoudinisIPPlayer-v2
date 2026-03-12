@@ -179,15 +179,25 @@ class ContentListViewModel @Inject constructor(
 
     val vodItems: StateFlow<List<VodEntity>> =
         _selectedCategoryId.flatMapLatest { catId ->
-            if (catId == 0L) flowOf(emptyList())
-            else vodDao.observeByCategory(catId)
-        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            if (catId == 0L) {
+                Timber.d("[ContentList] vodItems: category ID is 0, returning empty list")
+                flowOf(emptyList())
+            } else {
+                Timber.d("[ContentList] vodItems: observing category $catId")
+                vodDao.observeByCategory(catId)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val seriesItems: StateFlow<List<SeriesEntity>> =
         _selectedCategoryId.flatMapLatest { catId ->
-            if (catId == 0L) flowOf(emptyList())
-            else seriesDao.observeByCategory(catId)
-        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            if (catId == 0L) {
+                Timber.d("[ContentList] seriesItems: category ID is 0, returning empty list")
+                flowOf(emptyList())
+            } else {
+                Timber.d("[ContentList] seriesItems: observing category $catId")
+                seriesDao.observeByCategory(catId)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // --- Inline search (per-section, scoped to current content type) ---
     // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache

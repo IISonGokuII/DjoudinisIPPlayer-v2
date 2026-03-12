@@ -72,11 +72,22 @@ fun SeriesCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val seriesItems by viewModel.filteredSeriesItems.collectAsStateWithLifecycle()
 
-    // Debug: Log category count
-    androidx.compose.runtime.LaunchedEffect(categories.size) {
+    // Debug: Log category count and selected category
+    androidx.compose.runtime.LaunchedEffect(categories.size, selectedCategoryId) {
         timber.log.Timber.d("[SeriesCategories] Categories loaded: ${categories.size}")
+        timber.log.Timber.d("[SeriesCategories] Selected category ID: $selectedCategoryId")
         categories.forEach { cat ->
             timber.log.Timber.d("[SeriesCategories]   - Category: ${cat.name} (ID: ${cat.id})")
+        }
+    }
+
+    // Debug: Log series items
+    androidx.compose.runtime.LaunchedEffect(seriesItems.size) {
+        timber.log.Timber.d("[SeriesCategories] Series items loaded: ${seriesItems.size}")
+        if (seriesItems.isNotEmpty()) {
+            seriesItems.forEach { series ->
+                timber.log.Timber.d("[SeriesCategories]   - Series: ${series.name} (ID: ${series.id})")
+            }
         }
     }
 

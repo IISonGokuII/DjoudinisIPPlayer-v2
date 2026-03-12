@@ -72,6 +72,25 @@ fun VodCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val vodItems by viewModel.filteredVodItems.collectAsStateWithLifecycle()
 
+    // Debug: Log category count and selected category
+    androidx.compose.runtime.LaunchedEffect(categories.size, selectedCategoryId) {
+        timber.log.Timber.d("[VodCategories] Categories loaded: ${categories.size}")
+        timber.log.Timber.d("[VodCategories] Selected category ID: $selectedCategoryId")
+        categories.forEach { cat ->
+            timber.log.Timber.d("[VodCategories]   - Category: ${cat.name} (ID: ${cat.id})")
+        }
+    }
+
+    // Debug: Log VOD items
+    androidx.compose.runtime.LaunchedEffect(vodItems.size) {
+        timber.log.Timber.d("[VodCategories] VOD items loaded: ${vodItems.size}")
+        if (vodItems.isNotEmpty()) {
+            vodItems.forEach { vod ->
+                timber.log.Timber.d("[VodCategories]   - VOD: ${vod.name} (ID: ${vod.id})")
+            }
+        }
+    }
+
     // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == 0L) {
