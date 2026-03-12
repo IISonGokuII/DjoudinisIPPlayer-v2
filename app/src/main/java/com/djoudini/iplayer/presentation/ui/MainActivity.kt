@@ -103,6 +103,10 @@ private fun AppContent(
             navController = navController,
             startDestination = start,
             isTvDevice = isTvDevice,
+            appPreferences = appPreferences,
+            playlistRepository = playlistRepository,
+            traktRepository = traktRepository,
+            watchProgressRepository = watchProgressRepository,
         )
     }
 }

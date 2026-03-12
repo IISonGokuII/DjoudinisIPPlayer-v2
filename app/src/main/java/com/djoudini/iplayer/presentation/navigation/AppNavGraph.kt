@@ -7,6 +7,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
+import com.djoudini.iplayer.data.repository.TraktRepository
+import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.ui.mobile.CategoryFilterScreen
 import com.djoudini.iplayer.presentation.ui.mobile.DashboardScreen
 import com.djoudini.iplayer.presentation.ui.mobile.EpgGridScreen
@@ -45,6 +49,10 @@ fun AppNavGraph(
     startDestination: String,
     isTvDevice: Boolean = false,
     modifier: Modifier = Modifier,
+    appPreferences: AppPreferences,
+    playlistRepository: PlaylistRepository,
+    traktRepository: TraktRepository,
+    watchProgressRepository: WatchProgressRepository,
 ) {
     NavHost(
         navController = navController,
@@ -368,6 +376,10 @@ fun AppNavGraph(
             } else {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
+                    appPreferences = appPreferences,
+                    playlistRepository = playlistRepository,
+                    traktRepository = traktRepository,
+                    watchProgressRepository = watchProgressRepository,
                 )
             }
         }
