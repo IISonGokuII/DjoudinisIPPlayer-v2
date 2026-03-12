@@ -100,30 +100,33 @@ fun TvLiveCategoriesScreen(
         sidebarFocusRequester.requestFocus()
     }
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(32.dp),
     ) {
-        // Category Sidebar (200dp)
-        TvCategorySidebar(
-            categories = categories,
-            selectedCategoryId = selectedCategoryId,
-            onSelectCategory = { viewModel.selectCategory(it) },
-            focusRequester = sidebarFocusRequester,
-        )
-
-        VerticalDivider(
-            modifier = Modifier.fillMaxHeight(),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-        )
-
-        // Channel content area (flexibel, aber reduziert wenn Preview aktiv)
-        Column(
-            modifier = Modifier
-                .weight(if (showPreview != null) 0.5f else 1f)
-                .fillMaxHeight(),
+        Row(
+            modifier = Modifier.fillMaxSize(),
         ) {
+            // Category Sidebar (200dp)
+            TvCategorySidebar(
+                categories = categories,
+                selectedCategoryId = selectedCategoryId,
+                onSelectCategory = { viewModel.selectCategory(it) },
+                focusRequester = sidebarFocusRequester,
+            )
+
+            VerticalDivider(
+                modifier = Modifier.fillMaxHeight(),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            )
+
+            // Channel content area - FULL WIDTH, preview overlays on top
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            ) {
             // SearchBar with Sort and ViewMode
             TvSearchBar(
                 query = inlineSearch,
@@ -242,19 +245,22 @@ fun TvLiveCategoriesScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
         }
+        } // End Row
 
-        // Preview Panel (rechts, nur wenn aktiv)
+        // Preview Panel als Overlay rechts (nur wenn aktiv)
+        // Bleibt sichtbar, Senderliste bleibt voll bedienbar
         if (showPreview != null) {
-            VerticalDivider(
-                modifier = Modifier.fillMaxHeight(),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            )
-            
-            TvChannelPreviewSidePanel(
-                channel = showPreview!!,
-                onFullscreen = { onChannelClick(showPreview!!.id) },
-                onDismiss = { showPreview = null },
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .align(Alignment.CenterEnd),
+            ) {
+                TvChannelPreviewSidePanel(
+                    channel = showPreview!!,
+                    onFullscreen = { onChannelClick(showPreview!!.id) },
+                    onDismiss = { showPreview = null },
+                )
+            }
         }
     }
 }
@@ -679,13 +685,13 @@ private fun TvChannelPreviewSidePanel(
     onFullscreen: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // Side-Panel das rechts im Screen angezeigt wird (500dp breit für TV)
+    // Side-Panel als Overlay rechts (350dp breit, semi-transparent)
     Column(
         modifier = Modifier
             .fillMaxHeight()
-            .width(500.dp)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
-            .padding(24.dp),
+            .width(350.dp)
+            .background(Color.Black.copy(alpha = 0.85f))
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Header mit Schließen-Button

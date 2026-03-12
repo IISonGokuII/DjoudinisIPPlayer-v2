@@ -53,6 +53,7 @@ fun AppNavGraph(
     playlistRepository: PlaylistRepository,
     traktRepository: TraktRepository,
     watchProgressRepository: WatchProgressRepository,
+    onChannelClick: (Long) -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -183,6 +184,7 @@ fun AppNavGraph(
                             else -> navController.navigate(Route.Player.create(contentType, contentId))
                         }
                     },
+                    onChannelClick = onChannelClick,
                 )
             }
         }

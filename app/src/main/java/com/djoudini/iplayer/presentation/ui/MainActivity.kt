@@ -107,6 +107,9 @@ private fun AppContent(
             playlistRepository = playlistRepository,
             traktRepository = traktRepository,
             watchProgressRepository = watchProgressRepository,
+            onChannelClick = { channelId ->
+                navController.navigate(Route.Player.create("channel", channelId))
+            },
         )
     }
 }
