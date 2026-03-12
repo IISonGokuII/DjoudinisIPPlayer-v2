@@ -1,0 +1,35 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin
+> Task :app:compileDebugKotlin
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/SplashActivity.kt:107:9 'fun overridePendingTransition(p0: Int, p1: Int): Unit' is deprecated. Deprecated in Java.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/mobile/MultiViewScreen.kt:318:59 'val Icons.Filled.VolumeUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeUp.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/mobile/MultiViewScreen.kt:318:87 'val Icons.Filled.VolumeOff: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.VolumeOff.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/mobile/PlayerScreen.kt:238:13 Condition is always 'false'.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/mobile/PlayerScreen.kt:646:13 Condition is always 'true'.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/tv/TvLoginM3uScreen.kt:135:17 Check for instance is always 'false'.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/tv/TvLoginM3uScreen.kt:170:33 Check for instance is always 'false'.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/tv/TvLoginXtreamScreen.kt:163:17 Check for instance is always 'false'.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/tv/TvLoginXtreamScreen.kt:227:33 Check for instance is always 'false'.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/tv/TvOnboardingScreen.kt:113:53 'val Icons.Filled.List: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.List.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/ui/tv/TvPlayerOverlay.kt:323:61 'val Icons.Filled.NavigateNext: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.NavigateNext.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/presentation/viewmodel/PlayerFactory.kt:87:18 'fun setDisabledTrackTypes(p0: (Mutable)Set<Int>): DefaultTrackSelector.Parameters.Builder' is deprecated. Deprecated in Java.
+w: file:///C:/Users/WhatsappBot/Desktop/DjoudinisIPPlayer-v2/app/src/main/java/com/djoudini/iplayer/util/AutoFrameRateManager.kt:75:50 'val defaultDisplay: Display!' is deprecated. Deprecated in Java.
+
+BUILD SUCCESSFUL in 52s
+16 actionable tasks: 2 executed, 14 up-to-date

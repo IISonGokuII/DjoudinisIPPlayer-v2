@@ -35,7 +35,12 @@ class SeriesDetailViewModel @Inject constructor(
     private val watchProgressDao: WatchProgressDao,
 ) : ViewModel() {
 
-    private val seriesId: Long = savedStateHandle.get<Long>(NavArgs.SERIES_ID) ?: 0L
+    private val seriesId: Long = try {
+        savedStateHandle.get<Long>(NavArgs.SERIES_ID) ?: 0L
+    } catch (e: Exception) {
+        Timber.e(e, "Failed to get seriesId from SavedStateHandle")
+        0L
+    }
     
     // FIX: Track active collection jobs to prevent memory leaks
     private var episodesJob: Job? = null
