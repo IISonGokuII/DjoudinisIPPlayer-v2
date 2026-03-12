@@ -410,46 +410,44 @@ private fun CategoryItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    FocusableCard(
-        onClick = onClick,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
-        focusScale = 1.02f,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Folder,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = if (isSelected) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.onSurfaceVariant,
+            .height(56.dp)
+            .clickable(onClick = onClick)
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                else Color.Transparent
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Folder,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = if (isSelected) MaterialTheme.colorScheme.primary
+                   else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            count?.let {
                 Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    text = "$it channels",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                count?.let {
-                    Text(
-                        text = "$it channels",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
     }
@@ -464,91 +462,89 @@ private fun ChannelItem(
     onClick: () -> Unit,
     onPlay: () -> Unit,
 ) {
-    FocusableCard(
-        onClick = onPlay,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp),
-        focusScale = 1.02f,
+            .height(80.dp)
+            .clickable(onClick = onPlay)
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else Color.Transparent
+            )
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        // Channel logo or icon
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp)),
         ) {
-            // Channel logo or icon
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-            ) {
-                if (!channel.logoUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = channel.logoUrl,
-                        contentDescription = channel.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LiveTv,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Channel info
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            if (!channel.logoUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = channel.logoUrl,
+                    contentDescription = channel.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
                 )
-                currentProgram?.let { program ->
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = program.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-
-            // Playing indicator
-            if (isSelected) {
-                Spacer(modifier = Modifier.width(8.dp))
+            } else {
                 Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.LiveTv,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.White,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Channel info
+        Column(
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = channel.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            currentProgram?.let { program ->
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = program.title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        // Playing indicator
+        if (isSelected) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LiveTv,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = Color.White,
+                )
             }
         }
     }
