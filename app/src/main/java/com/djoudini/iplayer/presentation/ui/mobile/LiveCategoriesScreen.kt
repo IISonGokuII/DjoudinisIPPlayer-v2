@@ -85,7 +85,6 @@ import java.util.Locale
 @OptIn(UnstableApi::class)
 @Composable
 fun LiveCategoriesScreen(
-    onCategoryClick: (Long) -> Unit = {},
     onChannelClick: (Long) -> Unit = {},
     onBack: () -> Unit,
     viewModel: ContentListViewModel = hiltViewModel(),

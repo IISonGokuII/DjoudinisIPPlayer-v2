@@ -61,7 +61,6 @@ import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 
 @Composable
 fun SeriesCategoriesScreen(
-    onCategoryClick: (Long) -> Unit = {},
     onSeriesClick: (Long) -> Unit = {},
     onBack: () -> Unit,
     viewModel: ContentListViewModel = hiltViewModel(),

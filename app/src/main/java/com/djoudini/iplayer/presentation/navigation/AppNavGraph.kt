@@ -200,7 +200,6 @@ fun AppNavGraph(
                 )
             } else {
                 LiveCategoriesScreen(
-                    onCategoryClick = {},
                     onChannelClick = { channelId ->
                         navController.navigate(Route.Player.create("channel", channelId))
                     },
@@ -219,7 +218,6 @@ fun AppNavGraph(
                 )
             } else {
                 VodCategoriesScreen(
-                    onCategoryClick = {},
                     onVodClick = { vodId ->
                         navController.navigate(Route.VodDetail.create(vodId))
                     },
@@ -262,7 +260,6 @@ fun AppNavGraph(
                 )
             } else {
                 SeriesCategoriesScreen(
-                    onCategoryClick = {},
                     onSeriesClick = { seriesId ->
                         navController.navigate(Route.SeriesDetail.create(seriesId))
                     },

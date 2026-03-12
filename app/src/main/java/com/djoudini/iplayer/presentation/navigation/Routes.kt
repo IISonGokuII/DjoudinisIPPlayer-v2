@@ -21,15 +21,6 @@ sealed class Route(val route: String) {
     data object VodCategories : Route("vod_categories")
     data object SeriesCategories : Route("series_categories")
 
-    data object ChannelList : Route("channel_list/{categoryId}") {
-        fun create(categoryId: Long) = "channel_list/$categoryId"
-    }
-    data object VodList : Route("vod_list/{categoryId}") {
-        fun create(categoryId: Long) = "vod_list/$categoryId"
-    }
-    data object SeriesList : Route("series_list/{categoryId}") {
-        fun create(categoryId: Long) = "series_list/$categoryId"
-    }
     data object SeriesDetail : Route("series_detail/{seriesId}") {
         fun create(seriesId: Long) = "series_detail/$seriesId"
     }
