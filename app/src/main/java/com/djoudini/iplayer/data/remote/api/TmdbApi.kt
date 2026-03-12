@@ -1,7 +1,7 @@
 package com.djoudini.iplayer.data.remote.api
 
 import com.djoudini.iplayer.data.remote.dto.TmdbCreditsDto
-import com.djoudini.iplayer.presentation.ui.mobile.CastMember
+import com.djoudini.iplayer.presentation.viewmodel.CastMember
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
