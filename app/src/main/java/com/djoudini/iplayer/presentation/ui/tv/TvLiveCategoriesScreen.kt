@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -117,7 +118,7 @@ fun TvLiveCategoriesScreen(
     }
 
     // Cleanup
-    LaunchedEffect(Unit) {
+    DisposableEffect(Unit) {
         onDispose {
             exoPlayer?.release()
             exoPlayer = null
@@ -173,9 +174,9 @@ fun TvLiveCategoriesScreen(
             OutlinedTextField(
                 value = inlineSearch,
                 onValueChange = { viewModel.updateInlineSearch(it) },
-                placeholder = { 
+                placeholder = {
                     Text(
-                        stringResource(R.string.search_categories),
+                        "Search categories...",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 },
