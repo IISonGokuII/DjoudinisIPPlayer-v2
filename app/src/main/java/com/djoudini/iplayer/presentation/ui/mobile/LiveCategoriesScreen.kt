@@ -233,7 +233,7 @@ private fun SearchBar(
     }
 }
 
-// --- Channel Preview Mini-Player (TiviMate Style) ---
+// --- Channel Preview Mini-Player (IPTV Smarters Pro Style) ---
 
 private data class PreviewChannel(
     val id: Long,
@@ -274,15 +274,15 @@ private fun ChannelPreviewPlayer(
         }
     }
 
-    // TIVIMATE STYLE: Full-width preview at top, channel list below
+    // IPTV SMARTERS PRO STYLE: Full-width preview at top (60% of screen)
     Column(
         modifier = Modifier
             .fillMaxSize(),
     ) {
-        // Preview video - FULL WIDTH at top (70% of screen)
+        // Preview video - FULL WIDTH at top (60% of screen)
         Box(
             modifier = Modifier
-                .weight(0.7f)
+                .weight(0.6f)
                 .fillMaxWidth()
                 .background(Color.Black)
                 .clickable { onFullscreen() },
@@ -324,47 +324,47 @@ private fun ChannelPreviewPlayer(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.6f))
+                    .background(Color.Black.copy(alpha = 0.7f))
                     .padding(16.dp),
             ) {
-                Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
+                Column {
+                    Text(
+                        text = channel.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "Tippen für Vollbild",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                    )
+                }
             }
         }
 
-        // Info bar below preview - compact
-        Row(
+        // Channel list below preview - scrollable
+        Column(
             modifier = Modifier
+                .weight(0.4f)
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Vorschau - Tippen für Vollbild",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Kanal wechseln",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Wähle einen anderen Kanal aus der Liste",
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            
-            IconButton(
-                onClick = onFullscreen,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    Icons.Default.Fullscreen,
-                    stringResource(R.string.fullscreen),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
         }
     }
 }

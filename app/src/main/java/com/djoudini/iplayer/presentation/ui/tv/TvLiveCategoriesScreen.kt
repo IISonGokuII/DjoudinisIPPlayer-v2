@@ -1,5 +1,8 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,32 +18,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ViewList
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SortByAlpha
-import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,31 +46,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
-import com.djoudini.iplayer.presentation.viewmodel.SortMode
-import com.djoudini.iplayer.presentation.viewmodel.ViewMode
+import com.djoudini.iplayer.presentation.viewmodel.ChannelWithEpg
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 /**
- * TV-optimized Live TV categories screen with Outlook-style layout.
- * Left: Category sidebar
- * Right: Channel grid with SearchBar, SortMode, ViewMode
- * Designed for D-Pad navigation on Fire TV / Android TV.
+ * TV-optimized Live TV screen with IPTV Smarters Pro style layout.
+ * 
+ * Layout:
+ * - Left: Category sidebar (~250dp)
+ * - Middle: Channel list with EPG (~30% of remaining space)
+ * - Right: Live preview (large, ~50-60% of screen)
+ * 
+ * Designed for Fire TV / Android TV with D-Pad navigation.
  */
+@OptIn(UnstableApi::class)
 @Composable
 fun TvLiveCategoriesScreen(
     onChannelClick: (Long) -> Unit,
@@ -87,363 +91,307 @@ fun TvLiveCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val channels by viewModel.filteredChannels.collectAsStateWithLifecycle()
     val inlineSearch by viewModel.inlineSearchQuery.collectAsStateWithLifecycle()
-    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
-    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
-    var showPreview by remember { mutableStateOf<ChannelEntity?>(null) }
+    var selectedChannel by remember { mutableStateOf<ChannelEntity?>(null) }
+    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
+    val context = LocalContext.current
 
-    // Focus requester for initial focus on sidebar
-    val sidebarFocusRequester = remember { FocusRequester() }
-
+    // Initialize player once
     LaunchedEffect(Unit) {
-        sidebarFocusRequester.requestFocus()
+        exoPlayer = ExoPlayer.Builder(context).build()
     }
 
-    Box(
+    // Update player when channel changes
+    LaunchedEffect(selectedChannel) {
+        selectedChannel?.let { channel ->
+            exoPlayer?.apply {
+                stop()
+                clearMediaItems()
+                setMediaItem(MediaItem.fromUri(channel.streamUrl))
+                prepare()
+                playWhenReady = true
+            }
+        }
+    }
+
+    // Cleanup
+    LaunchedEffect(Unit) {
+        onDispose {
+            exoPlayer?.release()
+            exoPlayer = null
+        }
+    }
+
+    // Auto-select first channel when category changes
+    LaunchedEffect(selectedCategoryId, channels) {
+        if (selectedChannel == null && channels.isNotEmpty()) {
+            selectedChannel = channels.first().channel
+        }
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .background(MaterialTheme.colorScheme.surface),
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
+        // === LEFT: Category Sidebar (250dp) ===
+        Column(
+            modifier = Modifier
+                .width(250.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
         ) {
-            // Category Sidebar (200dp)
-            TvCategorySidebar(
-                categories = categories,
-                selectedCategoryId = selectedCategoryId,
-                onSelectCategory = { viewModel.selectCategory(it) },
-                focusRequester = sidebarFocusRequester,
-            )
+            // Header with back button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.live_tv),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
 
-            VerticalDivider(
-                modifier = Modifier.fillMaxHeight(),
+            HorizontalDivider(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
             )
 
-            // Channel content area - FULL WIDTH, preview overlays on top
-            Column(
+            // Search
+            OutlinedTextField(
+                value = inlineSearch,
+                onValueChange = { viewModel.updateInlineSearch(it) },
+                placeholder = { 
+                    Text(
+                        stringResource(R.string.search_categories),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                singleLine = true,
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-            ) {
-            // SearchBar with Sort and ViewMode
-            TvSearchBar(
-                query = inlineSearch,
-                onQueryChange = { viewModel.updateInlineSearch(it) },
-                placeholder = stringResource(R.string.search_channels),
-                viewMode = viewMode,
-                onToggleViewMode = { viewModel.cycleViewMode() },
-                sortMode = sortMode,
-                onToggleSortMode = { viewModel.cycleSortMode() },
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .height(48.dp),
+                textStyle = MaterialTheme.typography.bodySmall,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            )
 
-            // Channel grid
-            if (selectedCategoryId == 0L) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.select_a_category),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Category list
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                // "All" category
+                item {
+                    CategoryItem(
+                        name = "ALL",
+                        count = channels.size,
+                        isSelected = selectedCategoryId == 0L,
+                        onClick = { viewModel.selectCategory(0L) },
                     )
                 }
-            } else if (channels.isEmpty()) {
+
+                items(categories, key = { it.id }) { category ->
+                    CategoryItem(
+                        name = category.name,
+                        count = null, // Could add count if available
+                        isSelected = category.id == selectedCategoryId,
+                        onClick = { viewModel.selectCategory(category.id) },
+                    )
+                }
+            }
+        }
+
+        // === MIDDLE: Channel List (30% of remaining space) ===
+        Column(
+            modifier = Modifier
+                .weight(0.4f)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.surface),
+        ) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LiveTv,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Channels",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            )
+
+            // Channel list
+            if (channels.isEmpty()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                        .fillMaxSize()
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Keine Kanäle in dieser Kategorie",
-                        style = MaterialTheme.typography.bodyLarge,
+                        text = "No channels in this category",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(
-                        text = "${channels.size} Kanäle",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-
-                when (viewMode) {
-                    ViewMode.LIST -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(end = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            items(channels, key = { it.channel.id }) { channelWithEpg ->
-                                TvChannelListCard(
-                                    channel = channelWithEpg.channel,
-                                    currentProgram = channelWithEpg.currentProgram,
-                                    nextProgram = channelWithEpg.nextProgram,
-                                    timeFormat = timeFormat,
-                                    onClick = { onChannelClick(channelWithEpg.channel.id) },
-                                    onPreview = { showPreview = channelWithEpg.channel },
-                                )
-                            }
-                        }
-                    }
-                    ViewMode.GRID -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            contentPadding = PaddingValues(end = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            items(channels, key = { it.channel.id }) { channelWithEpg ->
-                                TvChannelCard(
-                                    channel = channelWithEpg.channel,
-                                    currentProgram = channelWithEpg.currentProgram,
-                                    nextProgram = channelWithEpg.nextProgram,
-                                    timeFormat = timeFormat,
-                                    onClick = { onChannelClick(channelWithEpg.channel.id) },
-                                    onPreview = { showPreview = channelWithEpg.channel },
-                                )
-                            }
-                        }
-                    }
-                    ViewMode.LARGE_GRID -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            contentPadding = PaddingValues(end = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(20.dp),
-                        ) {
-                            items(channels, key = { it.channel.id }) { channelWithEpg ->
-                                TvChannelCard(
-                                    channel = channelWithEpg.channel,
-                                    currentProgram = channelWithEpg.currentProgram,
-                                    nextProgram = channelWithEpg.nextProgram,
-                                    timeFormat = timeFormat,
-                                    onClick = { onChannelClick(channelWithEpg.channel.id) },
-                                    onPreview = { showPreview = channelWithEpg.channel },
-                                    large = true,
-                                )
-                            }
-                        }
+                    items(channels, key = { it.channel.id }) { channelWithEpg ->
+                        ChannelItem(
+                            channel = channelWithEpg.channel,
+                            currentProgram = channelWithEpg.currentProgram,
+                            timeFormat = timeFormat,
+                            isSelected = selectedChannel?.id == channelWithEpg.channel.id,
+                            onClick = {
+                                selectedChannel = channelWithEpg.channel
+                            },
+                            onPlay = {
+                                selectedChannel = channelWithEpg.channel
+                                onChannelClick(channelWithEpg.channel.id)
+                            },
+                        )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(48.dp))
         }
-        } // End Row
 
-        // Preview Panel als Overlay rechts (nur wenn aktiv)
-        // Bleibt sichtbar, Senderliste bleibt voll bedienbar
-        if (showPreview != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .align(Alignment.CenterEnd),
-            ) {
-                TvChannelPreviewSidePanel(
-                    channel = showPreview!!,
-                    onFullscreen = { onChannelClick(showPreview!!.id) },
-                    onDismiss = { showPreview = null },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TvSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    placeholder: String,
-    viewMode: ViewMode,
-    onToggleViewMode: () -> Unit,
-    sortMode: SortMode,
-    onToggleSortMode: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .focusProperties {
-                down = androidx.compose.ui.focus.FocusRequester.Default
-            },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            placeholder = { Text(placeholder, style = MaterialTheme.typography.bodySmall) },
-            leadingIcon = { Icon(Icons.Default.Search, null, modifier = Modifier.size(20.dp)) },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    FocusableCard(
-                        onClick = { onQueryChange("") },
-                        modifier = Modifier.size(40.dp),
-                        focusScale = 1.0f,
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(Icons.Default.Clear, stringResource(R.string.clear), modifier = Modifier.size(20.dp))
-                        }
-                    }
-                }
-            },
-            singleLine = true,
+        // === RIGHT: Live Preview (60% of remaining space) ===
+        Box(
             modifier = Modifier
-                .weight(1f)
-                .height(56.dp),
-            textStyle = MaterialTheme.typography.bodySmall,
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Sort button
-        FocusableCard(
-            onClick = onToggleSortMode,
-            modifier = Modifier
-                .height(56.dp)
-                .width(100.dp),
-            focusScale = 1.05f,
+                .weight(0.6f)
+                .fillMaxHeight()
+                .background(Color.Black),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Default.SortByAlpha, stringResource(R.string.sort), modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(sortMode.label, style = MaterialTheme.typography.labelMedium)
-            }
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // ViewMode button
-        FocusableCard(
-            onClick = onToggleViewMode,
-            modifier = Modifier
-                .height(56.dp)
-                .width(100.dp),
-            focusScale = 1.05f,
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = when (viewMode) {
-                        ViewMode.LIST -> Icons.AutoMirrored.Filled.ViewList
-                        ViewMode.GRID -> Icons.Default.GridView
-                        ViewMode.LARGE_GRID -> Icons.Default.ViewModule
+            if (exoPlayer != null) {
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            player = exoPlayer
+                            useController = false
+                            layoutParams = FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                            )
+                        }
                     },
-                    contentDescription = stringResource(R.string.view_mode),
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.fillMaxSize(),
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TvCategorySidebar(
-    categories: List<com.djoudini.iplayer.data.local.entity.CategoryEntity>,
-    selectedCategoryId: Long,
-    onSelectCategory: (Long) -> Unit,
-    focusRequester: FocusRequester,
-) {
-    var expanded by remember { mutableStateOf(true) }
-    val sidebarWidth = if (expanded) 200.dp else 64.dp
-
-    Column(
-        modifier = Modifier
-            .width(sidebarWidth)
-            .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .animateContentSize(),
-    ) {
-        // Toggle button
-        FocusableCard(
-            onClick = { expanded = !expanded },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .focusRequester(focusRequester),
-            focusScale = 1.0f,
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = if (expanded) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Folder,
-                    contentDescription = if (expanded) "Einklappen" else "Ausklappen",
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
-        ) {
-            categories.forEach { category ->
-                val isSelected = category.id == selectedCategoryId
-                FocusableCard(
-                    onClick = { onSelectCategory(category.id) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp),
-                    focusScale = 1.0f,
+            } else {
+                // Placeholder when no channel selected
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Folder,
+                            imageVector = Icons.Default.LiveTv,
                             contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         )
-                        if (expanded) {
-                            Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Select a channel to preview",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+            }
+
+            // Current channel info overlay (bottom)
+            selectedChannel?.let { channel ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(
+                            Color.Black.copy(alpha = 0.7f),
+                        )
+                        .padding(16.dp),
+                ) {
+                    Column {
+                        Text(
+                            text = channel.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        // Current program
+                        channels.find { it.channel.id == channel.id }?.currentProgram?.let { program ->
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = category.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurface,
-                                maxLines = 2,
+                                text = program.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.8f),
+                                maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        // Fullscreen hint
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fullscreen,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = Color.White.copy(alpha = 0.7f),
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Press OK for fullscreen",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.7f),
                             )
                         }
                     }
@@ -454,109 +402,50 @@ private fun TvCategorySidebar(
 }
 
 @Composable
-private fun TvChannelListCard(
-    channel: ChannelEntity,
-    currentProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
-    nextProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
-    timeFormat: SimpleDateFormat,
+private fun CategoryItem(
+    name: String,
+    count: Int?,
+    isSelected: Boolean,
     onClick: () -> Unit,
-    onPreview: () -> Unit,
 ) {
     FocusableCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(56.dp),
         focusScale = 1.02f,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Logo
-            if (!channel.logoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = channel.logoUrl,
-                    contentDescription = channel.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.LiveTv,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Channel info
-            Column(modifier = Modifier.weight(1f)) {
+            Icon(
+                imageVector = Icons.Default.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = if (isSelected) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
                 Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // EPG info
-                if (currentProgram != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(MaterialTheme.colorScheme.primary),
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "${timeFormat.format(currentProgram.startTime)} ${currentProgram.title}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Preview button
-            FocusableCard(
-                onClick = onPreview,
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(48.dp),
-                focusScale = 1.0f,
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Fullscreen,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                count?.let {
                     Text(
-                        text = "Vorschau",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
+                        text = "$it channels",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -565,266 +454,100 @@ private fun TvChannelListCard(
 }
 
 @Composable
-private fun TvChannelCard(
+private fun ChannelItem(
     channel: ChannelEntity,
-    currentProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
-    nextProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
+    currentProgram: com.djoudini.iplayer.presentation.viewmodel.EpgProgramEntity?,
     timeFormat: SimpleDateFormat,
+    isSelected: Boolean,
     onClick: () -> Unit,
-    onPreview: () -> Unit,
-    large: Boolean = false,
+    onPlay: () -> Unit,
 ) {
-    val cardWidth = if (large) 350.dp else 280.dp
-    val cardHeight = if (large) 220.dp else 180.dp
-    val logoSize = if (large) 72.dp else 56.dp
-
     FocusableCard(
-        onClick = onClick,
+        onClick = onPlay,
         modifier = Modifier
-            .width(cardWidth)
-            .height(cardHeight),
-        focusScale = 1.03f,
+            .fillMaxWidth()
+            .height(80.dp),
+        focusScale = 1.02f,
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Channel logo/name
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+            // Channel logo or icon
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp)),
             ) {
                 if (!channel.logoUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = channel.logoUrl,
                         contentDescription = channel.name,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(logoSize)
-                            .clip(RoundedCornerShape(8.dp)),
+                        modifier = Modifier.fillMaxSize(),
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.LiveTv,
-                        contentDescription = null,
-                        modifier = Modifier.size(logoSize),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LiveTv,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // Current program
-            if (currentProgram != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+            // Channel info
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                currentProgram?.let { program ->
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${timeFormat.format(currentProgram.startTime)} ${currentProgram.title}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
+                        text = program.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Preview button
-            FocusableCard(
-                onClick = onPreview,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                focusScale = 1.0f,
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Fullscreen,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Vorschau",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TvChannelPreviewSidePanel(
-    channel: ChannelEntity,
-    onFullscreen: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    // Side-Panel als Overlay rechts (350dp breit, semi-transparent)
-    Column(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(350.dp)
-            .background(Color.Black.copy(alpha = 0.85f))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Header mit Schließen-Button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            FocusableCard(
-                onClick = onDismiss,
-                modifier = Modifier.size(48.dp),
-                focusScale = 1.05f,
-            ) {
+            // Playing indicator
+            if (isSelected) {
+                Spacer(modifier = Modifier.width(8.dp))
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Schließen",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        imageVector = Icons.Default.LiveTv,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White,
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Channel Logo
-        if (!channel.logoUrl.isNullOrBlank()) {
-            AsyncImage(
-                model = channel.logoUrl,
-                contentDescription = channel.name,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LiveTv,
-                    contentDescription = null,
-                    modifier = Modifier.size(100.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Channel name
-        Text(
-            text = channel.name,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Placeholder für Live-Stream
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .padding(16.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LiveTv,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Live-Vorschau",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Drücke OK für Vollbild",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Vollbild-Button (groß und gut sichtbar)
-        FocusableCard(
-            onClick = onFullscreen,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp),
-            focusScale = 1.05f,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Fullscreen,
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "Vollbild öffnen",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
