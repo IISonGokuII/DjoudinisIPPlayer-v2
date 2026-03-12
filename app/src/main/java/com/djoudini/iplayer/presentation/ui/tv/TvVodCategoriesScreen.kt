@@ -177,6 +177,7 @@ fun TvVodCategoriesScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyVerticalGrid(
+                    modifier = Modifier.weight(1f),
                     columns = GridCells.Adaptive(minSize = 180.dp),
                     contentPadding = PaddingValues(end = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),

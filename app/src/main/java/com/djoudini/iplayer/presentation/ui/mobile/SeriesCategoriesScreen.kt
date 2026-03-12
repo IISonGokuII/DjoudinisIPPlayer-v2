@@ -174,6 +174,7 @@ fun SeriesCategoriesScreen(
                     }
                 } else {
                     LazyVerticalGrid(
+                        modifier = Modifier.weight(1f),
                         columns = GridCells.Adaptive(minSize = 150.dp),
                         contentPadding = PaddingValues(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
