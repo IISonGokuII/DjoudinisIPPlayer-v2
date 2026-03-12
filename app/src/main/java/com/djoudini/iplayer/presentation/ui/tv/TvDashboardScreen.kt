@@ -317,6 +317,7 @@ private fun ContinueWatchingCard(
                 imageVector = when (progress.contentType) {
                     "vod" -> Icons.Default.Movie
                     "episode" -> Icons.Default.Tv
+                    "channel" -> Icons.Default.LiveTv
                     else -> Icons.Default.PlayArrow
                 },
                 contentDescription = null,
@@ -324,19 +325,26 @@ private fun ContinueWatchingCard(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Content name
             Text(
-                text = progress.contentName.ifBlank { "ID: ${progress.contentId}" },
+                text = progress.contentName.ifBlank { 
+                    when (progress.contentType) {
+                        "channel" -> "Live TV Sender"
+                        "vod" -> "Film"
+                        "episode" -> "Serie Episode"
+                        else -> "ID: ${progress.contentId}"
+                    }
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
             )
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             // Progress percentage
             Text(
-                text = "${(progress.progressPercent * 100).toInt()}% abgeschlossen",
+                text = "${(progress.progressPercent * 100).toInt()}% angesehen",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -3,9 +3,12 @@ package com.djoudini.iplayer.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.dao.ChannelDao
+import com.djoudini.iplayer.data.local.dao.EpisodeDao
+import com.djoudini.iplayer.data.local.dao.SeriesDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.data.local.entity.PlaylistEntity
+import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.domain.model.SyncProgress
@@ -26,6 +29,8 @@ class DashboardViewModel @Inject constructor(
     private val watchProgressRepository: WatchProgressRepository,
     private val channelDao: ChannelDao,
     private val vodDao: VodDao,
+    private val seriesDao: SeriesDao,
+    private val episodeDao: EpisodeDao,
 ) : ViewModel() {
 
     // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
@@ -57,6 +62,12 @@ class DashboardViewModel @Inject constructor(
                 ?: flowOf(emptyList())
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val favoriteSeries: StateFlow<List<SeriesEntity>> =
+        playlistRepository.observeActive().flatMapLatest { playlist ->
+            playlist?.let { seriesDao.observeFavorites(it.id) }
+                ?: flowOf(emptyList())
+        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     val syncProgress: StateFlow<SyncProgress> = playlistRepository.syncProgress
 
     fun syncPlaylist() {
@@ -75,5 +86,18 @@ class DashboardViewModel @Inject constructor(
 
     fun cancelSync() {
         playlistRepository.cancelSync()
+    }
+
+    /**
+     * Get content name for display in Continue Watching
+     */
+    suspend fun getContentName(progress: WatchProgressEntity): String {
+        return when (progress.contentType) {
+            "channel" -> channelDao.getById(progress.contentId)?.name
+            "vod" -> vodDao.getById(progress.contentId)?.name
+            "episode" -> episodeDao.getById(progress.contentId)?.name
+            "series" -> seriesDao.getById(progress.contentId)?.name
+            else -> null
+        } ?: progress.contentName.ifBlank { "ID: ${progress.contentId}" }
     }
 }

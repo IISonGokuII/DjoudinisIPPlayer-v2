@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
@@ -104,7 +105,7 @@ fun TvLiveCategoriesScreen(
             .fillMaxSize()
             .padding(32.dp),
     ) {
-        // Category Sidebar
+        // Category Sidebar (200dp)
         TvCategorySidebar(
             categories = categories,
             selectedCategoryId = selectedCategoryId,
@@ -117,10 +118,10 @@ fun TvLiveCategoriesScreen(
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
         )
 
-        // Channel content area
+        // Channel content area (flexibel, aber reduziert wenn Preview aktiv)
         Column(
             modifier = Modifier
-                .weight(1f)
+                .weight(if (showPreview != null) 0.5f else 1f)
                 .fillMaxHeight(),
         ) {
             // SearchBar with Sort and ViewMode
@@ -242,11 +243,16 @@ fun TvLiveCategoriesScreen(
             Spacer(modifier = Modifier.height(48.dp))
         }
 
-        // Preview overlay
-        showPreview?.let { channel ->
-            TvChannelPreviewOverlay(
-                channel = channel,
-                onFullscreen = { onChannelClick(channel.id) },
+        // Preview Panel (rechts, nur wenn aktiv)
+        if (showPreview != null) {
+            VerticalDivider(
+                modifier = Modifier.fillMaxHeight(),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            )
+            
+            TvChannelPreviewSidePanel(
+                channel = showPreview!!,
+                onFullscreen = { onChannelClick(showPreview!!.id) },
                 onDismiss = { showPreview = null },
             )
         }
@@ -668,71 +674,151 @@ private fun TvChannelCard(
 }
 
 @Composable
-private fun TvChannelPreviewOverlay(
+private fun TvChannelPreviewSidePanel(
     channel: ChannelEntity,
     onFullscreen: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Box(
+    // Side-Panel das rechts im Screen angezeigt wird (500dp breit für TV)
+    Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.9f)),
+            .fillMaxHeight()
+            .width(500.dp)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // Header mit Schließen-Button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
         ) {
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.headlineLarge,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            FocusableCard(
+                onClick = onDismiss,
+                modifier = Modifier.size(48.dp),
+                focusScale = 1.05f,
             ) {
-                FocusableCard(
-                    onClick = onFullscreen,
-                    modifier = Modifier
-                        .width(200.dp)
-                        .height(64.dp),
-                    focusScale = 1.05f,
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Vollbild",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-                FocusableCard(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .width(200.dp)
-                        .height(64.dp),
-                    focusScale = 1.05f,
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Schließen",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Schließen",
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Channel Logo
+        if (!channel.logoUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = channel.logoUrl,
+                contentDescription = channel.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LiveTv,
+                    contentDescription = null,
+                    modifier = Modifier.size(100.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Channel name
+        Text(
+            text = channel.name,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Placeholder für Live-Stream
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .padding(16.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LiveTv,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Live-Vorschau",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Drücke OK für Vollbild",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Vollbild-Button (groß und gut sichtbar)
+        FocusableCard(
+            onClick = onFullscreen,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            focusScale = 1.05f,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fullscreen,
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "Vollbild öffnen",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

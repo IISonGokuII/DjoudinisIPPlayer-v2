@@ -11,6 +11,7 @@ import com.djoudini.iplayer.data.local.dao.SeriesDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.dao.WatchProgressDao
 import com.djoudini.iplayer.data.local.database.AppDatabase
+import com.djoudini.iplayer.data.local.database.MIGRATION_2_3
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,7 +31,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "djoudini_iplayer.db"
         )
-            .fallbackToDestructiveMigration()
+            .addMigrations(MIGRATION_2_3)
             .build()
     }
 

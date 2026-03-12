@@ -73,4 +73,7 @@ data class SeriesEntity(
 
     @ColumnInfo(name = "last_modified")
     val lastModified: Long? = null,
+
+    @ColumnInfo(name = "is_favorite")
+    val isFavorite: Boolean = false,
 )

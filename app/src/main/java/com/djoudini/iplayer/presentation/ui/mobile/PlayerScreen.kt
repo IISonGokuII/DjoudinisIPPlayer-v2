@@ -89,6 +89,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.domain.model.WatchContentType
@@ -290,35 +292,30 @@ fun PlayerScreen(
         )
     }
 
-    // Audio track selection dialog
-    if (showAudioTrackDialog && exoPlayer != null) {
+    // Audio track selection dialog - SIMPLIFIED INFO VERSION
+    if (showAudioTrackDialog) {
         AlertDialog(
             onDismissRequest = { showAudioTrackDialog = false },
             title = { Text(stringResource(R.string.audio_track)) },
             text = {
                 Column {
                     Text(
-                        text = "Audio-Spur auswählen:",
+                        text = "Audio-Spur Information:",
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    // Simple language selection
-                    listOf("Original", "Deutsch", "English", "Français", "Español", "Türkçe")
-                        .forEach { language ->
-                            Text(
-                                text = language,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        // Audio track selection would go here
-                                        // For now, just close dialog
-                                        showAudioTrackDialog = false
-                                    }
-                                    .padding(vertical = 8.dp, horizontal = 16.dp),
-                            )
-                        }
+                    Text(
+                        text = "Die Audio-Spur wird automatisch vom Stream geladen. Bei den meisten IPTV-Streams ist nur eine Audio-Spur verfügbar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Wenn mehrere Audio-Spuren verfügbar sind (z.B. bei Filmen mit Mehrsprachigkeit), werden diese automatisch von ExoPlayer erkannt und können über die Stream-Qualitätseinstellungen ausgewählt werden.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
             confirmButton = {
@@ -627,9 +624,14 @@ fun PlayerScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT,
                         )
-                        // Aspect Ratio wird über SurfaceView/TextureView gesteuert
-                        // PlayerView selbst hat keine direkte Aspect-Ratio-API
-                        // Die tatsächliche Umsetzung erfolgt über die ExoPlayer-Track-Selection
+                        // Set aspect ratio mode based on current setting
+                        resizeMode = when (uiState.aspectRatio) {
+                            AspectRatio.FIT_16_9 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            AspectRatio.FIT_4_3 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            AspectRatio.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatio.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            AspectRatio.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                        }
                     }
                 },
                 modifier = Modifier

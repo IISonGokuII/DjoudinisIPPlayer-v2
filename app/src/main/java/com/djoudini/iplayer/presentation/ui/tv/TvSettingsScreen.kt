@@ -62,6 +62,8 @@ fun TvSettingsScreen(
     val autoSyncEnabled by viewModel.autoSyncEnabled.collectAsStateWithLifecycle()
     val traktEnabled by viewModel.traktEnabled.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
+    val preferredAudioLanguage = viewModel.audioLanguage()
+    val preferredSubtitleLanguage = viewModel.subtitleLanguage()
 
     Box(
         modifier = Modifier

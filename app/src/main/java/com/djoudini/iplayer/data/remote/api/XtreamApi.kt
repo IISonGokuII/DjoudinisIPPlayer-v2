@@ -89,6 +89,16 @@ interface XtreamApi {
         @Query("series_id") seriesId: String,
     ): XtreamSeriesInfoResponse
 
+    /** Get VOD info (detailed info with plot, cast, director, etc.) */
+    @GET
+    suspend fun getVodInfo(
+        @Url url: String,
+        @Query("username") username: String,
+        @Query("password") password: String,
+        @Query("action") action: String = "get_vod_info",
+        @Query("vod_id") vodId: String,
+    ): XtreamSeriesInfoResponse
+
     /** Fetch EPG by stream using short EPG */
     @GET
     suspend fun getShortEpg(

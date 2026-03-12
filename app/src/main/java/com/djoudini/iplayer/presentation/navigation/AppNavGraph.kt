@@ -386,6 +386,9 @@ fun AppNavGraph(
                     onVodClick = { vodId ->
                         navController.navigate(Route.VodDetail.create(vodId))
                     },
+                    onSeriesClick = { seriesId ->
+                        navController.navigate(Route.SeriesDetail.create(seriesId))
+                    },
                 )
             } else {
                 FavoritesScreen(

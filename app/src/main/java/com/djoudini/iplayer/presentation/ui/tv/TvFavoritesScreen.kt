@@ -1,5 +1,6 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.DashboardViewModel
@@ -55,10 +57,12 @@ fun TvFavoritesScreen(
     onNavigateBack: () -> Unit,
     onChannelClick: (Long) -> Unit,
     onVodClick: (Long) -> Unit,
+    onSeriesClick: (Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val favoriteChannels by viewModel.favoriteChannels.collectAsStateWithLifecycle()
     val favoriteVod by viewModel.favoriteVod.collectAsStateWithLifecycle()
+    val favoriteSeries by viewModel.favoriteSeries.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -99,7 +103,7 @@ fun TvFavoritesScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Content
-        if (favoriteChannels.isEmpty() && favoriteVod.isEmpty()) {
+        if (favoriteChannels.isEmpty() && favoriteVod.isEmpty() && favoriteSeries.isEmpty()) {
             // Empty state
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -169,6 +173,27 @@ fun TvFavoritesScreen(
                         FavoriteVodCard(
                             vod = vod,
                             onClick = { onVodClick(vod.id) }
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                }
+
+                // Series Section
+                if (favoriteSeries.isNotEmpty()) {
+                    item {
+                        FavoritesSectionHeader(
+                            title = stringResource(R.string.series),
+                            icon = Icons.Default.Tv,
+                            count = favoriteSeries.size
+                        )
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                    items(favoriteSeries, key = { "series_${it.id}" }) { series ->
+                        FavoriteSeriesCard(
+                            series = series,
+                            onClick = { onSeriesClick(series.id) }
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                     }
@@ -319,6 +344,66 @@ private fun FavoriteVodCard(
             // Movie name
             Text(
                 text = vod.name,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun FavoriteSeriesCard(
+    series: SeriesEntity,
+    onClick: () -> Unit,
+) {
+    FocusableCard(
+        onClick = onClick,
+        modifier = Modifier
+            .width(140.dp)
+            .height(220.dp),
+        focusScale = 1.05f
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+        ) {
+            // Series poster
+            val imageUrl = series.coverUrl
+            if (!imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Tv,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Series name
+            Text(
+                text = series.name,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,

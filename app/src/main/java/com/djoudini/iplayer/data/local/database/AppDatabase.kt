@@ -31,11 +31,8 @@ import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
         EpgProgramEntity::class,
         WatchProgressEntity::class,
     ],
-    version = 2,
-    exportSchema = true,
-    autoMigrations = [
-        AutoMigration(from = 1, to = 2),
-    ]
+    version = 3,
+    exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao

@@ -27,11 +27,16 @@ class SettingsViewModel @Inject constructor(
     private val watchProgressRepository: WatchProgressRepository,
 ) : ViewModel() {
 
+    // Language preferences (not persisted yet - would need AppPreferences extension)
     var preferredAudioLanguage by mutableStateOf("")
         private set
 
     var preferredSubtitleLanguage by mutableStateOf("")
         private set
+
+    // Make them readable from UI (different method names to avoid JVM signature clash)
+    fun audioLanguage(): String = preferredAudioLanguage
+    fun subtitleLanguage(): String = preferredSubtitleLanguage
 
     // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
     val playerConfig: StateFlow<PlayerConfig> = appPreferences.playerConfig

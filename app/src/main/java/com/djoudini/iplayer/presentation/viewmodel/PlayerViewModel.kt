@@ -379,7 +379,20 @@ class PlayerViewModel @Inject constructor(
     private suspend fun saveProgress() {
         val state = _uiState.value
         if (state.playlistId == 0L || state.contentId == 0L) return
-        if (state.contentType == WatchContentType.CHANNEL) return // Skip live
+        
+        // Save progress for VOD and Episodes (not for Live TV channels)
+        // Live TV is tracked separately via "recently watched" in ChannelDao
+        if (state.contentType == WatchContentType.CHANNEL) {
+            // Mark channel as recently watched instead
+            viewModelScope.launch {
+                try {
+                    channelDao.updateLastWatched(state.contentId, System.currentTimeMillis())
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to mark channel as recently watched")
+                }
+            }
+            return
+        }
 
         watchProgressRepository.saveProgress(
             playlistId = state.playlistId,
