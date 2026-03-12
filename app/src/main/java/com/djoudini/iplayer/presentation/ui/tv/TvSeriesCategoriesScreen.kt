@@ -180,17 +180,21 @@ fun TvSeriesCategoriesScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
+                // FINALE LÖSUNG: LazyVerticalGrid mit count und key (nicht direkte List)
                 LazyVerticalGrid(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     columns = GridCells.Adaptive(minSize = 180.dp),
                     contentPadding = PaddingValues(end = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    items(seriesItems, key = { it.id }) { series ->
+                    items(
+                        count = seriesItems.size,
+                        key = { index -> seriesItems[index].id },
+                    ) { index ->
                         TvSeriesCard(
-                            series = series,
-                            onClick = { onSeriesClick(series.id) },
+                            series = seriesItems[index],
+                            onClick = { onSeriesClick(seriesItems[index].id) },
                         )
                     }
                 }
