@@ -16,6 +16,7 @@ import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.parser.M3uParser
 import com.djoudini.iplayer.data.parser.XmltvParser
 import com.djoudini.iplayer.data.remote.api.XtreamApi
+import com.djoudini.iplayer.data.remote.dto.XtreamCategoryDto
 import com.djoudini.iplayer.data.remote.dto.XtreamStreamDto
 import com.djoudini.iplayer.domain.model.ContentType
 import com.djoudini.iplayer.domain.model.PlaylistType
@@ -178,9 +179,27 @@ class PlaylistRepositoryImpl @Inject constructor(
         }
 
         _syncProgress.value = SyncProgress.active("Loading categories...", 0.3f)
-        val liveCategories = xtreamApi.getLiveCategories(apiUrl, username, password)
-        val vodCategories = xtreamApi.getVodCategories(apiUrl, username, password)
-        val seriesCategories = xtreamApi.getSeriesCategories(apiUrl, username, password)
+        
+        var liveCategories: List<XtreamCategoryDto> = emptyList()
+        try {
+            liveCategories = xtreamApi.getLiveCategories(apiUrl, username, password)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load live categories or format is unexpected")
+        }
+
+        var vodCategories: List<XtreamCategoryDto> = emptyList()
+        try {
+            vodCategories = xtreamApi.getVodCategories(apiUrl, username, password)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load VOD categories or format is unexpected")
+        }
+
+        var seriesCategories: List<XtreamCategoryDto> = emptyList()
+        try {
+            seriesCategories = xtreamApi.getSeriesCategories(apiUrl, username, password)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load series categories or format is unexpected")
+        }
 
         // Preserve existing selection state during re-sync
         val existingCategories = categoryDao.getAllByPlaylist(playlist.id)
