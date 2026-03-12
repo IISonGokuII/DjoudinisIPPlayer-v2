@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
+private const val TMDB_API_KEY = "YOUR_TMDB_API_KEY"
+
 @HiltViewModel
 class VodDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -103,8 +105,18 @@ class VodDetailViewModel @Inject constructor(
 
     /**
      * Load cast members from TMDB API.
+     * Returns empty list if TMDB API key is not configured or fails.
      */
     suspend fun loadCast(tmdbId: Int): List<CastMember> {
-        return tmdbApi.getCast(tmdbId)
+        return try {
+            // Only try TMDB if API key is configured
+            if (TMDB_API_KEY == "YOUR_TMDB_API_KEY" || tmdbId == 0) {
+                return emptyList()
+            }
+            tmdbApi.getCast(tmdbId)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load cast from TMDB")
+            emptyList()
+        }
     }
 }

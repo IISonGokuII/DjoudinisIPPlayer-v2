@@ -104,7 +104,7 @@ fun TvLiveCategoriesScreen(
         exoPlayer = ExoPlayer.Builder(context).build()
     }
 
-    // Update player when channel changes
+    // Update player when channel changes (preview only, NOT fullscreen)
     LaunchedEffect(selectedChannel) {
         selectedChannel?.let { channel ->
             exoPlayer?.apply {
@@ -112,7 +112,7 @@ fun TvLiveCategoriesScreen(
                 clearMediaItems()
                 setMediaItem(MediaItem.fromUri(channel.streamUrl))
                 prepare()
-                playWhenReady = true
+                playWhenReady = true  // Play in preview
             }
         }
     }
