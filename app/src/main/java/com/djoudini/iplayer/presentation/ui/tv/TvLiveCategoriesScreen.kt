@@ -64,6 +64,7 @@ import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 import com.djoudini.iplayer.presentation.viewmodel.ChannelWithEpg
@@ -456,7 +457,7 @@ private fun CategoryItem(
 @Composable
 private fun ChannelItem(
     channel: ChannelEntity,
-    currentProgram: com.djoudini.iplayer.presentation.viewmodel.EpgProgramEntity?,
+    currentProgram: EpgProgramEntity?,
     timeFormat: SimpleDateFormat,
     isSelected: Boolean,
     onClick: () -> Unit,
