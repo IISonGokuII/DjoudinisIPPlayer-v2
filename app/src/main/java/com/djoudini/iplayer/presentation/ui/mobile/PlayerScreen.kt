@@ -98,6 +98,9 @@ import com.djoudini.iplayer.presentation.viewmodel.AspectRatio
 import com.djoudini.iplayer.presentation.viewmodel.PlayerViewModel
 import com.djoudini.iplayer.presentation.viewmodel.SleepTimerPreset
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -498,6 +501,22 @@ fun PlayerScreen(
 
     val focusRequester = remember { FocusRequester() }
 
+    // EPG Overlay visibility - shows for 5 seconds when channel/program changes
+    var showEpgOverlay by remember { mutableStateOf(false) }
+    var lastProgramChangeTime by remember { mutableStateOf(0L) }
+
+    // Show EPG overlay when program changes
+    LaunchedEffect(uiState.currentProgram, uiState.nextProgram) {
+        val now = System.currentTimeMillis()
+        if (now - lastProgramChangeTime > 1000) { // Debounce
+            showEpgOverlay = true
+            lastProgramChangeTime = now
+            // Hide after 5 seconds
+            kotlinx.coroutines.delay(5000)
+            showEpgOverlay = false
+        }
+    }
+
     // Long-press detector for TV remote
     var longPressAction by remember { mutableStateOf<String?>(null) }
 
@@ -613,6 +632,15 @@ fun PlayerScreen(
                 onClick = { viewModel.toggleControls() },
             ),
     ) {
+        // EPG Overlay - Shows current and next program for 5 seconds
+        if (showEpgOverlay && uiState.contentType == WatchContentType.CHANNEL) {
+            EpgOverlay(
+                currentProgram = uiState.currentProgram,
+                nextProgram = uiState.nextProgram,
+                onDismiss = { showEpgOverlay = false },
+            )
+        }
+
         // Video surface with Pinch-to-Zoom and Aspect Ratio
         if (exoPlayer != null) {
             val playerView = remember { mutableStateOf<PlayerView?>(null) }
@@ -985,5 +1013,100 @@ private fun formatDuration(ms: Long): String {
         String.format("%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format("%02d:%02d", minutes, seconds)
+    }
+}
+
+@Composable
+private fun EpgOverlay(
+    currentProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
+    nextProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
+    onDismiss: () -> Unit,
+) {
+    val timeFormat = remember { java.text.SimpleDateFormat("HH:mm", Locale.getDefault()) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.8f))
+            .padding(16.dp),
+    ) {
+        Column {
+            // Current program
+            currentProgram?.let { current ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Jetzt",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = current.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "${timeFormat.format(Date(current.startTime))} - ${timeFormat.format(Date(current.stopTime))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+            }
+
+            // Next program
+            nextProgram?.let { next ->
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Als nächstes",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = next.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White.copy(alpha = 0.9f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "${timeFormat.format(Date(next.startTime))} - ${timeFormat.format(Date(next.stopTime))}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.5f),
+                        )
+                    }
+                }
+            }
+        }
+
+        // Dismiss button
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(32.dp),
+        ) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Schließen",
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
