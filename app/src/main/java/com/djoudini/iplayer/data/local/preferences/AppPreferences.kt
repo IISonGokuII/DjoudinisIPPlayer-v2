@@ -74,6 +74,7 @@ class AppPreferences @Inject constructor(
         val PLAYLIST_SYNC_INTERVAL_HOURS = longPreferencesKey("sync_playlist_interval_hours")
         val EPG_SYNC_INTERVAL_HOURS = longPreferencesKey("sync_epg_interval_hours")
         val AUTO_SYNC_ENABLED = booleanPreferencesKey("sync_auto_enabled")
+        val AUTO_SYNC_EPG = booleanPreferencesKey("sync_auto_epg")
     }
 
     val playlistSyncIntervalHours: Flow<Long> = dataStore.data.map { prefs ->
@@ -154,5 +155,14 @@ class AppPreferences @Inject constructor(
 
     val epgHoursVisible: Flow<Int> = dataStore.data.map { prefs ->
         prefs[UiKeys.EPG_HOURS_VISIBLE] ?: 4
+    }
+
+    // --- Auto Sync EPG ---
+    suspend fun autoSyncEpg(): Boolean {
+        return dataStore.data.first()[SyncKeys.AUTO_SYNC_EPG] ?: true
+    }
+
+    suspend fun setAutoSyncEpg(enabled: Boolean) {
+        dataStore.edit { it[SyncKeys.AUTO_SYNC_EPG] = enabled }
     }
 }

@@ -40,7 +40,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,6 +64,7 @@ import com.djoudini.iplayer.presentation.viewmodel.DashboardViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 @Composable
 fun DashboardScreen(
@@ -80,6 +85,19 @@ fun DashboardScreen(
     val continueWatching by viewModel.continueWatching.collectAsStateWithLifecycle()
     val favoriteChannels by viewModel.favoriteChannels.collectAsStateWithLifecycle()
     val recentlyWatched by viewModel.recentlyWatched.collectAsStateWithLifecycle()
+
+    // Current time for display
+    var currentTime by remember { mutableStateOf("") }
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+
+    LaunchedEffect(Unit) {
+        currentTime = timeFormat.format(Date())
+        // Update time every minute
+        while (true) {
+            delay(60_000)
+            currentTime = timeFormat.format(Date())
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -112,6 +130,14 @@ fun DashboardScreen(
                     IconButton(onClick = onNavigateSettings) {
                         Icon(Icons.Default.Settings, stringResource(R.string.settings))
                     }
+                    // Current time display
+                    Text(
+                        text = currentTime,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
