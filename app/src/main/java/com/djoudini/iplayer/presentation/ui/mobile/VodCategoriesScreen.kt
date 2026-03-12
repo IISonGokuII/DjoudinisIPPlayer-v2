@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -92,14 +94,13 @@ fun VodCategoriesScreen(
                 .padding(padding),
         ) {
             // Category Sidebar
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .width(200.dp)
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .verticalScroll(rememberScrollState()),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             ) {
-                categories.forEach { category ->
+                items(categories, key = { it.id }) { category ->
                     val isSelected = category.id == selectedCategoryId
                     FocusableCard(
                         onClick = { viewModel.selectCategory(category.id) },

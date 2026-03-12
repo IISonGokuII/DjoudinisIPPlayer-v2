@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -234,12 +236,11 @@ private fun TvSeriesCategorySidebar(
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .weight(1f),
         ) {
-            categories.forEach { category ->
+            items(categories, key = { it.id }) { category ->
                 val isSelected = category.id == selectedCategoryId
                 FocusableCard(
                     onClick = { onSelectCategory(category.id) },
