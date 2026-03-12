@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
-import com.djoudini.iplayer.DjoudinisApp
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
@@ -26,28 +25,25 @@ import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.navigation.AppNavGraph
 import com.djoudini.iplayer.presentation.navigation.Route
 import com.djoudini.iplayer.presentation.ui.theme.DjoudinisTheme
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val playlistRepository: PlaylistRepository by lazy {
-        (application as DjoudinisApp).playlistRepository
-    }
+    @Inject
+    lateinit var playlistRepository: PlaylistRepository
 
-    private val appPreferences: AppPreferences by lazy {
-        (application as DjoudinisApp).appPreferences
-    }
+    @Inject
+    lateinit var appPreferences: AppPreferences
 
-    private val traktRepository: TraktRepository by lazy {
-        (application as DjoudinisApp).traktRepository
-    }
+    @Inject
+    lateinit var traktRepository: TraktRepository
 
-    private val watchProgressRepository: WatchProgressRepository by lazy {
-        (application as DjoudinisApp).watchProgressRepository
-    }
+    @Inject
+    lateinit var watchProgressRepository: WatchProgressRepository
 
     private val isTvDevice: Boolean by lazy {
-        // ONLY true for actual TV devices (Fire TV, Android TV)
-        // Check for Leanback feature - this is the most reliable indicator
         packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
     }
 
@@ -91,7 +87,6 @@ private fun AppContent(
 ) {
     val navController = rememberNavController()
 
-    // Determine start destination: Dashboard if playlist exists, else Onboarding
     var startDestination by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -108,10 +103,6 @@ private fun AppContent(
             navController = navController,
             startDestination = start,
             isTvDevice = isTvDevice,
-            playlistRepository = playlistRepository,
-            appPreferences = appPreferences,
-            traktRepository = traktRepository,
-            watchProgressRepository = watchProgressRepository,
         )
     }
 }

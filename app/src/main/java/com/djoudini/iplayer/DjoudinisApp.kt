@@ -8,7 +8,6 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
-import coil.request.CachePolicy
 import coil.util.DebugLogger
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.data.repository.TraktRepository
@@ -17,16 +16,10 @@ import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
-import java.io.File
 import javax.inject.Inject
 
 /**
- * Application class with optimized Coil image loading for TV/Fire TV.
- *
- * Key optimizations:
- * - Large memory cache for fast logo loading
- * - Persistent disk cache for offline logo viewing
- * - Aggressive caching policies
+ * Application class with Hilt dependency injection.
  */
 @HiltAndroidApp
 class DjoudinisApp : Application(), ImageLoaderFactory {
@@ -61,9 +54,6 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
                 .setMinimumLoggingLevel(android.util.Log.INFO)
                 .build()
         )
-
-        // Note: Background sync scheduling is handled by SettingsViewModel
-        // when user enables auto-sync
     }
 
     /**
@@ -72,26 +62,20 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
      */
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
-            // Memory cache: 25% of available memory for logos
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.25)
                     .build()
             }
-            // Disk cache: 100MB for persistent logo storage
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(100 * 1024 * 1024) // 100 MB
+                    .maxSizeBytes(100 * 1024 * 1024)
                     .build()
             }
-            // Aggressive caching for logos
             .respectCacheHeaders(false)
-            // Allow larger images for TV screens
             .allowHardware(true)
-            // Crossfade animation for smooth loading
             .crossfade(true)
-            // Logger in debug mode
             .apply {
                 if (BuildConfig.DEBUG) {
                     logger(DebugLogger())

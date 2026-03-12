@@ -7,10 +7,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.djoudini.iplayer.data.local.preferences.AppPreferences
-import com.djoudini.iplayer.data.repository.TraktRepository
-import com.djoudini.iplayer.domain.repository.PlaylistRepository
-import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.ui.mobile.CategoryFilterScreen
 import com.djoudini.iplayer.presentation.ui.mobile.DashboardScreen
 import com.djoudini.iplayer.presentation.ui.mobile.EpgGridScreen
@@ -49,10 +45,6 @@ fun AppNavGraph(
     startDestination: String,
     isTvDevice: Boolean = false,
     modifier: Modifier = Modifier,
-    playlistRepository: PlaylistRepository,
-    appPreferences: AppPreferences,
-    traktRepository: TraktRepository,
-    watchProgressRepository: WatchProgressRepository,
 ) {
     NavHost(
         navController = navController,
@@ -180,17 +172,14 @@ fun AppNavGraph(
                             "vod" -> navController.navigate(Route.VodDetail.create(contentId))
                             "episode" -> navController.navigate(Route.Player.create("episode", contentId))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
-                            else -> {
-                                // Try to navigate to player with original content type
-                                navController.navigate(Route.Player.create(contentType, contentId))
-                            }
+                            else -> navController.navigate(Route.Player.create(contentType, contentId))
                         }
                     },
                 )
             }
         }
 
-        // --- Content Lists (Split-pane: categories left, content right) ---
+        // --- Content Lists ---
         composable(Route.LiveCategories.route) {
             if (isTvDevice) {
                 TvLiveCategoriesScreen(
@@ -379,14 +368,10 @@ fun AppNavGraph(
             } else {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
-                    appPreferences = appPreferences,
-                    playlistRepository = playlistRepository,
-                    traktRepository = traktRepository,
-                    watchProgressRepository = watchProgressRepository,
                 )
             }
         }
-        
+
         // --- Favorites ---
         composable(Route.Favorites.route) {
             if (isTvDevice) {

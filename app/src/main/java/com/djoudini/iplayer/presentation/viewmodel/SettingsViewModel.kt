@@ -25,18 +25,15 @@ class SettingsViewModel @Inject constructor(
     private val watchProgressRepository: WatchProgressRepository,
 ) : ViewModel() {
 
-    // Language preferences (not persisted yet - would need AppPreferences extension)
     var preferredAudioLanguage by mutableStateOf("")
         private set
 
     var preferredSubtitleLanguage by mutableStateOf("")
         private set
 
-    // Make them readable from UI (different method names to avoid JVM signature clash)
     fun audioLanguage(): String = preferredAudioLanguage
     fun subtitleLanguage(): String = preferredSubtitleLanguage
 
-    // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
     val playerConfig: StateFlow<PlayerConfig> = appPreferences.playerConfig
         .stateIn(viewModelScope, SharingStarted.Lazily, PlayerConfig())
 
@@ -88,7 +85,7 @@ class SettingsViewModel @Inject constructor(
                 val playlistId = playlistRepository.getActive()?.id ?: return@launch
                 playlistRepository.syncPlaylist(playlistId)
             } catch (e: Exception) {
-                // Ignore sync errors in settings - worker will handle it
+                // Ignore
             }
         }
     }
@@ -99,7 +96,7 @@ class SettingsViewModel @Inject constructor(
                 val playlistId = playlistRepository.getActive()?.id ?: return@launch
                 playlistRepository.syncEpg(playlistId)
             } catch (e: Exception) {
-                // Ignore sync errors in settings - worker will handle it
+                // Ignore
             }
         }
     }
@@ -137,7 +134,7 @@ class SettingsViewModel @Inject constructor(
                 val playlistId = playlistRepository.getActive()?.id ?: return@launch
                 watchProgressRepository.clearAll(playlistId)
             } catch (e: Exception) {
-                // Ignore errors
+                // Ignore
             }
         }
     }
