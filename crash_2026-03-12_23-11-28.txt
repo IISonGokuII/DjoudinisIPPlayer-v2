@@ -1,0 +1,72 @@
+═══════════════════════════════════════════════════════════
+           DJOUDINI'S IP PLAYER - CRASH REPORT
+═══════════════════════════════════════════════════════════
+
+📅 TIMESTAMP: 2026-03-12 23:11:28
+
+📱 DEVICE INFO:
+   Manufacturer: vivo
+   Model: V2405A
+   Product: PD2405M
+   Android Version: 16 (API 36)
+   SDK: 36
+   Display: PD2405C_A_16.1.19.6.W10
+
+📦 APP INFO:
+   Package: com.djoudini.iplayer.debug
+   Version Name: 1.0.0
+   Version Code: 1
+   Long Version Code: 1
+
+🧵 THREAD INFO:
+   Thread Name: main
+   Thread ID: 2
+
+❌ EXCEPTION INFO:
+   Type: java.lang.IllegalStateException
+   Message: 
+   FocusRequester is not initialized. Here are some possible fixes:
+
+   1. Remember the FocusRequester: val focusRequester = remember { FocusRequester() }
+   2. Did you forget to add a Modifier.focusRequester() ?
+   3. Are you attempting to request focus during composition? Focus requests should be made in
+   response to some event. Eg Modifier.clickable { focusRequester.requestFocus() }
+
+   Cause: null
+
+📚 STACK TRACE:
+───────────────────────────────────────────────────────────
+java.lang.IllegalStateException: 
+   FocusRequester is not initialized. Here are some possible fixes:
+
+   1. Remember the FocusRequester: val focusRequester = remember { FocusRequester() }
+   2. Did you forget to add a Modifier.focusRequester() ?
+   3. Are you attempting to request focus during composition? Focus requests should be made in
+   response to some event. Eg Modifier.clickable { focusRequester.requestFocus() }
+
+	at androidx.compose.ui.focus.FocusRequester.findFocusTargetNode$ui_release(FocusRequester.kt:254)
+	at androidx.compose.ui.focus.FocusRequester.focus$ui_release(FocusRequester.kt:67)
+	at androidx.compose.ui.focus.FocusRequester.requestFocus(FocusRequester.kt:63)
+	at com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreenKt$VodCategoriesScreen$3$1.invokeSuspend(VodCategoriesScreen.kt:83)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.performTrampolineDispatch(AndroidUiDispatcher.android.kt:81)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.access$performTrampolineDispatch(AndroidUiDispatcher.android.kt:41)
+	at androidx.compose.ui.platform.AndroidUiDispatcher$dispatchCallback$1.run(AndroidUiDispatcher.android.kt:57)
+	at android.os.Handler.handleCallback(Handler.java:1051)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:266)
+	at android.os.Looper.loop(Looper.java:361)
+	at android.app.ActivityThread.main(ActivityThread.java:10340)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:675)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1002)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [androidx.compose.ui.platform.MotionDurationScaleImpl@ca470de, androidx.compose.runtime.BroadcastFrameClock@61be2bf, StandaloneCoroutine{Cancelling}@7afed8c, AndroidUiDispatcher@690fcd5]
+───────────────────────────────────────────────────────────
+
+🗑️ SUPPRESSED EXCEPTIONS:
+   [0] kotlinx.coroutines.internal.DiagnosticCoroutineContextException: null
+
+═══════════════════════════════════════════════════════════
+                      END OF REPORT
+═══════════════════════════════════════════════════════════

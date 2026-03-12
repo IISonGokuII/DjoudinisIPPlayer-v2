@@ -69,18 +69,10 @@ fun VodCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val vodItems by viewModel.filteredVodItems.collectAsStateWithLifecycle()
 
-    val sidebarFocusRequester = remember { FocusRequester() }
-
     // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == 0L) {
             viewModel.selectCategory(categories.first().id)
-        }
-    }
-
-    LaunchedEffect(categories) {
-        if (categories.isNotEmpty()) {
-            sidebarFocusRequester.requestFocus()
         }
     }
 

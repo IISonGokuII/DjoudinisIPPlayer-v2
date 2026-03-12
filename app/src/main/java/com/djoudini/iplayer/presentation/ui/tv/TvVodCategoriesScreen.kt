@@ -82,12 +82,6 @@ fun TvVodCategoriesScreen(
         }
     }
 
-    LaunchedEffect(categories) {
-        if (categories.isNotEmpty()) {
-            sidebarFocusRequester.requestFocus()
-        }
-    }
-
     Row(
         modifier = Modifier
             .fillMaxSize()
