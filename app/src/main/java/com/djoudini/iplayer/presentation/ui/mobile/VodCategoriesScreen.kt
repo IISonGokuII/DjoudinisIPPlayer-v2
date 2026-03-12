@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -216,8 +217,8 @@ private fun VodCard(
                     model = vod.logoUrl,
                     contentDescription = vod.name,
                     contentScale = ContentScale.Crop,
-                    placeholder = androidx.compose.ui.res.painterResource(R.drawable.placeholder_image),
-                    error = androidx.compose.ui.res.painterResource(R.drawable.error_image),
+                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
+                    error = painterResource(id = android.R.drawable.ic_menu_report_image),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
