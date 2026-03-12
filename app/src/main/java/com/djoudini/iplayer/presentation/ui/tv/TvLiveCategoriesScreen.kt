@@ -292,7 +292,6 @@ fun TvLiveCategoriesScreen(
                                 selectedChannel = channelWithEpg.channel
                             },
                             onPlay = {
-                                selectedChannel = channelWithEpg.channel
                                 onChannelClick(channelWithEpg.channel.id)
                             },
                         )
