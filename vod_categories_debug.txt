@@ -1,7 +1,20 @@
 === VOD CATEGORIES DEBUG ===
-Timestamp: 2026-03-13 00:16:27
-Categories loaded: 3
-Selected category ID: 428
-  - Category: VOD | AFRICA (ID: 473, Playlist: 1)
-  - Category: VOD | AFRICA-SOMALI MOVIES (ID: 474, Playlist: 1)
-  - Category: VOD | ALBANIA (ID: 428, Playlist: 1)
+Timestamp: 2026-03-13 00:30:29
+Categories loaded: 16
+Selected category ID: 420
+  - Category: VOD | DE - ABENTEUER (ID: 416, Playlist: 1)
+  - Category: VOD | DE - AKTION & KRIMI (ID: 415, Playlist: 1)
+  - Category: VOD | DE - ANIME (ID: 411, Playlist: 1)
+  - Category: VOD | DE - CHRISTMAS (ID: 414, Playlist: 1)
+  - Category: VOD | DE - DRAMA & ROMANTIK (ID: 412, Playlist: 1)
+  - Category: VOD | DE - FAMILIE & KINDER (ID: 410, Playlist: 1)
+  - Category: VOD | DE - FILME 4K (ID: 408, Playlist: 1)
+  - Category: VOD | DE - HISTORY & DOKUMENTARE (ID: 422, Playlist: 1)
+  - Category: VOD | DE - HORROR & THRILLER (ID: 417, Playlist: 1)
+  - Category: VOD | DE - KLASSIKER (ID: 421, Playlist: 1)
+  - Category: VOD | DE - KOMÖDIE (ID: 413, Playlist: 1)
+  - Category: VOD | DE - NETFLIX (ID: 409, Playlist: 1)
+  - Category: VOD | DE - NEUE FILME (ID: 407, Playlist: 1)
+  - Category: VOD | DE - SCI-FI & FANTASIE (ID: 418, Playlist: 1)
+  - Category: VOD | DE - SUPERHELDEN (ID: 419, Playlist: 1)
+  - Category: VOD | DE - WESTERN (ID: 420, Playlist: 1)

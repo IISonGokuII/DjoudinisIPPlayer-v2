@@ -190,65 +190,57 @@ fun SeriesCategoriesScreen(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
             )
 
-            // Series Grid
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxSize()
-                    .padding(16.dp),
-            ) {
-                // Debug: Show data size
-                Text(
-                    text = "DEBUG: seriesItems.size = ${seriesItems.size}, selectedCategoryId = $selectedCategoryId",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            
-                if (selectedCategoryId == 0L) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
+            // Series Grid - FIX: Column entfernt und direkt LazyVerticalGrid verwendet
+            if (selectedCategoryId == 0L) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.select_a_category),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else if (seriesItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = stringResource(R.string.select_a_category),
+                            text = stringResource(R.string.no_series_in_category),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "TIP: Have you synced the playlist? Go to Dashboard → Sync",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
-                } else if (seriesItems.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = stringResource(R.string.no_series_in_category),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "TIP: Have you synced the playlist? Go to Dashboard → Sync",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        modifier = Modifier.weight(1f),
-                        columns = GridCells.Adaptive(minSize = 150.dp),
-                        contentPadding = PaddingValues(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(seriesItems, key = { it.id }) { series ->
-                            SeriesCard(
-                                series = series,
-                                onClick = { onSeriesClick(series.id) },
-                            )
-                        }
+                }
+            } else {
+                // FIX: LazyVerticalGrid ohne weight() - verwendet stattdessen fillMaxSize
+                LazyVerticalGrid(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    columns = GridCells.Adaptive(minSize = 150.dp),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(seriesItems, key = { it.id }) { series ->
+                        SeriesCard(
+                            series = series,
+                            onClick = { onSeriesClick(series.id) },
+                        )
                     }
                 }
             }

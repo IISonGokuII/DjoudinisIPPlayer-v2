@@ -1,7 +1,5 @@
 === SERIES CATEGORIES DEBUG ===
-Timestamp: 2026-03-13 00:16:34
-Categories loaded: 3
-Selected category ID: 526
-  - Category: SRS | ALBANIA (ID: 523, Playlist: 1)
-  - Category: SRS | ANIME [EN] (ID: 500, Playlist: 1)
-  - Category: SRS | ARABIC (ID: 526, Playlist: 1)
+Timestamp: 2026-03-13 00:30:31
+Categories loaded: 1
+Selected category ID: 513
+  - Category: SRS | DEUTSCH (ID: 513, Playlist: 1)
