@@ -110,10 +110,11 @@ class SplashActivity : ComponentActivity() {
 
     companion object {
         // Hier kannst du die Dauer einstellen:
+        // 3000L = 3 Sekunden
         // 5000L = 5 Sekunden
         // 8000L = 8 Sekunden  
         // 10000L = 10 Sekunden
-        private const val SPLASH_DURATION_MS = 7000L // 7 Sekunden
+        private const val SPLASH_DURATION_MS = 3000L // 3 Sekunden
         
         // Ein Puls dauert 1.5 Sekunden
         private const val PULSE_DURATION_MS = 1500L
