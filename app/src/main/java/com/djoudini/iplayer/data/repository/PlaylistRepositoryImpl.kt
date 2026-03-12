@@ -180,26 +180,28 @@ class PlaylistRepositoryImpl @Inject constructor(
 
         _syncProgress.value = SyncProgress.active("Loading categories...", 0.3f)
         
-        var liveCategories: List<XtreamCategoryDto> = emptyList()
-        try {
-            liveCategories = xtreamApi.getLiveCategories(apiUrl, username, password)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load live categories or format is unexpected")
+        // Helper function for retrying API calls
+        suspend fun <T> retryApiCall(block: suspend () -> T): T? {
+            var currentDelay = 1000L
+            repeat(3) { attempt ->
+                try {
+                    return block()
+                } catch (e: Exception) {
+                    Timber.w(e, "API call failed on attempt ${attempt + 1}")
+                    if (attempt < 2) {
+                        kotlinx.coroutines.delay(currentDelay)
+                        currentDelay *= 2 // Exponential backoff
+                    } else {
+                        Timber.e(e, "API call failed after 3 attempts")
+                    }
+                }
+            }
+            return null
         }
 
-        var vodCategories: List<XtreamCategoryDto> = emptyList()
-        try {
-            vodCategories = xtreamApi.getVodCategories(apiUrl, username, password)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load VOD categories or format is unexpected")
-        }
-
-        var seriesCategories: List<XtreamCategoryDto> = emptyList()
-        try {
-            seriesCategories = xtreamApi.getSeriesCategories(apiUrl, username, password)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load series categories or format is unexpected")
-        }
+        val liveCategories = retryApiCall { xtreamApi.getLiveCategories(apiUrl, username, password) } ?: emptyList()
+        val vodCategories = retryApiCall { xtreamApi.getVodCategories(apiUrl, username, password) } ?: emptyList()
+        val seriesCategories = retryApiCall { xtreamApi.getSeriesCategories(apiUrl, username, password) } ?: emptyList()
 
         // Preserve existing selection state during re-sync
         val existingCategories = categoryDao.getAllByPlaylist(playlist.id)
