@@ -1,0 +1,7 @@
+=== VOD CATEGORIES DEBUG ===
+Timestamp: 2026-03-13 00:16:27
+Categories loaded: 3
+Selected category ID: 428
+  - Category: VOD | AFRICA (ID: 473, Playlist: 1)
+  - Category: VOD | AFRICA-SOMALI MOVIES (ID: 474, Playlist: 1)
+  - Category: VOD | ALBANIA (ID: 428, Playlist: 1)

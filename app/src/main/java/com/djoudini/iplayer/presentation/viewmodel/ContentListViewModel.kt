@@ -112,21 +112,21 @@ class ContentListViewModel @Inject constructor(
             .flatMapLatest { playlist ->
                 playlist?.let { categoryDao.observeByType(it.id, "live") } ?: flowOf(emptyList())
             }
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val vodCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
                 playlist?.let { categoryDao.observeByType(it.id, "vod") } ?: flowOf(emptyList())
             }
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val seriesCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
                 playlist?.let { categoryDao.observeByType(it.id, "series") } ?: flowOf(emptyList())
             }
-            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // --- Items within a selected category (reactive to _selectedCategoryId) ---
     // OPTIMIERUNG: SharingStarted.Lazily behält Daten im Speicher für sofortiges Laden bei Navigation
@@ -230,7 +230,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
                 else -> filtered.sortedBy { it.name.lowercase() } // Default fallback
             }
-        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val filteredSeriesItems: StateFlow<List<SeriesEntity>> =
         combine(seriesItems, _inlineSearchQuery, _sortMode) { items, query, sort ->
@@ -242,7 +242,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
                 else -> filtered.sortedBy { it.name.lowercase() } // Default fallback
             }
-        }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // --- Global Search ---
 
