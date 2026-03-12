@@ -197,6 +197,14 @@ fun VodCategoriesScreen(
                     .fillMaxSize()
                     .padding(16.dp),
             ) {
+                // Debug: Show data size
+                Text(
+                    text = "DEBUG: vodItems.size = ${vodItems.size}, selectedCategoryId = $selectedCategoryId",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            
                 if (selectedCategoryId == 0L) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -213,11 +221,19 @@ fun VodCategoriesScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = stringResource(R.string.no_movies_in_category),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(R.string.no_movies_in_category),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "TIP: Have you synced the playlist? Go to Dashboard → Sync",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                     }
                 } else {
                     LazyVerticalGrid(
