@@ -98,6 +98,7 @@ import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.presentation.viewmodel.AspectRatio
 import com.djoudini.iplayer.presentation.viewmodel.PlayerViewModel
 import com.djoudini.iplayer.presentation.viewmodel.SleepTimerPreset
+import androidx.media3.common.Player
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -296,7 +297,7 @@ fun PlayerScreen(
         )
     }
 
-    // Audio track selection dialog - SIMPLIFIED INFO VERSION
+    // Audio Track Info Dialog (simplified)
     if (showAudioTrackDialog) {
         AlertDialog(
             onDismissRequest = { showAudioTrackDialog = false },
@@ -310,15 +311,21 @@ fun PlayerScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Text(
-                        text = "Die Audio-Spur wird automatisch vom Stream geladen. Bei den meisten IPTV-Streams ist nur eine Audio-Spur verfügbar.",
+                        text = "Die Audio-Spur wird automatisch vom Stream geladen.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Wenn mehrere Audio-Spuren verfügbar sind (z.B. bei Filmen mit Mehrsprachigkeit), werden diese automatisch von ExoPlayer erkannt und können über die Stream-Qualitätseinstellungen ausgewählt werden.",
+                        text = "Bei den meisten IPTV-Streams ist nur eine Audio-Spur verfügbar. Wenn mehrere Audio-Spuren vorhanden sind (z.B. bei Filmen mit Mehrsprachigkeit), werden diese automatisch von ExoPlayer erkannt.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Tipp: Wenn kein Ton zu hören ist, überprüfe die Lautstärke deines Geräts oder versuche den Stream neu zu laden.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
                     )
                 }
             },
