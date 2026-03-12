@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.remote.api.XtreamApi
-import com.djoudini.iplayer.data.remote.api.TmdbApi
 import com.djoudini.iplayer.domain.model.PlaylistType
 import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
@@ -20,8 +19,6 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
-private const val TMDB_API_KEY = "YOUR_TMDB_API_KEY"
-
 @HiltViewModel
 class VodDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -29,7 +26,6 @@ class VodDetailViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val watchProgressRepository: WatchProgressRepository,
     private val xtreamApi: XtreamApi,
-    private val tmdbApi: TmdbApi,
 ) : ViewModel() {
 
     private val vodId: Long = savedStateHandle.get<Long>(NavArgs.CONTENT_ID) ?: 0L
@@ -106,17 +102,11 @@ class VodDetailViewModel @Inject constructor(
     /**
      * Load cast members from TMDB API.
      * Returns empty list if TMDB API key is not configured or fails.
+     * NOTE: TMDB integration is currently disabled. Set TMDB_API_KEY to enable.
      */
     suspend fun loadCast(tmdbId: Int): List<CastMember> {
-        return try {
-            // Only try TMDB if API key is configured
-            if (TMDB_API_KEY == "YOUR_TMDB_API_KEY" || tmdbId == 0) {
-                return emptyList()
-            }
-            tmdbApi.getCast(tmdbId)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load cast from TMDB")
-            emptyList()
-        }
+        // TMDB API is disabled by default
+        // To enable: Set TMDB_API_KEY to your actual API key
+        return emptyList()
     }
 }
