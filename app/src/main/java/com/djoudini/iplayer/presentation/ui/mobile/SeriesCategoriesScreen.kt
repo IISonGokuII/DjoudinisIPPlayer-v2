@@ -1,5 +1,6 @@
 package com.djoudini.iplayer.presentation.ui.mobile
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -244,14 +245,6 @@ private fun SeriesCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-
-            series.year?.let { year ->
-                Text(
-                    text = year.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }
