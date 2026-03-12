@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.remote.api.XtreamApi
+import com.djoudini.iplayer.data.remote.api.TmdbApi
 import com.djoudini.iplayer.domain.model.PlaylistType
 import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
@@ -26,6 +27,7 @@ class VodDetailViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val watchProgressRepository: WatchProgressRepository,
     private val xtreamApi: XtreamApi,
+    private val tmdbApi: TmdbApi,
 ) : ViewModel() {
 
     private val vodId: Long = savedStateHandle.get<Long>(NavArgs.CONTENT_ID) ?: 0L
@@ -96,6 +98,25 @@ class VodDetailViewModel @Inject constructor(
         } catch (e: Exception) {
             Timber.e(e, "Failed to load VOD info")
             // Continue with basic info - don't block UI
+        }
+    }
+
+    /**
+     * Load cast members from TMDB API.
+     */
+    suspend fun loadCast(tmdbId: Int): List<CastMember> {
+        return try {
+            val credits = tmdbApi.getMovieCredits(tmdbId)
+            credits.cast.take(10).map { actor ->
+                CastMember(
+                    name = actor.name,
+                    character = actor.character,
+                    profilePath = actor.profilePath,
+                )
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load cast")
+            emptyList()
         }
     }
 }
