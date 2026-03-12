@@ -8,7 +8,6 @@ import androidx.compose.runtime.setValue
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.data.repository.TraktRepository
-import com.djoudini.iplayer.data.worker.SyncScheduler
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +22,6 @@ class SettingsViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val playlistRepository: PlaylistRepository,
     private val traktRepository: TraktRepository,
-    private val syncScheduler: SyncScheduler,
     private val watchProgressRepository: WatchProgressRepository,
 ) : ViewModel() {
 
@@ -81,26 +79,28 @@ class SettingsViewModel @Inject constructor(
     fun setAutoSync(enabled: Boolean) {
         viewModelScope.launch {
             appPreferences.setAutoSyncEnabled(enabled)
-            if (enabled) {
-                syncScheduler.schedulePeriodicPlaylistSync()
-                syncScheduler.schedulePeriodicEpgSync()
-            } else {
-                syncScheduler.cancelAll()
-            }
         }
     }
 
     fun syncPlaylistNow() {
         viewModelScope.launch {
-            val playlistId = playlistRepository.getActive()?.id ?: return@launch
-            playlistRepository.syncPlaylist(playlistId)
+            try {
+                val playlistId = playlistRepository.getActive()?.id ?: return@launch
+                playlistRepository.syncPlaylist(playlistId)
+            } catch (e: Exception) {
+                // Ignore sync errors in settings - worker will handle it
+            }
         }
     }
 
     fun syncEpgNow() {
         viewModelScope.launch {
-            val playlistId = playlistRepository.getActive()?.id ?: return@launch
-            playlistRepository.syncEpg(playlistId)
+            try {
+                val playlistId = playlistRepository.getActive()?.id ?: return@launch
+                playlistRepository.syncEpg(playlistId)
+            } catch (e: Exception) {
+                // Ignore sync errors in settings - worker will handle it
+            }
         }
     }
 
@@ -133,8 +133,12 @@ class SettingsViewModel @Inject constructor(
 
     fun clearWatchHistory() {
         viewModelScope.launch {
-            val playlistId = playlistRepository.getActive()?.id ?: return@launch
-            watchProgressRepository.clearAll(playlistId)
+            try {
+                val playlistId = playlistRepository.getActive()?.id ?: return@launch
+                watchProgressRepository.clearAll(playlistId)
+            } catch (e: Exception) {
+                // Ignore errors
+            }
         }
     }
 
