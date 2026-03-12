@@ -75,8 +75,17 @@ fun TvSeriesCategoriesScreen(
 
     val sidebarFocusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) {
-        sidebarFocusRequester.requestFocus()
+    // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty() && selectedCategoryId == 0L) {
+            viewModel.selectCategory(categories.first().id)
+        }
+    }
+
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty()) {
+            sidebarFocusRequester.requestFocus()
+        }
     }
 
     Row(
@@ -158,7 +167,7 @@ fun TvSeriesCategoriesScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Keine Serien in dieser Kategorie",
+                        text = stringResource(R.string.no_series_in_category),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -301,11 +310,14 @@ private fun TvSeriesCard(
                 .padding(12.dp),
         ) {
             // Series poster
-            if (!series.coverUrl.isNullOrBlank()) {
+            if (!series.coverUrl.isNullOrBlank() && 
+                (series.coverUrl.startsWith("http://") || series.coverUrl.startsWith("https://"))) {
                 AsyncImage(
                     model = series.coverUrl,
                     contentDescription = series.name,
                     contentScale = ContentScale.Crop,
+                    placeholder = androidx.compose.ui.res.painterResource(R.drawable.placeholder_image),
+                    error = androidx.compose.ui.res.painterResource(R.drawable.error_image),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)

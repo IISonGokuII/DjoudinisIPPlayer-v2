@@ -71,8 +71,17 @@ fun VodCategoriesScreen(
 
     val sidebarFocusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) {
-        sidebarFocusRequester.requestFocus()
+    // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty() && selectedCategoryId == 0L) {
+            viewModel.selectCategory(categories.first().id)
+        }
+    }
+
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty()) {
+            sidebarFocusRequester.requestFocus()
+        }
     }
 
     Scaffold(
@@ -155,7 +164,7 @@ fun VodCategoriesScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Select a category",
+                            text = stringResource(R.string.select_a_category),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -166,7 +175,7 @@ fun VodCategoriesScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "No movies in this category",
+                            text = stringResource(R.string.no_movies_in_category),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -209,11 +218,14 @@ private fun VodCard(
                 .fillMaxSize()
                 .padding(8.dp),
         ) {
-            if (!vod.logoUrl.isNullOrBlank()) {
+            if (!vod.logoUrl.isNullOrBlank() && 
+                (vod.logoUrl.startsWith("http://") || vod.logoUrl.startsWith("https://"))) {
                 AsyncImage(
                     model = vod.logoUrl,
                     contentDescription = vod.name,
                     contentScale = ContentScale.Crop,
+                    placeholder = androidx.compose.ui.res.painterResource(R.drawable.placeholder_image),
+                    error = androidx.compose.ui.res.painterResource(R.drawable.error_image),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)

@@ -63,6 +63,9 @@
 
     <!-- Content Lists -->
     <string name="select_a_category">Select a category</string>
+    <string name="no_series_in_category">No series in this category</string>
+    <string name="no_movies_in_category">No movies in this category</string>
+    <string name="no_channels_in_category">No channels in this category</string>
     <string name="search_channels">Search channels…</string>
     <string name="search_movies">Search movies…</string>
     <string name="search_series">Search series…</string>
@@ -78,6 +81,10 @@
     <string name="sort">Sort</string>
     <string name="view_mode">View mode</string>
     <string name="account_expires_format">Account expires: %s</string>
+    <string name="seasons">Seasons</string>
+    <string name="episodes">Episodes</string>
+    <string name="no_episodes_in_season">No episodes in this season</string>
+    <string name="loading_details">Loading details…</string>
 
     <!-- Player -->
     <string name="continue_watching_title">Continue Watching?</string>

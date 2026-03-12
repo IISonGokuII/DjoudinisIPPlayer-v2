@@ -71,8 +71,17 @@ fun SeriesCategoriesScreen(
 
     val sidebarFocusRequester = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) {
-        sidebarFocusRequester.requestFocus()
+    // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty() && selectedCategoryId == 0L) {
+            viewModel.selectCategory(categories.first().id)
+        }
+    }
+
+    LaunchedEffect(categories) {
+        if (categories.isNotEmpty()) {
+            sidebarFocusRequester.requestFocus()
+        }
     }
 
     Scaffold(
@@ -155,7 +164,7 @@ fun SeriesCategoriesScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Select a category",
+                            text = stringResource(R.string.select_a_category),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -166,7 +175,7 @@ fun SeriesCategoriesScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "No series in this category",
+                            text = stringResource(R.string.no_series_in_category),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -209,11 +218,14 @@ private fun SeriesCard(
                 .fillMaxSize()
                 .padding(8.dp),
         ) {
-            if (!series.coverUrl.isNullOrBlank()) {
+            if (!series.coverUrl.isNullOrBlank() && 
+                (series.coverUrl.startsWith("http://") || series.coverUrl.startsWith("https://"))) {
                 AsyncImage(
                     model = series.coverUrl,
                     contentDescription = series.name,
                     contentScale = ContentScale.Crop,
+                    placeholder = androidx.compose.ui.res.painterResource(R.drawable.placeholder_image),
+                    error = androidx.compose.ui.res.painterResource(R.drawable.error_image),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
