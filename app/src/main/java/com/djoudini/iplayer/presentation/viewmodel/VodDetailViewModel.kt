@@ -12,6 +12,7 @@ import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.navigation.NavArgs
+import com.djoudini.iplayer.presentation.ui.mobile.CastMember
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -105,18 +106,6 @@ class VodDetailViewModel @Inject constructor(
      * Load cast members from TMDB API.
      */
     suspend fun loadCast(tmdbId: Int): List<CastMember> {
-        return try {
-            val credits = tmdbApi.getMovieCredits(tmdbId)
-            credits.cast.take(10).map { actor ->
-                CastMember(
-                    name = actor.name,
-                    character = actor.character,
-                    profilePath = actor.profilePath,
-                )
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to load cast")
-            emptyList()
-        }
+        return tmdbApi.getCast(tmdbId)
     }
 }
