@@ -25,6 +25,7 @@ import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.navigation.AppNavGraph
 import com.djoudini.iplayer.presentation.navigation.Route
 import com.djoudini.iplayer.presentation.ui.theme.DjoudinisTheme
+import com.djoudini.iplayer.util.CrashHandler
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -74,6 +75,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        CrashHandler.setCurrentActivity(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        CrashHandler.setCurrentActivity(null)
     }
 }
 

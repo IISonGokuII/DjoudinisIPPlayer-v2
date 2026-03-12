@@ -13,6 +13,12 @@
     <!-- Wake lock for media playback -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Storage permission for crash reports (Android 9 and below) -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <!-- TV: Leanback support (not required, allows non-TV installs too) -->
     <uses-feature
         android:name="android.software.leanback"

@@ -14,6 +14,7 @@ import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.data.worker.SyncScheduler
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
+import com.djoudini.iplayer.util.CrashHandler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -47,6 +48,9 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
             Timber.plant(Timber.DebugTree())
         }
 
+        // Initialize Crash Handler (MUST be before WorkManager)
+        CrashHandler.init(this)
+
         // Initialize WorkManager
         WorkManager.initialize(
             this,
@@ -54,6 +58,8 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
                 .setMinimumLoggingLevel(android.util.Log.INFO)
                 .build()
         )
+
+        Timber.d("[DjoudinisApp] onCreate()")
     }
 
     /**
