@@ -109,6 +109,9 @@ fun DashboardScreen(
                     IconButton(onClick = { viewModel.syncPlaylist() }) {
                         Icon(Icons.Default.Refresh, stringResource(R.string.sync))
                     }
+                    IconButton(onClick = onNavigateSettings) {
+                        Icon(Icons.Default.Settings, stringResource(R.string.settings))
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -240,20 +243,6 @@ fun DashboardScreen(
                     title = stringResource(R.string.epg_guide),
                     icon = Icons.Default.CalendarMonth,
                     onClick = onNavigateEpg,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                DashboardTile(
-                    title = stringResource(R.string.settings),
-                    icon = Icons.Default.Settings,
-                    onClick = onNavigateSettings,
                     modifier = Modifier.weight(1f),
                 )
             }

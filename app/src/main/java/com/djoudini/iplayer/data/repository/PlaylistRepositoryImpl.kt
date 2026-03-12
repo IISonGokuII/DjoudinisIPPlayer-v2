@@ -666,9 +666,9 @@ class PlaylistRepositoryImpl @Inject constructor(
                     _syncProgress.value = SyncProgress.indeterminate("Preparing sync...")
                     when (PlaylistType.fromValue(playlist.type)) {
                         PlaylistType.XTREAM -> syncXtreamSelectedStreams(playlist)
-                        PlaylistType.M3U -> { 
+                        PlaylistType.M3U -> {
                             Timber.d("[Sync] M3U playlist - streams already synced during categories")
-                            /* Already synced during categoriesOnly */ 
+                            // M3U streams are already synced during categoriesOnly phase
                         }
                     }
                     playlistDao.updateLastSynced(playlistId, System.currentTimeMillis())

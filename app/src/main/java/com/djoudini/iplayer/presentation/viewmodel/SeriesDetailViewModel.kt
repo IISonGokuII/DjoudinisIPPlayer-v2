@@ -125,7 +125,8 @@ class SeriesDetailViewModel @Inject constructor(
     }
 
     fun loadEpisodes(season: Int) {
-        viewModelScope.launch {
+        episodesJob?.cancel()
+        episodesJob = viewModelScope.launch {
             episodeDao.observeBySeason(seriesId, season).collect { episodes ->
                 _episodes.value = episodes
                 loadEpisodeProgress(episodes.map { it.id })
@@ -135,7 +136,8 @@ class SeriesDetailViewModel @Inject constructor(
 
     private fun loadEpisodeProgress(episodeIds: List<Long>) {
         if (episodeIds.isEmpty()) return
-        viewModelScope.launch {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
             val playlist = playlistRepository.getActive() ?: return@launch
             watchProgressDao.observeEpisodeProgress(playlist.id, episodeIds).collect { progressList ->
                 _episodeProgress.value = progressList.associateBy { it.contentId }

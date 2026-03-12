@@ -207,6 +207,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.NAME_ASC -> filtered.sortedBy { it.channel.name.lowercase() }
                 SortMode.NAME_DESC -> filtered.sortedByDescending { it.channel.name.lowercase() }
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.channel.id }
+                else -> filtered.sortedBy { it.channel.name.lowercase() } // Default fallback
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -218,6 +219,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
                 SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
+                else -> filtered.sortedBy { it.name.lowercase() } // Default fallback
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -229,6 +231,7 @@ class ContentListViewModel @Inject constructor(
                 SortMode.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
                 SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
                 SortMode.RECENTLY_ADDED -> filtered.sortedByDescending { it.id }
+                else -> filtered.sortedBy { it.name.lowercase() } // Default fallback
             }
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 

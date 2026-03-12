@@ -3,6 +3,7 @@ package com.djoudini.iplayer.presentation.ui.tv
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
@@ -20,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,6 +48,7 @@ import com.djoudini.iplayer.presentation.viewmodel.DashboardViewModel
 /**
  * TV-optimized Favorites screen showing all favorited content.
  * Organized into sections: Live TV, Movies, Series
+ * Uses LazyRow for each section like Mobile version.
  */
 @Composable
 fun TvFavoritesScreen(
@@ -137,11 +141,15 @@ fun TvFavoritesScreen(
                             count = favoriteChannels.size
                         )
                     }
+                    item {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                     items(favoriteChannels, key = { "channel_${it.id}" }) { channel ->
-                        FavoriteChannelItem(
+                        FavoriteChannelCard(
                             channel = channel,
                             onClick = { onChannelClick(channel.id) }
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
                     }
                 }
 
@@ -154,12 +162,20 @@ fun TvFavoritesScreen(
                             count = favoriteVod.size
                         )
                     }
+                    item {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                     items(favoriteVod, key = { "vod_${it.id}" }) { vod ->
-                        FavoriteVodItem(
+                        FavoriteVodCard(
                             vod = vod,
                             onClick = { onVodClick(vod.id) }
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
                     }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
@@ -195,22 +211,22 @@ private fun FavoritesSectionHeader(
 }
 
 @Composable
-private fun FavoriteChannelItem(
+private fun FavoriteChannelCard(
     channel: ChannelEntity,
     onClick: () -> Unit,
 ) {
     FocusableCard(
         onClick = onClick,
         modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp),
-        focusScale = 1.02f
+            .width(160.dp)
+            .height(120.dp),
+        focusScale = 1.05f
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Channel logo
             if (!channel.logoUrl.isNullOrBlank()) {
@@ -218,14 +234,14 @@ private fun FavoriteChannelItem(
                     model = channel.logoUrl,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(64.dp)
                         .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Fit
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(64.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
@@ -238,47 +254,36 @@ private fun FavoriteChannelItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Channel name
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Favorite indicator
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+            Text(
+                text = channel.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
 }
 
 @Composable
-private fun FavoriteVodItem(
+private fun FavoriteVodCard(
     vod: VodEntity,
     onClick: () -> Unit,
 ) {
     FocusableCard(
         onClick = onClick,
         modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),
-        focusScale = 1.02f
+            .width(140.dp)
+            .height(220.dp),
+        focusScale = 1.05f
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp),
         ) {
             // Movie poster/logo
             val imageUrl = vod.logoUrl
@@ -287,17 +292,17 @@ private fun FavoriteVodItem(
                     model = imageUrl,
                     contentDescription = null,
                     modifier = Modifier
-                        .width(60.dp)
-                        .height(80.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .width(60.dp)
-                        .height(80.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
@@ -309,32 +314,15 @@ private fun FavoriteVodItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Movie info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = vod.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (!vod.genre.isNullOrBlank()) {
-                    Text(
-                        text = vod.genre,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Favorite indicator
-            Icon(
-                imageVector = Icons.Default.Favorite,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+            // Movie name
+            Text(
+                text = vod.name,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

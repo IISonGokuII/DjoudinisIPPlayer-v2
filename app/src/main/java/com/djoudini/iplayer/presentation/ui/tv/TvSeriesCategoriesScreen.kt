@@ -1,13 +1,14 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,17 +21,27 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,8 +56,9 @@ import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 
 /**
- * TV-optimized Series categories screen.
- * Shows category selection and series grid.
+ * TV-optimized Series categories screen with Outlook-style sidebar.
+ * Left: Category sidebar
+ * Right: Series grid
  * Designed for D-Pad navigation on Fire TV / Android TV.
  */
 @Composable
@@ -59,15 +71,35 @@ fun TvSeriesCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val seriesItems by viewModel.filteredSeriesItems.collectAsStateWithLifecycle()
 
-    Box(
+    val sidebarFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        sidebarFocusRequester.requestFocus()
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp)
+            .padding(32.dp),
     ) {
+        // Category Sidebar
+        TvSeriesCategorySidebar(
+            categories = categories,
+            selectedCategoryId = selectedCategoryId,
+            onSelectCategory = { viewModel.selectCategory(it) },
+            focusRequester = sidebarFocusRequester,
+        )
+
+        VerticalDivider(
+            modifier = Modifier.fillMaxHeight(),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+        )
+
+        // Series content area
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .weight(1f)
+                .fillMaxHeight(),
         ) {
             // Header with back button
             Row(
@@ -100,55 +132,14 @@ fun TvSeriesCategoriesScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Category selection
-            if (categories.isNotEmpty()) {
-                Text(
-                    text = "Kategorie wählen:",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    categories.forEach { category ->
-                        val isSelected = category.id == selectedCategoryId
-                        FocusableCard(
-                            onClick = { viewModel.selectCategory(category.id) },
-                            modifier = Modifier
-                                .width(200.dp)
-                                .height(64.dp),
-                            focusScale = 1.05f,
-                        ) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = category.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(32.dp))
-            }
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Series grid
             if (selectedCategoryId == 0L) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(400.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -161,7 +152,7 @@ fun TvSeriesCategoriesScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(400.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -171,14 +162,20 @@ fun TvSeriesCategoriesScreen(
                     )
                 }
             } else {
-                Text(
-                    text = "${seriesItems.size} Serien",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "${seriesItems.size} Serien",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
+                    columns = GridCells.Adaptive(minSize = 180.dp),
                     contentPadding = PaddingValues(end = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -198,6 +195,93 @@ fun TvSeriesCategoriesScreen(
 }
 
 @Composable
+private fun TvSeriesCategorySidebar(
+    categories: List<com.djoudini.iplayer.data.local.entity.CategoryEntity>,
+    selectedCategoryId: Long,
+    onSelectCategory: (Long) -> Unit,
+    focusRequester: FocusRequester,
+) {
+    var expanded by remember { mutableStateOf(true) }
+    val sidebarWidth = if (expanded) 200.dp else 64.dp
+
+    Column(
+        modifier = Modifier
+            .width(sidebarWidth)
+            .fillMaxHeight()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .animateContentSize(),
+    ) {
+        // Toggle button
+        FocusableCard(
+            onClick = { expanded = !expanded },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .focusRequester(focusRequester),
+            focusScale = 1.0f,
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (expanded) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Folder,
+                    contentDescription = if (expanded) "Einklappen" else "Ausklappen",
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            categories.forEach { category ->
+                val isSelected = category.id == selectedCategoryId
+                FocusableCard(
+                    onClick = { onSelectCategory(category.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp),
+                    focusScale = 1.0f,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (expanded) {
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = category.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun TvSeriesCard(
     series: SeriesEntity,
     onClick: () -> Unit,
@@ -205,8 +289,8 @@ private fun TvSeriesCard(
     FocusableCard(
         onClick = onClick,
         modifier = Modifier
-            .width(200.dp)
-            .height(320.dp),
+            .width(180.dp)
+            .height(280.dp),
         focusScale = 1.05f,
     ) {
         Column(

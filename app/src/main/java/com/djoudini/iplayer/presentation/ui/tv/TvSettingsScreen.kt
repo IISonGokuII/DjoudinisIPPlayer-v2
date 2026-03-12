@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
@@ -30,6 +32,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,8 +49,9 @@ import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 
 /**
- * TV-optimized Settings screen.
- * Uses FocusableCard instead of clickable for D-Pad navigation.
+ * TV-optimized Settings screen with all settings like Mobile version.
+ * Uses Switch UI for toggles instead of text "AN/AUS".
+ * Includes App-Version display.
  */
 @Composable
 fun TvSettingsScreen(
@@ -130,7 +134,7 @@ fun TvSettingsScreen(
             // Player Settings
             TvSettingsSection(title = stringResource(R.string.player)) {
                 TvSettingsItem(
-                    icon = Icons.Default.Language,
+                    icon = Icons.Default.PhoneAndroid,
                     title = stringResource(R.string.user_agent),
                     subtitle = playerConfig.userAgent.take(40),
                     onClick = {
@@ -180,9 +184,56 @@ fun TvSettingsScreen(
                 )
                 TvSettingsItem(
                     icon = Icons.Default.AspectRatio,
-                    title = "Video-Format",
-                    subtitle = "Im Player einstellbar",
+                    title = "Video-Format (Aspect Ratio)",
+                    subtitle = "Im Player über Button einstellbar",
                     onClick = { },
+                )
+                TvSettingsItem(
+                    icon = Icons.Default.Language,
+                    title = stringResource(R.string.preferred_audio_language),
+                    subtitle = viewModel.preferredAudioLanguage.ifBlank { stringResource(R.string.auto_system_default) },
+                    onClick = {
+                        val next = when (viewModel.preferredAudioLanguage) {
+                            "" -> "de"
+                            "de" -> "en"
+                            "en" -> "tr"
+                            "tr" -> "fr"
+                            "fr" -> "es"
+                            else -> ""
+                        }
+                        viewModel.updatePreferredAudioLanguage(next)
+                    },
+                )
+                TvSettingsItem(
+                    icon = Icons.Default.Subtitles,
+                    title = stringResource(R.string.preferred_subtitle_language),
+                    subtitle = viewModel.preferredSubtitleLanguage.ifBlank { stringResource(R.string.off) },
+                    onClick = {
+                        val next = when (viewModel.preferredSubtitleLanguage) {
+                            "" -> "de"
+                            "de" -> "en"
+                            "en" -> "tr"
+                            "tr" -> "fr"
+                            "fr" -> ""
+                            else -> ""
+                        }
+                        viewModel.updatePreferredSubtitleLanguage(next)
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Trakt.tv Settings
+            TvSettingsSection(title = stringResource(R.string.trakt_tv)) {
+                TvSettingsToggleItem(
+                    icon = Icons.Default.Speed,
+                    title = if (traktEnabled) stringResource(R.string.connected) else stringResource(R.string.connect_trakt),
+                    subtitle = if (traktEnabled) stringResource(R.string.watch_progress_synced) else stringResource(R.string.sync_watched_content),
+                    checked = traktEnabled,
+                    onCheckedChange = {
+                        if (traktEnabled) viewModel.disconnectTrakt()
+                    },
                 )
             }
 
@@ -216,9 +267,24 @@ fun TvSettingsScreen(
                     subtitle = stringResource(R.string.clear_watch_history_desc),
                     onClick = { viewModel.clearWatchHistory() },
                 )
+                TvSettingsItem(
+                    icon = Icons.Default.Refresh,
+                    title = stringResource(R.string.reset_all_settings),
+                    subtitle = stringResource(R.string.reset_all_settings_desc),
+                    onClick = { viewModel.resetSettings() },
+                )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // App Version
+            Text(
+                text = stringResource(R.string.app_version),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -267,7 +333,7 @@ private fun TvSettingsItem(
                 tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(24.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
@@ -324,11 +390,15 @@ private fun TvSettingsToggleItem(
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = if (checked) "AN" else "AUS",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.primary,
+                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
             )
         }
     }

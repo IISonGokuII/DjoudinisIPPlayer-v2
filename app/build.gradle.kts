@@ -149,6 +149,12 @@ dependencies {
 
     // Timber
     implementation(libs.timber)
+
+    // Unit Testing
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("androidx.compose.ui:ui-test-junit4:1.7.6")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.7.6")
 }
 
 ksp {

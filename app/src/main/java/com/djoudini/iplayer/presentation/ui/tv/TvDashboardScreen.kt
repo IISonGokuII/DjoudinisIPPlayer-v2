@@ -23,9 +23,15 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,7 +93,7 @@ fun TvDashboardScreen(
             .padding(48.dp)
             .verticalScroll(rememberScrollState()),
     ) {
-        // Header with Search
+        // Header with Search and Sync button
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -131,6 +137,48 @@ fun TvDashboardScreen(
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Sync button
+            FocusableCard(
+                onClick = { viewModel.syncPlaylist() },
+                focusScale = 1.1f,
+                modifier = Modifier.size(64.dp),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = stringResource(R.string.sync),
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Settings button
+            FocusableCard(
+                onClick = onNavigateSettings,
+                focusScale = 1.1f,
+                modifier = Modifier.size(64.dp),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(R.string.settings),
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
             // Sync progress indicator
             if (syncProgress.isActive) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -147,6 +195,14 @@ fun TvDashboardScreen(
                     )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Sync progress banner
+        if (syncProgress.isActive) {
+            SyncProgressBanner(syncProgress)
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -227,18 +283,15 @@ fun TvDashboardScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        // Row 3: Settings (centered, single tile)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            TvDashboardTile(
-                title = stringResource(R.string.settings),
-                icon = Icons.Default.Settings,
-                onClick = onNavigateSettings,
-                modifier = Modifier.width(200.dp),
+        // Account info card
+        playlist?.let { p ->
+            AccountInfoCard(
+                status = p.status,
+                maxConnections = p.maxConnections,
+                expirationDate = p.expirationDate,
+                lastSynced = p.lastSyncedAt,
             )
         }
     }
@@ -323,5 +376,104 @@ private fun TvDashboardTile(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+    }
+}
+
+@Composable
+private fun SyncProgressBanner(syncProgress: com.djoudini.iplayer.domain.model.SyncProgress) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ProgressRing(
+                progress = syncProgress.progress,
+                size = 40.dp,
+                strokeWidth = 4.dp,
+                progressColor = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = syncProgress.phase,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                if (syncProgress.processedItems > 0) {
+                    Text(
+                        text = stringResource(R.string.items_processed, syncProgress.processedItems),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+            Text(
+                text = "${(syncProgress.progress * 100).toInt()}%",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountInfoCard(
+    status: String,
+    maxConnections: Int?,
+    expirationDate: Long?,
+    lastSynced: Long,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.account_info),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+
+            InfoRow(stringResource(R.string.status), status.replaceFirstChar { it.uppercase() })
+            maxConnections?.let { InfoRow(stringResource(R.string.max_connections), it.toString()) }
+            expirationDate?.let {
+                InfoRow(stringResource(R.string.expiration), dateFormat.format(Date(it)))
+            }
+            if (lastSynced > 0) {
+                InfoRow(stringResource(R.string.last_synced), dateFormat.format(Date(lastSynced)))
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(120.dp),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+        )
     }
 }

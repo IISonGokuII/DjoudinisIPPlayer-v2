@@ -36,6 +36,8 @@ class MainActivity : ComponentActivity() {
     lateinit var appPreferences: AppPreferences
 
     private val isTvDevice: Boolean by lazy {
+        // ONLY true for actual TV devices (Fire TV, Android TV)
+        // Check for Leanback feature - this is the most reliable indicator
         packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
     }
 

@@ -258,13 +258,23 @@ class PlayerViewModel @Inject constructor(
     /**
      * Called when playback fails. Tries the next fallback URL for LiveTV.
      * Returns the next URL to try, or null if all fallbacks exhausted.
+     * If null is returned, caller should invoke onPlaybackError().
      */
     fun tryNextFallback(): String? {
         val state = _uiState.value
         if (state.contentType != WatchContentType.CHANNEL) return null
 
         val nextIndex = state.currentFallbackIndex + 1
-        if (nextIndex >= state.fallbackUrls.size) return null
+        if (nextIndex >= state.fallbackUrls.size) {
+            // No more fallbacks available - set error state
+            _uiState.update {
+                it.copy(
+                    error = "Keine weiteren Stream-URLs verfügbar. Bitte überprüfen Sie Ihre Internetverbindung.",
+                    isLoading = false,
+                )
+            }
+            return null
+        }
 
         val nextUrl = state.fallbackUrls[nextIndex]
         _uiState.update {
