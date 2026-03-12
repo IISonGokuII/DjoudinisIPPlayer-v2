@@ -448,7 +448,7 @@ private fun ChannelItemMobile(
         modifier = Modifier
             .fillMaxWidth()
             .height(70.dp)
-            .clickable(onClick = onPlay)
+            .clickable(onClick = onClick)  // ← Erst Vorschau ändern
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 else Color.Transparent
