@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Speed
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material3.Card
@@ -40,29 +38,54 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
-import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
+import com.djoudini.iplayer.data.repository.TraktRepository
+import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.domain.repository.WatchProgressRepository
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel(),
+    appPreferences: AppPreferences,
+    playlistRepository: PlaylistRepository,
+    traktRepository: TraktRepository,
+    watchProgressRepository: WatchProgressRepository,
 ) {
-    val playerConfig by viewModel.playerConfig.collectAsStateWithLifecycle()
-    val autoSyncEnabled by viewModel.autoSyncEnabled.collectAsStateWithLifecycle()
-    val traktEnabled by viewModel.traktEnabled.collectAsStateWithLifecycle()
-    val theme by viewModel.theme.collectAsStateWithLifecycle()
-    val preferredAudioLanguage = viewModel.audioLanguage()
-    val preferredSubtitleLanguage = viewModel.subtitleLanguage()
+    val scope = rememberCoroutineScope()
+    
+    var playerConfig by remember { mutableStateOf(PlayerConfig()) }
+    var autoSyncEnabled by remember { mutableStateOf(true) }
+    var traktEnabled by remember { mutableStateOf(false) }
+    var theme by remember { mutableStateOf("dark") }
+    var preferredAudioLanguage by remember { mutableStateOf("") }
+    var preferredSubtitleLanguage by remember { mutableStateOf("") }
+
+    // Load preferences on composition
+    scope.launch {
+        appPreferences.playerConfig.collect { playerConfig = it }
+    }
+    scope.launch {
+        appPreferences.autoSyncEnabled.collect { autoSyncEnabled = it }
+    }
+    scope.launch {
+        appPreferences.traktEnabled.collect { traktEnabled = it }
+    }
+    scope.launch {
+        appPreferences.theme.collect { theme = it }
+    }
 
     Scaffold(
         topBar = {
@@ -87,20 +110,43 @@ fun SettingsScreen(
                     icon = Icons.Default.Refresh,
                     title = stringResource(R.string.refresh_playlist),
                     subtitle = stringResource(R.string.refresh_playlist_desc),
-                    onClick = { viewModel.syncPlaylistNow() },
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val playlistId = playlistRepository.getActive()?.id ?: return@launch
+                                playlistRepository.syncPlaylist(playlistId)
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    },
                 )
                 SettingsItem(
                     icon = Icons.Default.Sync,
                     title = stringResource(R.string.sync_epg),
                     subtitle = stringResource(R.string.sync_epg_desc),
-                    onClick = { viewModel.syncEpgNow() },
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val playlistId = playlistRepository.getActive()?.id ?: return@launch
+                                playlistRepository.syncEpg(playlistId)
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    },
                 )
                 SettingsToggleItem(
                     icon = if (autoSyncEnabled) Icons.Default.CloudSync else Icons.Default.SyncDisabled,
                     title = stringResource(R.string.auto_sync),
                     subtitle = stringResource(R.string.auto_sync_desc),
                     checked = autoSyncEnabled,
-                    onCheckedChange = { viewModel.setAutoSync(it) },
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            appPreferences.setAutoSyncEnabled(enabled)
+                            autoSyncEnabled = enabled
+                        }
+                    },
                 )
             }
 
@@ -110,12 +156,15 @@ fun SettingsScreen(
                     title = stringResource(R.string.user_agent),
                     subtitle = playerConfig.userAgent.take(40),
                     onClick = {
-                        val next = when (playerConfig.userAgent) {
-                            PlayerConfig.DEFAULT_USER_AGENT -> PlayerConfig.SMART_TV_USER_AGENT
-                            PlayerConfig.SMART_TV_USER_AGENT -> PlayerConfig.CHROME_USER_AGENT
-                            else -> PlayerConfig.DEFAULT_USER_AGENT
+                        scope.launch {
+                            val next = when (playerConfig.userAgent) {
+                                PlayerConfig.DEFAULT_USER_AGENT -> PlayerConfig.SMART_TV_USER_AGENT
+                                PlayerConfig.SMART_TV_USER_AGENT -> PlayerConfig.CHROME_USER_AGENT
+                                else -> PlayerConfig.DEFAULT_USER_AGENT
+                            }
+                            appPreferences.setUserAgent(next)
+                            playerConfig = playerConfig.copy(userAgent = next)
                         }
-                        viewModel.setUserAgent(next)
                     },
                 )
                 SettingsItem(
@@ -128,16 +177,27 @@ fun SettingsScreen(
                         else -> "Sehr groß (60-240s)"
                     },
                     onClick = {
-                        // Cycle through buffer presets
-                        when {
-                            playerConfig.maxBufferMs <= 30_000 ->
-                                viewModel.setBufferSizes(15_000, 60_000, 2_500, 5_000) // Balanced
-                            playerConfig.maxBufferMs <= 60_000 ->
-                                viewModel.setBufferSizes(30_000, 120_000, 5_000, 10_000) // Large
-                            playerConfig.maxBufferMs <= 120_000 ->
-                                viewModel.setBufferSizes(60_000, 240_000, 10_000, 20_000) // Very Large
-                            else ->
-                                viewModel.setBufferSizes(5_000, 30_000, 1_500, 3_000) // Minimal
+                        scope.launch {
+                            val newConfig = when {
+                                playerConfig.maxBufferMs <= 30_000 -> PlayerConfig(
+                                    minBufferMs = 15_000, maxBufferMs = 60_000,
+                                    bufferForPlaybackMs = 2_500, bufferForPlaybackAfterRebufferMs = 5_000
+                                )
+                                playerConfig.maxBufferMs <= 60_000 -> PlayerConfig(
+                                    minBufferMs = 30_000, maxBufferMs = 120_000,
+                                    bufferForPlaybackMs = 5_000, bufferForPlaybackAfterRebufferMs = 10_000
+                                )
+                                playerConfig.maxBufferMs <= 120_000 -> PlayerConfig(
+                                    minBufferMs = 60_000, maxBufferMs = 240_000,
+                                    bufferForPlaybackMs = 10_000, bufferForPlaybackAfterRebufferMs = 20_000
+                                )
+                                else -> PlayerConfig(
+                                    minBufferMs = 5_000, maxBufferMs = 30_000,
+                                    bufferForPlaybackMs = 1_500, bufferForPlaybackAfterRebufferMs = 3_000
+                                )
+                            }
+                            appPreferences.updatePlayerConfig(newConfig)
+                            playerConfig = newConfig
                         }
                     },
                 )
@@ -146,27 +206,39 @@ fun SettingsScreen(
                     title = stringResource(R.string.software_decoder),
                     subtitle = stringResource(R.string.software_decoder_desc),
                     checked = playerConfig.preferSoftwareDecoding,
-                    onCheckedChange = { viewModel.toggleSoftwareDecoding(it) },
+                    onCheckedChange = { prefer ->
+                        scope.launch {
+                            val newConfig = playerConfig.copy(preferSoftwareDecoding = prefer)
+                            appPreferences.updatePlayerConfig(newConfig)
+                            playerConfig = newConfig
+                        }
+                    },
                 )
                 SettingsToggleItem(
                     icon = Icons.Default.Tv,
                     title = stringResource(R.string.tunneled_playback),
                     subtitle = stringResource(R.string.tunneled_playback_desc),
                     checked = playerConfig.enableTunneledPlayback,
-                    onCheckedChange = { viewModel.toggleTunneledPlayback(it) },
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            val newConfig = playerConfig.copy(enableTunneledPlayback = enabled)
+                            appPreferences.updatePlayerConfig(newConfig)
+                            playerConfig = newConfig
+                        }
+                    },
                 )
                 SettingsItem(
                     icon = Icons.Default.AspectRatio,
                     title = "Video-Format (Aspect Ratio)",
                     subtitle = "Im Player über Button einstellbar",
-                    onClick = { /* Info only - actual setting in Player */ },
+                    onClick = { },
                 )
                 SettingsItem(
                     icon = Icons.Default.Language,
                     title = stringResource(R.string.preferred_audio_language),
-                    subtitle = viewModel.preferredAudioLanguage.ifBlank { stringResource(R.string.auto_system_default) },
+                    subtitle = preferredAudioLanguage.ifBlank { stringResource(R.string.auto_system_default) },
                     onClick = {
-                        val next = when (viewModel.preferredAudioLanguage) {
+                        preferredAudioLanguage = when (preferredAudioLanguage) {
                             "" -> "de"
                             "de" -> "en"
                             "en" -> "tr"
@@ -174,15 +246,14 @@ fun SettingsScreen(
                             "fr" -> "es"
                             else -> ""
                         }
-                        viewModel.updatePreferredAudioLanguage(next)
                     },
                 )
                 SettingsItem(
                     icon = Icons.Default.Subtitles,
                     title = stringResource(R.string.preferred_subtitle_language),
-                    subtitle = viewModel.preferredSubtitleLanguage.ifBlank { stringResource(R.string.off) },
+                    subtitle = preferredSubtitleLanguage.ifBlank { stringResource(R.string.off) },
                     onClick = {
-                        val next = when (viewModel.preferredSubtitleLanguage) {
+                        preferredSubtitleLanguage = when (preferredSubtitleLanguage) {
                             "" -> "de"
                             "de" -> "en"
                             "en" -> "tr"
@@ -190,7 +261,6 @@ fun SettingsScreen(
                             "fr" -> ""
                             else -> ""
                         }
-                        viewModel.updatePreferredSubtitleLanguage(next)
                     },
                 )
             }
@@ -202,7 +272,12 @@ fun SettingsScreen(
                     subtitle = if (traktEnabled) stringResource(R.string.watch_progress_synced) else stringResource(R.string.sync_watched_content),
                     checked = traktEnabled,
                     onCheckedChange = {
-                        if (traktEnabled) viewModel.disconnectTrakt()
+                        if (traktEnabled) {
+                            scope.launch {
+                                traktRepository.disconnect()
+                                traktEnabled = false
+                            }
+                        }
                     },
                 )
             }
@@ -213,12 +288,15 @@ fun SettingsScreen(
                     title = stringResource(R.string.theme),
                     subtitle = theme.replaceFirstChar { it.uppercase() },
                     onClick = {
-                        val next = when (theme) {
-                            "system" -> "dark"
-                            "dark" -> "light"
-                            else -> "system"
+                        scope.launch {
+                            val next = when (theme) {
+                                "system" -> "dark"
+                                "dark" -> "light"
+                                else -> "system"
+                            }
+                            appPreferences.setTheme(next)
+                            theme = next
                         }
-                        viewModel.setTheme(next)
                     },
                 )
             }
@@ -228,13 +306,31 @@ fun SettingsScreen(
                     icon = Icons.Default.DeleteSweep,
                     title = stringResource(R.string.clear_watch_history),
                     subtitle = stringResource(R.string.clear_watch_history_desc),
-                    onClick = { viewModel.clearWatchHistory() },
+                    onClick = {
+                        scope.launch {
+                            try {
+                                val playlistId = playlistRepository.getActive()?.id ?: return@launch
+                                watchProgressRepository.clearAll(playlistId)
+                            } catch (e: Exception) {
+                                // Ignore
+                            }
+                        }
+                    },
                 )
                 SettingsItem(
                     icon = Icons.Default.Refresh,
                     title = stringResource(R.string.reset_all_settings),
                     subtitle = stringResource(R.string.reset_all_settings_desc),
-                    onClick = { viewModel.resetSettings() },
+                    onClick = {
+                        scope.launch {
+                            appPreferences.updatePlayerConfig(PlayerConfig())
+                            appPreferences.setTheme("dark")
+                            appPreferences.setAutoSyncEnabled(true)
+                            playerConfig = PlayerConfig()
+                            theme = "dark"
+                            autoSyncEnabled = true
+                        }
+                    },
                 )
             }
 

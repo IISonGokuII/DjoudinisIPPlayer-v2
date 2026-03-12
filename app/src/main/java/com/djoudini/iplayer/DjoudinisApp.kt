@@ -10,7 +10,11 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.request.CachePolicy
 import coil.util.DebugLogger
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
+import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.data.worker.SyncScheduler
+import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import java.io.File
@@ -18,7 +22,7 @@ import javax.inject.Inject
 
 /**
  * Application class with optimized Coil image loading for TV/Fire TV.
- * 
+ *
  * Key optimizations:
  * - Large memory cache for fast logo loading
  * - Persistent disk cache for offline logo viewing
@@ -29,6 +33,18 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
 
     @Inject
     lateinit var syncScheduler: SyncScheduler
+
+    @Inject
+    lateinit var playlistRepository: PlaylistRepository
+
+    @Inject
+    lateinit var appPreferences: AppPreferences
+
+    @Inject
+    lateinit var traktRepository: TraktRepository
+
+    @Inject
+    lateinit var watchProgressRepository: WatchProgressRepository
 
     override fun onCreate() {
         super.onCreate()

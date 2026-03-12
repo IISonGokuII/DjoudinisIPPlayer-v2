@@ -233,7 +233,7 @@ private fun SearchBar(
     }
 }
 
-// --- Channel Preview Mini-Player ---
+// --- Channel Preview Mini-Player (TiviMate Style) ---
 
 private data class PreviewChannel(
     val id: Long,
@@ -249,12 +249,12 @@ private fun ChannelPreviewPlayer(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
-    
+
     // FIXED: Create player once, update media item when channel changes
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build()
     }
-    
+
     // Update media item when channel changes
     LaunchedEffect(channel.id) {
         exoPlayer.apply {
@@ -267,95 +267,104 @@ private fun ChannelPreviewPlayer(
     }
 
     DisposableEffect(Unit) {
-        onDispose { 
+        onDispose {
             exoPlayer.stop()
             exoPlayer.clearMediaItems()
-            exoPlayer.release() 
+            exoPlayer.release()
         }
     }
 
-    // NEW LAYOUT: Larger preview, compact channel list
-    Row(
+    // TIVIMATE STYLE: Full-width preview at top, channel list below
+    Column(
         modifier = Modifier
             .fillMaxSize(),
     ) {
-        // Preview video - LARGER (60% width)
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    // Keep screen on during preview
-                    keepScreenOn = true
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
-                }
-            },
+        // Preview video - FULL WIDTH at top (70% of screen)
+        Box(
             modifier = Modifier
-                .weight(0.6f)
-                .fillMaxHeight()
+                .weight(0.7f)
+                .fillMaxWidth()
                 .background(Color.Black)
                 .clickable { onFullscreen() },
-        )
-        
-        // Channel info sidebar - COMPACT (40% width)
-        Column(
-            modifier = Modifier
-                .weight(0.4f)
-                .fillMaxHeight()
-                .background(Color.Black.copy(alpha = 0.8f))
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Close button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        player = exoPlayer
+                        useController = false
+                        // Keep screen on during preview
+                        keepScreenOn = true
+                        layoutParams = FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            // Dismiss button in top-right corner (semi-transparent)
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp)),
             ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, stringResource(R.string.close), tint = Color.White)
-                }
+                Icon(
+                    Icons.Default.Close,
+                    stringResource(R.string.close),
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Channel name
+
+            // Channel name overlay at bottom of preview
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .padding(16.dp),
+            ) {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+
+        // Info bar below preview - compact
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f))
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = channel.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+                text = "Vorschau - Tippen für Vollbild",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Tippen für Vollbild",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-            )
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            // Fullscreen button
             IconButton(
                 onClick = onFullscreen,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     Icons.Default.Fullscreen,
                     stringResource(R.string.fullscreen),
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
