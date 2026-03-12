@@ -1,34 +1,4 @@
 === VOD ITEMS DEBUG ===
-Timestamp: 2026-03-13 00:30:29
-VOD items loaded: 31
-  - VOD:  DE - The Five - 2023 (ID: 10743, Category: 420)
-  - VOD: DE - 5 Outlaws - Brennender Horizont - 2024 (ID: 10735, Category: 420)
-  - VOD: DE - A Million Ways to Die in the West - 2014 (ID: 10744, Category: 420)
-  - VOD: DE - A Tale of Two Guns - 2022 (ID: 10740, Category: 420)
-  - VOD: DE - American Confederate - Nord gegen Süd - 2019 (ID: 10751, Category: 420)
-  - VOD: DE - Any Bullet Will Do - 2019 (ID: 10760, Category: 420)
-  - VOD: DE - Badland - 2019 (ID: 10750, Category: 420)
-  - VOD: DE - Blueberry und der Fluch der Dämonen - 2004 (ID: 10758, Category: 420)
-  - VOD: DE - Bone Tomahawk - 2015 (ID: 10737, Category: 420)
-  - VOD: DE - Casa de Mi Padre - 2012 (ID: 10757, Category: 420)
-  - VOD: DE - Dead Man's Hand - 2023 (ID: 10738, Category: 420)
-  - VOD: DE - Der Schuh des Manitu - 2001 (ID: 10756, Category: 420)
-  - VOD: DE - Frontier - Kampf um Texas - 2018 (ID: 10754, Category: 420)
-  - VOD: DE - Geronimo Das Blut der Apachen - 1993 (ID: 10732, Category: 420)
-  - VOD: DE - Ghosts of Red Ridge - 2024 (ID: 10734, Category: 420)
-  - VOD: DE - Justice - 2017 (ID: 10753, Category: 420)
-  - VOD: DE - Lederstrumpf - Der Wildtöter - 1957 (ID: 10731, Category: 420)
-  - VOD: DE - Liebe findet ein Zuhause - 2006 (ID: 10752, Category: 420)
-  - VOD: DE - Little Big Man - 1970 (ID: 10733, Category: 420)
-  - VOD: DE - Lonesome Dove Church - 2014 (ID: 10759, Category: 420)
-  - VOD: DE - Open Range - Weites Land - 2003 (ID: 10748, Category: 420)
-  - VOD: DE - Open Range - Weites Land - 2003 (ID: 10755, Category: 420)
-  - VOD: DE - Stagecoach - 2016 (ID: 10741, Category: 420)
-  - VOD: DE - The Harder They Fall - 2021 (ID: 10749, Category: 420)
-  - VOD: DE - The Last Manhunt - 2022 (ID: 10747, Category: 420)
-  - VOD: DE - The Old Way - 2023 (ID: 10746, Category: 420)
-  - VOD: DE - The Ridiculous 6 - 2015 (ID: 10739, Category: 420)
-  - VOD: DE - The Sisters Brothers - 2018 (ID: 10761, Category: 420)
-  - VOD: DE - The Young Chief Winnetou - 2022 (ID: 10736, Category: 420)
-  - VOD: DE - Todeszug nach Yuma - 2007 (ID: 10745, Category: 420)
-  - VOD: DE - Vergeltung: Revenge is Coming - 2018 (ID: 10742, Category: 420)
+Timestamp: 2026-03-13 00:43:28
+VOD items loaded: 0
+NO VOD ITEMS FOUND - Database may be empty or category ID mismatch!

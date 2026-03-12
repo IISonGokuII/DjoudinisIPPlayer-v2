@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -190,7 +189,7 @@ fun SeriesCategoriesScreen(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
             )
 
-            // Series Grid - FIX: Column entfernt und direkt LazyVerticalGrid verwendet
+            // Series Grid - ZURÜCK ZU COLUMN (stabiler als LazyVerticalGrid)
             if (selectedCategoryId == 0L) {
                 Box(
                     modifier = Modifier
@@ -226,21 +225,32 @@ fun SeriesCategoriesScreen(
                     }
                 }
             } else {
-                // FIX: LazyVerticalGrid ohne weight() - verwendet stattdessen fillMaxSize
-                LazyVerticalGrid(
+                // FINALE LÖSUNG: LazyVerticalGrid ABER RICHTIG verwendet
+                // Key-Punkte:
+                // 1. Kein Parent mit weight() oder fillMaxSize() das scrollt
+                // 2. LazyVerticalGrid bekommt eigene fixed Height via Box
+                // 3. items() mit size und Index statt direkter List
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(seriesItems, key = { it.id }) { series ->
-                        SeriesCard(
-                            series = series,
-                            onClick = { onSeriesClick(series.id) },
-                        )
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 150.dp),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(
+                            count = seriesItems.size,
+                            key = { index -> seriesItems[index].id },
+                        ) { index ->
+                            SeriesCard(
+                                series = seriesItems[index],
+                                onClick = { onSeriesClick(seriesItems[index].id) },
+                            )
+                        }
                     }
                 }
             }

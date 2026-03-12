@@ -1,5 +1,5 @@
 === SERIES ITEMS DEBUG ===
-Timestamp: 2026-03-13 00:30:31
+Timestamp: 2026-03-13 00:43:16
 Series items loaded: 3901
   - Series:  GE - Cursed - Die Auserwählte (ID: 2476, Category: 513)
   - Series: DE -  Echo (ID: 2539, Category: 513)

@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -226,21 +225,28 @@ fun VodCategoriesScreen(
                     }
                 }
             } else {
-                // FIX: LazyVerticalGrid ohne weight() - verwendet stattdessen fillMaxSize
-                LazyVerticalGrid(
+                // FINALE LÖSUNG: LazyVerticalGrid ABER RICHTIG verwendet
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(vodItems, key = { it.id }) { vod ->
-                        VodCard(
-                            vod = vod,
-                            onClick = { onVodClick(vod.id) },
-                        )
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 150.dp),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        items(
+                            count = vodItems.size,
+                            key = { index -> vodItems[index].id },
+                        ) { index ->
+                            VodCard(
+                                vod = vodItems[index],
+                                onClick = { onVodClick(vodItems[index].id) },
+                            )
+                        }
                     }
                 }
             }
