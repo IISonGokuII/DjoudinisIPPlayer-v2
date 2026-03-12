@@ -615,6 +615,8 @@ fun PlayerScreen(
     ) {
         // Video surface with Pinch-to-Zoom and Aspect Ratio
         if (exoPlayer != null) {
+            val playerView = remember { mutableStateOf<PlayerView?>(null) }
+            
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
@@ -632,6 +634,17 @@ fun PlayerScreen(
                             AspectRatio.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
                             AspectRatio.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                         }
+                        playerView.value = this
+                    }
+                },
+                update = { playerView ->
+                    // Update resizeMode when aspectRatio changes
+                    playerView.resizeMode = when (uiState.aspectRatio) {
+                        AspectRatio.FIT_16_9 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        AspectRatio.FIT_4_3 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        AspectRatio.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        AspectRatio.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        AspectRatio.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                     }
                 },
                 modifier = Modifier

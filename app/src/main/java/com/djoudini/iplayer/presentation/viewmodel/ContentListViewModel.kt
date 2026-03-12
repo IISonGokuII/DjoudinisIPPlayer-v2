@@ -117,14 +117,14 @@ class ContentListViewModel @Inject constructor(
     val vodCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
-                playlist?.let { categoryDao.observeByType(it.id, "vod") } ?: flowOf(emptyList())
+                playlist?.let { categoryDao.observeAllByType(it.id, "vod") } ?: flowOf(emptyList())
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val seriesCategories: StateFlow<List<CategoryEntity>> =
         playlistRepository.observeActive()
             .flatMapLatest { playlist ->
-                playlist?.let { categoryDao.observeByType(it.id, "series") } ?: flowOf(emptyList())
+                playlist?.let { categoryDao.observeAllByType(it.id, "series") } ?: flowOf(emptyList())
             }
             .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
