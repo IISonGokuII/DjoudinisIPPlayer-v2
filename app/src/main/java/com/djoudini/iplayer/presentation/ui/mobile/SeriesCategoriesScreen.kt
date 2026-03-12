@@ -49,6 +49,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,6 +62,7 @@ import com.djoudini.iplayer.data.local.entity.CategoryEntity
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
+import java.io.File
 
 @Composable
 fun SeriesCategoriesScreen(
@@ -72,23 +74,43 @@ fun SeriesCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val seriesItems by viewModel.filteredSeriesItems.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+
     // Debug: Log category count and selected category
     androidx.compose.runtime.LaunchedEffect(categories.size, selectedCategoryId) {
-        timber.log.Timber.d("[SeriesCategories] Categories loaded: ${categories.size}")
-        timber.log.Timber.d("[SeriesCategories] Selected category ID: $selectedCategoryId")
-        categories.forEach { cat ->
-            timber.log.Timber.d("[SeriesCategories]   - Category: ${cat.name} (ID: ${cat.id})")
+        val logMessage = buildString {
+            appendLine("=== SERIES CATEGORIES DEBUG ===")
+            appendLine("Timestamp: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
+            appendLine("Categories loaded: ${categories.size}")
+            appendLine("Selected category ID: $selectedCategoryId")
+            categories.forEach { cat ->
+                appendLine("  - Category: ${cat.name} (ID: ${cat.id}, Playlist: ${cat.playlistId})")
+            }
         }
+        timber.log.Timber.d(logMessage)
+        
+        // Save to file
+        saveDebugLog(context, "series_categories_debug.txt", logMessage)
     }
 
     // Debug: Log series items
     androidx.compose.runtime.LaunchedEffect(seriesItems.size) {
-        timber.log.Timber.d("[SeriesCategories] Series items loaded: ${seriesItems.size}")
-        if (seriesItems.isNotEmpty()) {
-            seriesItems.forEach { series ->
-                timber.log.Timber.d("[SeriesCategories]   - Series: ${series.name} (ID: ${series.id})")
+        val logMessage = buildString {
+            appendLine("=== SERIES ITEMS DEBUG ===")
+            appendLine("Timestamp: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
+            appendLine("Series items loaded: ${seriesItems.size}")
+            if (seriesItems.isNotEmpty()) {
+                seriesItems.forEach { series ->
+                    appendLine("  - Series: ${series.name} (ID: ${series.id}, Category: ${series.categoryId})")
+                }
+            } else {
+                appendLine("NO SERIES FOUND - Database may be empty or category ID mismatch!")
             }
         }
+        timber.log.Timber.d(logMessage)
+        
+        // Save to file
+        saveDebugLog(context, "series_items_debug.txt", logMessage)
     }
 
     // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
@@ -276,5 +298,27 @@ private fun SeriesCard(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+/**
+ * Save debug log to Downloads folder.
+ */
+private fun saveDebugLog(context: android.content.Context, fileName: String, content: String) {
+    try {
+        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+            android.os.Environment.DIRECTORY_DOWNLOADS
+        )
+        val debugDir = File(downloadsDir, "DjoudinisIPPlayer_Debug")
+        if (!debugDir.exists()) {
+            debugDir.mkdirs()
+        }
+        
+        val logFile = File(debugDir, fileName)
+        logFile.writeText(content)
+        
+        timber.log.Timber.d("[DebugLog] Saved to: ${logFile.absolutePath}")
+    } catch (e: Exception) {
+        timber.log.Timber.e(e, "[DebugLog] Failed to save log")
     }
 }
