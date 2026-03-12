@@ -159,8 +159,7 @@ fun LiveCategoriesScreen(
                 modifier = Modifier
                     .width(200.dp)
                     .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                    .verticalScroll(rememberScrollState()),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             ) {
                 // Search
                 OutlinedTextField(
@@ -201,13 +200,17 @@ fun LiveCategoriesScreen(
                 )
 
                 // Category list
-                categories.forEach { category ->
-                    CategoryItemMobile(
-                        name = category.name,
-                        count = null,
-                        isSelected = category.id == selectedCategoryId,
-                        onClick = { viewModel.selectCategory(category.id) },
-                    )
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    items(categories, key = { it.id }) { category ->
+                        CategoryItemMobile(
+                            name = category.name,
+                            count = null,
+                            isSelected = category.id == selectedCategoryId,
+                            onClick = { viewModel.selectCategory(category.id) },
+                        )
+                    }
                 }
             }
 
