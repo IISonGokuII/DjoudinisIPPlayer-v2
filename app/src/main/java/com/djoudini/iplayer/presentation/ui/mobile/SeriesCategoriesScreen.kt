@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,6 +72,14 @@ fun SeriesCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val seriesItems by viewModel.filteredSeriesItems.collectAsStateWithLifecycle()
 
+    // Debug: Log category count
+    androidx.compose.runtime.LaunchedEffect(categories.size) {
+        timber.log.Timber.d("[SeriesCategories] Categories loaded: ${categories.size}")
+        categories.forEach { cat ->
+            timber.log.Timber.d("[SeriesCategories]   - Category: ${cat.name} (ID: ${cat.id})")
+        }
+    }
+
     // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == 0L) {
@@ -103,12 +113,15 @@ fun SeriesCategoriesScreen(
             ) {
                 items(categories, key = { it.id }) { category ->
                     val isSelected = category.id == selectedCategoryId
-                    FocusableCard(
+                    Card(
                         onClick = { viewModel.selectCategory(category.id) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        focusScale = 1.0f,
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        ),
                     ) {
                         Row(
                             modifier = Modifier
