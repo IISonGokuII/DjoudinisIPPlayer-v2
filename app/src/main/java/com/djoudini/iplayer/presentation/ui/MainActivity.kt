@@ -26,8 +26,10 @@ import com.djoudini.iplayer.presentation.navigation.AppNavGraph
 import com.djoudini.iplayer.presentation.navigation.Route
 import com.djoudini.iplayer.presentation.ui.theme.DjoudinisTheme
 import com.djoudini.iplayer.util.CrashHandler
+import com.djoudini.iplayer.util.PermissionHelper
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import timber.log.Timber
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -80,11 +82,24 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         CrashHandler.setCurrentActivity(this)
+        Timber.d("[MainActivity] onResume()")
     }
 
     override fun onPause() {
         super.onPause()
         CrashHandler.setCurrentActivity(null)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        val handled = PermissionHelper.onRequestPermissionsResult(
+            requestCode, permissions, grantResults
+        )
+        Timber.d("[MainActivity] Permission result handled: $handled")
     }
 }
 
