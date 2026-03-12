@@ -271,10 +271,13 @@ fun LiveCategoriesScreen(
                                 timeFormat = timeFormat,
                                 isSelected = selectedChannel?.id == channelWithEpg.channel.id,
                                 onClick = {
-                                    selectedChannel = channelWithEpg.channel
-                                },
-                                onPlay = {
-                                    onChannelClick(channelWithEpg.channel.id)
+                                    if (selectedChannel?.id == channelWithEpg.channel.id) {
+                                        // Already selected - open fullscreen
+                                        onChannelClick(channelWithEpg.channel.id)
+                                    } else {
+                                        // Different channel - change preview
+                                        selectedChannel = channelWithEpg.channel
+                                    }
                                 },
                             )
                         }
@@ -442,13 +445,12 @@ private fun ChannelItemMobile(
     timeFormat: SimpleDateFormat,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onPlay: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(70.dp)
-            .clickable(onClick = onClick)  // ← Erst Vorschau ändern
+            .clickable(onClick = onClick)
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 else Color.Transparent
