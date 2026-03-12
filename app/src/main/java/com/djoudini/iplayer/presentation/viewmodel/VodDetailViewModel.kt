@@ -28,7 +28,12 @@ class VodDetailViewModel @Inject constructor(
     private val xtreamApi: XtreamApi,
 ) : ViewModel() {
 
-    private val vodId: Long = savedStateHandle.get<Long>(NavArgs.CONTENT_ID) ?: 0L
+    private val vodId: Long = try {
+        savedStateHandle.get<Long>(NavArgs.CONTENT_ID) ?: 0L
+    } catch (e: Exception) {
+        Timber.e(e, "Failed to get vodId from SavedStateHandle")
+        0L
+    }
 
     private val _vod = MutableStateFlow<VodEntity?>(null)
     val vod: StateFlow<VodEntity?> = _vod.asStateFlow()
