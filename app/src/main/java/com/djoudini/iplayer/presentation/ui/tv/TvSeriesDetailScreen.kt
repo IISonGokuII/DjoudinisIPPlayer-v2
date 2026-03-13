@@ -70,7 +70,7 @@ fun TvSeriesDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp)
+            .padding(32.dp)
     ) {
         if (series == null) {
             // Loading state
@@ -87,7 +87,7 @@ fun TvSeriesDetailScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Header with back button and series info
                 item {
@@ -103,23 +103,23 @@ fun TvSeriesDetailScreen(
                         Column {
                             Text(
                                 text = "Staffel wählen:",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
                             LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 items(seasons, key = { it }) { season ->
                                     val isSelected = season == selectedSeason
                                     FocusableCard(
-                                        onClick = { 
+                                        onClick = {
                                             selectedSeason = season
                                             viewModel.loadEpisodes(season)
                                         },
                                         modifier = Modifier
-                                            .width(140.dp)
-                                            .height(56.dp),
+                                            .width(120.dp)
+                                            .height(48.dp),
                                         focusScale = 1.05f,
                                     ) {
                                         Box(
@@ -128,7 +128,7 @@ fun TvSeriesDetailScreen(
                                         ) {
                                             Text(
                                                 text = "Staffel $season",
-                                                style = MaterialTheme.typography.titleMedium,
+                                                style = MaterialTheme.typography.bodyLarge,
                                                 fontWeight = if (season == selectedSeason) FontWeight.Bold else FontWeight.Normal,
                                                 color = if (season == selectedSeason) MaterialTheme.colorScheme.onPrimary
                                                 else MaterialTheme.colorScheme.onSurface,
@@ -145,10 +145,10 @@ fun TvSeriesDetailScreen(
                 item {
                     Text(
                         text = "Episoden (${episodes.size}):",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
                 if (episodes.isEmpty()) {
@@ -156,12 +156,12 @@ fun TvSeriesDetailScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp),
+                                .height(150.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = "Keine Episoden in dieser Staffel",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -178,7 +178,7 @@ fun TvSeriesDetailScreen(
 
                 // Bottom spacing
                 item {
-                    Spacer(modifier = Modifier.height(48.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
@@ -192,7 +192,7 @@ private fun TvSeriesHeader(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(32.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         // Series poster
         if (!series.coverUrl.isNullOrBlank()) {
@@ -201,23 +201,23 @@ private fun TvSeriesHeader(
                 contentDescription = series.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .width(200.dp)
+                    .width(150.dp)
                     .aspectRatio(2f / 3f)
-                    .clip(RoundedCornerShape(16.dp)),
+                    .clip(RoundedCornerShape(12.dp)),
             )
         } else {
             Box(
                 modifier = Modifier
-                    .width(200.dp)
+                    .width(150.dp)
                     .aspectRatio(2f / 3f)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Tv,
                     contentDescription = null,
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(48.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -232,7 +232,7 @@ private fun TvSeriesHeader(
             // Back button
             FocusableCard(
                 onClick = onBack,
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(48.dp),
                 focusScale = 1.1f,
             ) {
                 Box(
@@ -242,31 +242,31 @@ private fun TvSeriesHeader(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.back),
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Series title
             Text(
                 text = series.name,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Genre and rating
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 series.genre?.let { genre ->
                     Text(
                         text = genre,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -275,13 +275,13 @@ private fun TvSeriesHeader(
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.tertiary,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "%.1f".format(rating),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.tertiary,
                         )
@@ -289,14 +289,16 @@ private fun TvSeriesHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Plot
             series.plot?.let { plot ->
                 Text(
                     text = plot,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -313,13 +315,13 @@ private fun TvEpisodeCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(100.dp),
         focusScale = 1.03f,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // Episode thumbnail or number badge
@@ -329,27 +331,27 @@ private fun TvEpisodeCard(
                     contentDescription = episode.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(160.dp)
+                        .size(140.dp)
                         .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(70.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "E${episode.episodeNumber}",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             // Episode info
             Column(
@@ -358,23 +360,23 @@ private fun TvEpisodeCard(
             ) {
                 Text(
                     text = episode.name,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Plot preview
                 episode.plot?.let { plot ->
                     Text(
-                        text = plot.take(100) + if (plot.length > 100) "..." else "",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = plot.take(80) + if (plot.length > 80) "..." else "",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
 
                 // Progress bar
@@ -387,15 +389,15 @@ private fun TvEpisodeCard(
                             progress = { prog },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "${(prog * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                         )
@@ -403,20 +405,20 @@ private fun TvEpisodeCard(
                 }
             }
 
-            Spacer(modifier = Modifier.width(24.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
             // Play button - integrated into the card, not separate focus
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
                     contentDescription = "Abspielen",
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }

@@ -60,7 +60,7 @@ fun TvVodDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(48.dp),
+            .padding(32.dp),
     ) {
         if (vod == null) {
             TvVodDetailLoading()
@@ -87,7 +87,7 @@ private fun TvVodDetailContent(
 
     Row(
         modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(48.dp),
+        horizontalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         // Left side: Movie Poster with Play button BELOW
         Column(
@@ -99,7 +99,7 @@ private fun TvVodDetailContent(
             // Back button at top
             FocusableCard(
                 onClick = onBack,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(48.dp),
                 focusScale = 1.1f,
             ) {
                 Box(
@@ -109,12 +109,12 @@ private fun TvVodDetailContent(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.back),
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Movie poster FIRST - on the left side
             val posterUrl = vod.logoUrl
@@ -126,27 +126,27 @@ private fun TvVodDetailContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(2f / 3f)
-                        .clip(RoundedCornerShape(16.dp)),
+                        .clip(RoundedCornerShape(12.dp)),
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(2f / 3f)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        modifier = Modifier.size(64.dp),
+                        modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Play button BELOW the poster - MOST PROMINENT, auto-focused for TV
             // Using a more visible design with primary color background
@@ -154,7 +154,7 @@ private fun TvVodDetailContent(
                 onClick = onPlay,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp),
+                    .height(64.dp),
                 focusScale = 1.1f,
             ) {
                 Box(
@@ -171,17 +171,17 @@ private fun TvVodDetailContent(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = null,
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(32.dp),
                             tint = MaterialTheme.colorScheme.onPrimary,
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (hasResume) {
                                 stringResource(R.string.continue_watching)
                             } else {
                                 stringResource(R.string.play)
                             },
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
@@ -203,23 +203,23 @@ private fun TvVodDetailContent(
             // Title
             Text(
                 text = vod.name,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Meta info row: Year, Genre, Rating
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Release year
                 vod.releaseDate?.let { year ->
                     Text(
                         text = year.substring(0, 4.coerceAtMost(year.length)),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -228,12 +228,12 @@ private fun TvVodDetailContent(
                 if (!vod.genre.isNullOrBlank()) {
                     Text(
                         text = "•",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         text = vod.genre,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -244,20 +244,20 @@ private fun TvVodDetailContent(
                 vod.rating?.let { rating ->
                     Text(
                         text = "•",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.tertiary,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "%.1f".format(rating),
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.tertiary,
                             fontWeight = FontWeight.Bold,
                         )
@@ -265,51 +265,55 @@ private fun TvVodDetailContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Plot / Synopsis - prominent for TV
             Text(
                 text = stringResource(R.string.plot_synopsis),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = vod.plot ?: stringResource(R.string.no_plot_available),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.2,
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2,
+                maxLines = 8,
+                overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Additional info
             if (!vod.cast.isNullOrBlank() || !vod.director.isNullOrBlank()) {
                 Text(
                     text = stringResource(R.string.additional_info),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 vod.director?.let { director ->
                     Row {
                         Text(
                             text = stringResource(R.string.director_colon),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = director,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -319,15 +323,17 @@ private fun TvVodDetailContent(
                     Row {
                         Text(
                             text = stringResource(R.string.cast_colon),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = cast,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -335,7 +341,7 @@ private fun TvVodDetailContent(
 
             // Duration
             vod.durationSeconds?.let { duration ->
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 val hours = duration / 3600
                 val minutes = (duration % 3600) / 60
                 val durationText = if (hours > 0) {
@@ -345,7 +351,7 @@ private fun TvVodDetailContent(
                 }
                 Text(
                     text = durationText,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
