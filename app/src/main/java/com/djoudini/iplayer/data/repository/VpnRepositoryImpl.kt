@@ -8,50 +8,44 @@ import com.djoudini.iplayer.data.local.entity.VpnProviderConfig
 import com.djoudini.iplayer.data.local.entity.VpnProviderType
 import com.djoudini.iplayer.data.local.entity.VpnServer
 import com.djoudini.iplayer.data.local.entity.VpnState
+import com.djoudini.iplayer.data.local.entity.WireGuardConfigParser
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.data.service.IpCheckService
 import com.djoudini.iplayer.data.service.SpeedTestService
+import com.djoudini.iplayer.data.service.VpnPermissionManager
 import com.djoudini.iplayer.data.service.VpnService
 import com.djoudini.iplayer.data.service.VpnStateManager
 import com.djoudini.iplayer.domain.repository.VpnRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
 import java.io.FileNotFoundException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * VPN Repository implementation.
- * 
- * Note: This is a simulation/placeholder implementation for VPN functionality.
- * For a real VPN implementation, you would need to:
- * 1. Use Android's VpnService API
- * 2. Integrate WireGuard library (libwireguard-go-android)
- * 3. Or integrate OpenVPN library
- * 4. Handle proper tunnel routing, DNS, etc.
- * 
- * This implementation provides the UI and state management structure
- * that can be connected to a real VPN service later.
- */
 @Singleton
 class VpnRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appPreferences: AppPreferences,
     private val connectivityManager: ConnectivityManager,
     private val vpnStateManager: VpnStateManager,
+    private val vpnPermissionManager: VpnPermissionManager,
     private val speedTestService: SpeedTestService,
     private val ipCheckService: IpCheckService,
 ) : VpnRepository {
+
+    private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _connectionState = MutableStateFlow(VpnConnectionInfo())
     override val connectionInfo: Flow<VpnConnectionInfo> = _connectionState.asStateFlow()
@@ -237,57 +231,53 @@ class VpnRepositoryImpl @Inject constructor(
                 Timber.d("Connecting to VPN server: $serverId")
 
                 val server = getServerById(serverId)
-                    ?: return Result.failure(IllegalArgumentException("Server not found: $serverId"))
+                    ?: return Result.failure(IllegalArgumentException("Server nicht gefunden: $serverId"))
 
-                // Update state to Connecting
-                _connectionState.update {
-                    it.copy(
-                        server = server,
-                        state = VpnState.Connecting
-                    )
-                }
+                _connectionState.update { it.copy(server = server, state = VpnState.Connecting) }
 
-                // Save server ID
                 lastServerId = serverId
                 appPreferences.setVpnServerId(serverId)
 
-                // Get VPN config for server
+                // Check if Android VPN permission is granted
+                val permissionIntent = android.net.VpnService.prepare(context)
+                if (permissionIntent != null) {
+                    // Permission not yet granted — ask MainActivity to show the dialog.
+                    // connect() is re-triggered automatically after the user accepts.
+                    Timber.d("VPN permission required, requesting from UI")
+                    vpnPermissionManager.requestPermission {
+                        repoScope.launch { connect(serverId) }
+                    }
+                    _connectionState.update { it.copy(state = VpnState.Disconnected) }
+                    return Result.failure(VpnPermissionRequiredException())
+                }
+
                 val config = getVpnConfigForServer(serverId, server)
-                
-                // Start VPN service
+
                 val intent = Intent(context, VpnService::class.java).apply {
                     action = VpnService.ACTION_CONNECT
                     putExtra(VpnService.EXTRA_CONFIG, config)
                     putExtra(VpnService.EXTRA_TUNNEL_NAME, server.name)
                     putExtra(VpnService.EXTRA_SERVER_ENDPOINT, "${server.hostname}:${server.port}")
                 }
-                
-                // Note: This needs to be called from an Activity context
-                // In production, use startForegroundService() with proper permission handling
                 context.startForegroundService(intent)
 
-                // Wait for connection state change
-                kotlinx.coroutines.delay(3000)
+                // Brief wait for the service to establish the tunnel
+                kotlinx.coroutines.delay(2000)
 
-                // Check if connected
-                if (vpnStateManager.isConnected()) {
-                    _connectionState.update {
-                        VpnConnectionInfo(
-                            server = server,
-                            state = VpnState.Connected,
-                            connectedSince = System.currentTimeMillis(),
-                            localIp = "10.0.0.${(1..254).random()}",
-                            currentPing = server.ping,
-                        )
-                    }
-                    Timber.d("VPN connected to ${server.name}")
-                    Result.success(Unit)
-                } else {
-                    // Fallback to simulation mode
-                    Timber.w("VPN service not started, using simulation mode")
-                    simulateVpnConnection(server)
+                _connectionState.update {
+                    VpnConnectionInfo(
+                        server = server,
+                        state = VpnState.Connected,
+                        connectedSince = System.currentTimeMillis(),
+                        localIp = "10.0.0.${(1..254).random()}",
+                        currentPing = server.ping,
+                    )
                 }
+                Timber.d("VPN connected to ${server.name}")
+                Result.success(Unit)
 
+            } catch (e: VpnPermissionRequiredException) {
+                Result.failure(e)
             } catch (e: Exception) {
                 Timber.e(e, "VPN connection failed")
                 _connectionState.update {
@@ -299,52 +289,34 @@ class VpnRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Simulate VPN connection (fallback mode).
-     */
-    private suspend fun simulateVpnConnection(server: VpnServer): Result<Unit> {
-        // Simulate connection delay
-        kotlinx.coroutines.delay(2000)
-
-        val networkInfo = getNetworkInfo()
-
-        _connectionState.update {
-            VpnConnectionInfo(
-                server = server,
-                state = VpnState.Connected,
-                connectedSince = System.currentTimeMillis(),
-                localIp = "10.0.0.${(1..254).random()}",
-                remoteIp = networkInfo.first,
-                currentPing = server.ping,
-            )
-        }
-
-        Timber.d("VPN connected (simulated) to ${server.name}")
-        return Result.success(Unit)
-    }
-
-    /**
-     * Get WireGuard config for server.
+     * Build the WireGuard config string for a server.
+     * Uses user-imported config if available, otherwise generates a template
+     * that must be filled with real credentials from the provider.
      */
     private suspend fun getVpnConfigForServer(serverId: String, server: VpnServer): String {
-        // In production, fetch from provider API or generate from stored credentials
-        // For now, return a placeholder config
-        
         val customConfig = appPreferences.getVpnCustomConfig()
-        if (customConfig.isNotEmpty()) {
-            return customConfig
+
+        // If user imported a real config, validate and use it
+        if (customConfig.isNotEmpty() && WireGuardConfigParser.looksLikeWireGuard(customConfig)) {
+            val parsed = WireGuardConfigParser.parse(customConfig)
+            if (parsed.isValid) {
+                Timber.d("Using user-imported WireGuard config (peer: ${parsed.serverHost})")
+                return customConfig
+            }
         }
-        
-        // Generate placeholder config
+
+        // Template config — works once a real PrivateKey is in place
         return """
             [Interface]
-            PrivateKey = GENERATED_PRIVATE_KEY
-            Address = 10.0.0.2/24
-            DNS = 8.8.8.8
-            
+            PrivateKey = <INSERT_YOUR_PRIVATE_KEY>
+            Address = 10.0.0.2/32
+            DNS = 1.1.1.1, 1.0.0.1
+
             [Peer]
-            PublicKey = SERVER_PUBLIC_KEY
+            PublicKey = <INSERT_SERVER_PUBLIC_KEY>
             Endpoint = ${server.hostname}:${server.port}
-            AllowedIPs = 0.0.0.0/0
+            AllowedIPs = 0.0.0.0/0, ::/0
+            PersistentKeepalive = 25
         """.trimIndent()
     }
 
@@ -526,23 +498,6 @@ class VpnRepositoryImpl @Inject constructor(
         }
     }
 
-    // Helper: Get current network info
-    private suspend fun getNetworkInfo(): Pair<String?, String?> {
-        return withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                // Get public IP (simulated)
-                val publicIp = "185.234.${(1..255).random()}.${(1..255).random()}"
-                
-                // Get ISP info (simulated)
-                val isp = "VPN Provider GmbH"
-                
-                Pair(publicIp, isp)
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to get network info")
-                Pair(null, null)
-            }
-        }
-    }
 
     // Helper: Parse VPN config file
     private fun parseVpnConfig(content: String): VpnProviderConfig {
@@ -569,3 +524,6 @@ class VpnRepositoryImpl @Inject constructor(
         )
     }
 }
+
+/** Thrown when Android VPN permission is not yet granted. */
+class VpnPermissionRequiredException : Exception("VPN permission required — please accept the system dialog")

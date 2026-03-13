@@ -158,9 +158,6 @@ dependencies {
     // Timber
     implementation(libs.timber)
 
-    // Kotlinx Serialization for JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-
     // Firebase Crashlytics (Online Crash Reporting)
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-crashlytics-ktx")

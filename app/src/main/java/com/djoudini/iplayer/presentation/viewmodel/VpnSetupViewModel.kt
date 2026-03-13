@@ -1,5 +1,6 @@
 package com.djoudini.iplayer.presentation.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.entity.VpnConnectionTestResult
@@ -70,17 +71,17 @@ class VpnSetupViewModel @Inject constructor(
     }
 
     /**
-     * Import VPN config file.
+     * Import VPN config file from a content URI (result of file picker).
      */
     fun importConfigFile(
-        filePath: String,
+        uri: Uri,
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
     ) {
         viewModelScope.launch {
-            vpnSetupRepository.importVpnConfig(filePath)
+            vpnSetupRepository.importVpnConfig(uri)
                 .onSuccess { onSuccess() }
-                .onFailure { onError(it.message ?: "Import failed") }
+                .onFailure { onError(it.message ?: "Import fehlgeschlagen") }
         }
     }
 

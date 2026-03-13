@@ -1,22 +1,23 @@
 package com.djoudini.iplayer.data.repository
 
 import android.content.Context
+import android.net.Uri
 import com.djoudini.iplayer.data.local.entity.KnownVpnProviders
 import com.djoudini.iplayer.data.local.entity.VpnConnectionTestResult
 import com.djoudini.iplayer.data.local.entity.VpnProviderInfo
 import com.djoudini.iplayer.data.local.entity.VpnSetupState
 import com.djoudini.iplayer.data.local.entity.VpnSetupStep
+import com.djoudini.iplayer.data.local.entity.WireGuardConfigParser
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
+import com.djoudini.iplayer.data.service.IpCheckService
+import com.djoudini.iplayer.data.service.SpeedTestService
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.io.File
 import javax.inject.Inject
 
 /**
@@ -25,6 +26,8 @@ import javax.inject.Inject
 class VpnSetupRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appPreferences: AppPreferences,
+    private val speedTestService: SpeedTestService,
+    private val ipCheckService: IpCheckService,
 ) {
 
     private val _setupState = MutableStateFlow(VpnSetupState())
@@ -115,34 +118,34 @@ class VpnSetupRepository @Inject constructor(
     }
 
     /**
-     * Test VPN connection.
+     * Test VPN connection using real speed and IP checks.
      */
     suspend fun testConnection(): Result<VpnConnectionTestResult> {
-        return withContext(kotlinx.coroutines.Dispatchers.Default) {
+        return withContext(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 _setupState.update { it.copy(isLoading = true) }
 
-                // Simulate connection test
-                kotlinx.coroutines.delay(3000)
+                // Real speed test
+                val speedResult = speedTestService.performSpeedTest()
 
-                val currentState = _setupState.value
-                val serverId = currentState.selectedServerId ?: currentState.selectedProvider?.id
+                // Real IP check (shows current public IP — VPN changes it when real tunnel is up)
+                val ipInfo = ipCheckService.getIpAddressWithRetries(retries = 2)
 
-                // Simulate test results
                 val result = VpnConnectionTestResult(
-                    success = true,
-                    pingMs = (20..80).random(),
-                    downloadSpeedMbps = (50..200).random(),
-                    uploadSpeedMbps = (20..100).random(),
-                    serverLocation = "Frankfurt, Germany",
-                    newIpAddress = "185.234.${(1..255).random()}.${(1..255).random()}",
+                    success = speedResult.success,
+                    pingMs = speedResult.pingMs,
+                    downloadSpeedMbps = speedResult.downloadSpeedMbps,
+                    uploadSpeedMbps = speedResult.uploadSpeedMbps,
+                    serverLocation = ipInfo.displayLocation,
+                    newIpAddress = ipInfo.ip.ifEmpty { null },
+                    errorMessage = speedResult.errorMessage,
                 )
 
                 _setupState.update {
                     it.copy(
                         connectionTestResult = result,
                         isLoading = false,
-                        currentStep = VpnSetupStep.Complete
+                        currentStep = VpnSetupStep.Complete,
                     )
                 }
 
@@ -158,7 +161,7 @@ class VpnSetupRepository @Inject constructor(
                     it.copy(
                         connectionTestResult = errorResult,
                         isLoading = false,
-                        errorMessage = e.message
+                        errorMessage = e.message,
                     )
                 }
                 Result.failure(e)
@@ -259,35 +262,41 @@ class VpnSetupRepository @Inject constructor(
     }
 
     /**
-     * Import VPN config from file.
+     * Import VPN config from a content URI (file picker result).
+     * Reads via ContentResolver so it works with any content:// URI.
      */
-    suspend fun importVpnConfig(filePath: String): Result<Unit> {
+    suspend fun importVpnConfig(uri: Uri): Result<Unit> {
         return withContext(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                val file = File(filePath)
-                if (!file.exists()) {
-                    return@withContext Result.failure(Exception("File not found"))
+                val content = context.contentResolver.openInputStream(uri)?.use {
+                    it.bufferedReader().readText()
+                } ?: return@withContext Result.failure(Exception("Cannot read config file"))
+
+                if (!WireGuardConfigParser.looksLikeWireGuard(content) &&
+                    !WireGuardConfigParser.looksLikeOpenVpn(content)
+                ) {
+                    return@withContext Result.failure(
+                        Exception("Ungültige VPN-Config (kein WireGuard / OpenVPN Format erkannt)")
+                    )
                 }
 
-                val content = file.readText()
-                
-                // Validate config (basic check)
-                val isValid = content.contains("[Interface]") || // WireGuard
-                             content.contains("client") ||      // OpenVPN
-                             content.contains("remote")         // OpenVPN
-                
-                if (!isValid) {
-                    return@withContext Result.failure(Exception("Invalid VPN config file"))
+                // Validate WireGuard config more strictly
+                if (WireGuardConfigParser.looksLikeWireGuard(content)) {
+                    val parsed = WireGuardConfigParser.parse(content)
+                    if (!parsed.isValid) {
+                        return@withContext Result.failure(
+                            Exception("WireGuard-Config unvollständig: PrivateKey oder Peer fehlt")
+                        )
+                    }
                 }
 
-                // Save config
                 appPreferences.setVpnCustomConfig(content)
-                
-                setConfigFile(filePath)
+                _setupState.update { it.copy(currentStep = VpnSetupStep.ServerSelection) }
+
                 Result.success(Unit)
 
             } catch (e: Exception) {
-                Timber.e(e, "Failed to import VPN config")
+                Timber.e(e, "Failed to import VPN config from URI")
                 Result.failure(e)
             }
         }

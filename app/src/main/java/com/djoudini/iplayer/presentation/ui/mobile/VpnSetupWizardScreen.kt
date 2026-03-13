@@ -85,16 +85,18 @@ fun VpnSetupWizardScreen(
     val setupState by viewModel.setupState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     
-    // File picker launcher
+    var importErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    // File picker — accepts .conf (WireGuard) and .ovpn (OpenVPN)
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
+        importErrorMessage = null
         uri?.let {
-            val filePath = it.path ?: return@let
             viewModel.importConfigFile(
-                filePath = filePath,
-                onSuccess = { /* Navigate to next step automatically */ },
-                onError = { /* Show error */ }
+                uri = it,
+                onSuccess = { importErrorMessage = null },
+                onError = { msg -> importErrorMessage = msg },
             )
         }
     }
@@ -216,6 +218,7 @@ fun VpnSetupWizardScreen(
                 )
                 is VpnSetupStep.ConfigImport -> VpnConfigImportStep(
                     provider = setupState.selectedProvider,
+                    errorMessage = importErrorMessage,
                     onFileSelected = { filePickerLauncher.launch("*/*") },
                     onContinue = { viewModel.setCredentials() },
                 )
@@ -533,6 +536,7 @@ private fun VpnLoginStep(
 @Composable
 private fun VpnConfigImportStep(
     provider: VpnProviderInfo?,
+    errorMessage: String?,
     onFileSelected: () -> Unit,
     onContinue: () -> Unit,
 ) {
@@ -592,7 +596,15 @@ private fun VpnConfigImportStep(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        
+
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
         Button(
             onClick = onContinue,
             modifier = Modifier.fillMaxWidth(),
