@@ -3,6 +3,7 @@ package com.djoudini.iplayer.presentation.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -73,6 +74,11 @@ fun FocusableCard(
                 ambientColor = if (isFocused) focusBorderColor else Color.Transparent,
             )
             .focusable(interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyUp &&
                     (event.key == Key.DirectionCenter || event.key == Key.Enter)
