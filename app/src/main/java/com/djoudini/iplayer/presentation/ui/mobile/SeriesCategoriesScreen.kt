@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +14,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,21 +36,22 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
+import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 import timber.log.Timber
 
-/**
- * MINIMALE TEST-UI - Phase 3
- * Nur Text-Listen, keine Grids, keine komplexen Layouts
- */
 @Composable
 fun SeriesCategoriesScreen(
     onSeriesClick: (Long) -> Unit = {},
@@ -55,28 +62,16 @@ fun SeriesCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val seriesItems by viewModel.filteredSeriesItems.collectAsStateWithLifecycle()
 
-    val context = LocalContext.current
-
-    // Debug: Logge alle States
     LaunchedEffect(categories.size) {
-        Timber.d("[TEST-UI] Categories loaded: ${categories.size}")
-        categories.forEach { cat ->
-            Timber.d("[TEST-UI]   Category: ${cat.name} (ID=${cat.id})")
-        }
-    }
-
-    LaunchedEffect(selectedCategoryId) {
-        Timber.d("[TEST-UI] Selected category: $selectedCategoryId")
+        Timber.d("[SeriesCategories] Categories loaded: ${categories.size}")
     }
 
     LaunchedEffect(seriesItems.size) {
-        Timber.d("[TEST-UI] Series items loaded: ${seriesItems.size}")
+        Timber.d("[SeriesCategories] Series items loaded: ${seriesItems.size}")
     }
 
-    // Auto-select first category
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == 0L) {
-            Timber.d("[TEST-UI] Auto-selecting first category: ${categories[0].name}")
             viewModel.selectCategory(categories.first().id)
         }
     }
@@ -84,10 +79,10 @@ fun SeriesCategoriesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SERIES TEST - ${categories.size} Kategorien") },
+                title = { Text(stringResource(R.string.series)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )
@@ -98,32 +93,36 @@ fun SeriesCategoriesScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // Linke Seite: Kategorien-Liste
+            // Linke Seite: Kategorien
             LazyColumn(
                 modifier = Modifier
                     .width(200.dp)
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             ) {
-                items(categories, key = { it.id }) { category ->
+                items(categories.size, key = { index -> categories[index].id }) { index ->
+                    val category = categories[index]
                     val isSelected = category.id == selectedCategoryId
                     Card(
                         onClick = {
-                            Timber.d("[TEST-UI] Category clicked: ${category.name} (ID=${category.id})")
+                            Timber.d("[SeriesCategories] Category clicked: ${category.name} (ID=${category.id})")
                             viewModel.selectCategory(category.id)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surfaceVariant,
                         ),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = if (isSelected) 8.dp else 2.dp,
+                        ),
                     ) {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
@@ -141,28 +140,21 @@ fun SeriesCategoriesScreen(
                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
                             )
                         }
                     }
                 }
             }
 
-            // Rechte Seite: Series-Liste (NUR TEXT!)
+            // Rechte Seite: Series Grid mit LazyVerticalGrid
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
                     .padding(16.dp),
             ) {
-                // Header
-                Text(
-                    text = "Series in Kategorie: ${categories.find { it.id == selectedCategoryId }?.name ?: "Keine"}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-
-                // Status-Anzeige
                 when {
                     selectedCategoryId == 0L -> {
                         Box(
@@ -170,7 +162,7 @@ fun SeriesCategoriesScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "👈 Bitte Kategorie auswählen",
+                                text = stringResource(R.string.select_a_category),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
@@ -180,27 +172,24 @@ fun SeriesCategoriesScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "❌ Keine Series gefunden",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "TIP: Playlist syncen!",
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.no_series_in_category),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                     else -> {
-                        // Series-Liste (einfache Text-Liste)
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        // LAZYVERTICALGRID - aber EINFACH gehalten!
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 150.dp),
+                            contentPadding = PaddingValues(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize(),
                         ) {
                             items(seriesItems, key = { it.id }) { series ->
-                                SeriesTextItem(
+                                SeriesCard(
                                     series = series,
                                     onClick = { onSeriesClick(series.id) },
                                 )
@@ -214,28 +203,61 @@ fun SeriesCategoriesScreen(
 }
 
 @Composable
-private fun SeriesTextItem(
+private fun SeriesCard(
     series: SeriesEntity,
     onClick: () -> Unit,
 ) {
-    Card(
+    FocusableCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .width(150.dp)
+            .height(240.dp),
+        focusScale = 1.05f,
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxSize()
+                .padding(8.dp),
         ) {
+            // Bild oder Placeholder
+            if (!series.coverUrl.isNullOrBlank() &&
+                (series.coverUrl.startsWith("http://") || series.coverUrl.startsWith("https://"))) {
+                AsyncImage(
+                    model = series.coverUrl,
+                    contentDescription = series.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Tv,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Titel
             Text(
                 text = series.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = "ID: ${series.id} | Category: ${series.categoryId}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

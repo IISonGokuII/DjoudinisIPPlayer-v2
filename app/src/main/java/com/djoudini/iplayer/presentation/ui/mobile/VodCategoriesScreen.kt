@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,20 +35,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.VodEntity
+import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 import timber.log.Timber
 
-/**
- * MINIMALE TEST-UI - Phase 3 (VOD)
- */
 @Composable
 fun VodCategoriesScreen(
     onVodClick: (Long) -> Unit = {},
@@ -55,11 +61,11 @@ fun VodCategoriesScreen(
     val vodItems by viewModel.filteredVodItems.collectAsStateWithLifecycle()
 
     LaunchedEffect(categories.size) {
-        Timber.d("[TEST-UI-VOD] Categories loaded: ${categories.size}")
+        Timber.d("[VodCategories] Categories loaded: ${categories.size}")
     }
 
     LaunchedEffect(vodItems.size) {
-        Timber.d("[TEST-UI-VOD] VOD items loaded: ${vodItems.size}")
+        Timber.d("[VodCategories] VOD items loaded: ${vodItems.size}")
     }
 
     LaunchedEffect(categories) {
@@ -71,10 +77,10 @@ fun VodCategoriesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("VOD TEST - ${categories.size} Kategorien") },
+                title = { Text(stringResource(R.string.movies)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
             )
@@ -92,68 +98,98 @@ fun VodCategoriesScreen(
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
             ) {
-                items(categories, key = { it.id }) { category ->
+                items(categories.size, key = { index -> categories[index].id }) { index ->
+                    val category = categories[index]
                     val isSelected = category.id == selectedCategoryId
                     Card(
                         onClick = {
-                            Timber.d("[TEST-UI-VOD] Category clicked: ${category.name}")
+                            Timber.d("[VodCategories] Category clicked: ${category.name} (ID=${category.id})")
                             viewModel.selectCategory(category.id)
                         },
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surfaceVariant,
                         ),
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = if (isSelected) 8.dp else 2.dp,
+                        ),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Folder,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp),
+                                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = category.name,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
                             )
                         }
                     }
                 }
             }
 
-            // Rechte Seite: VOD-Liste
+            // Rechte Seite: VOD Grid
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
                     .padding(16.dp),
             ) {
-                Text(
-                    text = "VODs: ${vodItems.size} items",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-
                 when {
                     selectedCategoryId == 0L -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("👈 Kategorie auswählen")
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.select_a_category),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
                         }
                     }
                     vodItems.isEmpty() -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Keine VODs gefunden", color = MaterialTheme.colorScheme.error)
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.no_movies_in_category),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                     else -> {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 150.dp),
+                            contentPadding = PaddingValues(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
                             items(vodItems, key = { it.id }) { vod ->
-                                VodTextItem(vod, { onVodClick(vod.id) })
+                                VodCard(
+                                    vod = vod,
+                                    onClick = { onVodClick(vod.id) },
+                                )
                             }
                         }
                     }
@@ -164,13 +200,61 @@ fun VodCategoriesScreen(
 }
 
 @Composable
-private fun VodTextItem(vod: VodEntity, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
-            Text(text = vod.name, style = MaterialTheme.typography.titleMedium)
+private fun VodCard(
+    vod: VodEntity,
+    onClick: () -> Unit,
+) {
+    FocusableCard(
+        onClick = onClick,
+        modifier = Modifier
+            .width(150.dp)
+            .height(240.dp),
+        focusScale = 1.05f,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+        ) {
+            // Bild oder Placeholder
+            if (!vod.logoUrl.isNullOrBlank() &&
+                (vod.logoUrl.startsWith("http://") || vod.logoUrl.startsWith("https://"))) {
+                AsyncImage(
+                    model = vod.logoUrl,
+                    contentDescription = vod.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Movie,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Titel
             Text(
-                text = "ID: ${vod.id} | Cat: ${vod.categoryId}",
-                style = MaterialTheme.typography.labelSmall,
+                text = vod.name,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
