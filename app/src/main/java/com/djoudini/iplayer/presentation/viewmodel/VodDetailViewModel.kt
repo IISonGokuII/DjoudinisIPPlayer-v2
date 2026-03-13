@@ -28,10 +28,9 @@ class VodDetailViewModel @Inject constructor(
     private val xtreamApi: XtreamApi,
 ) : ViewModel() {
 
-    private val vodId: Long = try {
-        savedStateHandle.get<Long>(NavArgs.CONTENT_ID) ?: 0L
-    } catch (e: Exception) {
-        Timber.e(e, "Failed to get vodId from SavedStateHandle")
+    // FIX: vodId korrekt aus SavedStateHandle auslesen
+    private val vodId: Long = savedStateHandle[NavArgs.CONTENT_ID] ?: run {
+        Timber.e("vodId is null! Using 0L as fallback")
         0L
     }
 
@@ -42,13 +41,17 @@ class VodDetailViewModel @Inject constructor(
     val resumePositionMs: StateFlow<Long> = _resumePositionMs.asStateFlow()
 
     init {
+        Timber.d("[VodDetailViewModel] vodId from SavedStateHandle: $vodId")
+        
         viewModelScope.launch {
+            Timber.d("[VodDetailViewModel] Loading VOD with ID: $vodId")
             // Load basic info from database
             _vod.value = vodDao.getById(vodId)
-            
+            Timber.d("[VodDetailViewModel] VOD loaded: ${_vod.value?.name ?: "null"}")
+
             // Load detailed info from API if Xtream playlist
             loadDetailedInfo()
-            
+
             // Load watch progress
             val playlist = playlistRepository.getActive()
             if (playlist != null) {
