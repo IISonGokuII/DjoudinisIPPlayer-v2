@@ -119,6 +119,9 @@ import com.djoudini.iplayer.presentation.viewmodel.SleepTimerPreset
 import com.djoudini.iplayer.presentation.viewmodel.SubtitleTrackInfo
 import androidx.media3.common.Player
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -185,6 +188,11 @@ fun PlayerScreen(
     var showAudioDelayDialog by remember { mutableStateOf(false) }
     var currentPlaybackSpeed by remember { mutableStateOf(1f) }
     var showSubtitleTrackDialog by remember { mutableStateOf(false) }
+    // TV Options Panel (long press center on Fire TV)
+    val scope = rememberCoroutineScope()
+    var showTvOptionsPanel by remember { mutableStateOf(false) }
+    var tvOptionIndex by remember { mutableStateOf(0) } // 0=AspectRatio, 1=Audio, 2=Subtitle
+    var longPressJob by remember { mutableStateOf<Job?>(null) }
     // Maps flat track index → (TrackGroup, trackIndexInGroup) for ExoPlayer selection
     var audioTrackGroupMap by remember { mutableStateOf<List<Pair<androidx.media3.common.TrackGroup, Int>>>(emptyList()) }
     var subtitleTrackGroupMap by remember { mutableStateOf<List<Pair<androidx.media3.common.TrackGroup, Int>>>(emptyList()) }
@@ -805,20 +813,6 @@ fun PlayerScreen(
         }
     }
 
-    // Long-press detector for TV remote
-    var longPressAction by remember { mutableStateOf<String?>(null) }
-
-    // Execute long press actions
-    LaunchedEffect(longPressAction) {
-        when (longPressAction) {
-            "aspect_ratio" -> viewModel.cycleAspectRatio()
-            "sleep_timer" -> showSleepTimerDialog = true
-            "audio_delay_down" -> viewModel.adjustAudioDelay(-100)
-            "audio_delay_up" -> viewModel.adjustAudioDelay(100)
-        }
-        longPressAction = null
-    }
-
     // Request focus for D-pad key handling
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -834,24 +828,37 @@ fun PlayerScreen(
                 if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (event.nativeKeyEvent.keyCode) {
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
-                            // Long press for aspect ratio toggle
-                            longPressAction = "aspect_ratio"
-                            exoPlayer?.let { it.playWhenReady = !it.isPlaying }
-                            viewModel.showControls()
+                            if (showTvOptionsPanel) {
+                                // Activate the focused option in the TV options panel
+                                when (tvOptionIndex) {
+                                    0 -> viewModel.cycleAspectRatio()
+                                    1 -> { showAudioTrackDialog = true; showTvOptionsPanel = false }
+                                    2 -> { showSubtitleTrackDialog = true; showTvOptionsPanel = false }
+                                }
+                            } else {
+                                // Start long-press timer: 600ms → show TV options panel
+                                val job = scope.launch {
+                                    delay(600)
+                                    showTvOptionsPanel = true
+                                }
+                                longPressJob = job
+                            }
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_UP -> {
-                            if (uiState.contentType == WatchContentType.CHANNEL) {
+                            if (showTvOptionsPanel) {
+                                showTvOptionsPanel = false
+                            } else if (uiState.contentType == WatchContentType.CHANNEL) {
                                 viewModel.playPreviousChannel()
                             } else {
-                                // Long press for sleep timer
-                                longPressAction = "sleep_timer"
                                 viewModel.toggleControls()
                             }
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            if (uiState.contentType == WatchContentType.CHANNEL) {
+                            if (showTvOptionsPanel) {
+                                showTvOptionsPanel = false
+                            } else if (uiState.contentType == WatchContentType.CHANNEL) {
                                 viewModel.playNextChannel()
                             } else {
                                 viewModel.toggleControls()
@@ -859,27 +866,31 @@ fun PlayerScreen(
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_LEFT -> {
-                            // Long press for audio delay decrease
-                            longPressAction = "audio_delay_down"
-                            exoPlayer?.let { it.seekTo((it.currentPosition - 10_000).coerceAtLeast(0)) }
-                            viewModel.showControls()
+                            if (showTvOptionsPanel) {
+                                tvOptionIndex = (tvOptionIndex - 1 + 3) % 3
+                            } else {
+                                exoPlayer?.let { it.seekTo((it.currentPosition - 10_000).coerceAtLeast(0)) }
+                                viewModel.showControls()
+                            }
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                            // Long press for audio delay increase
-                            longPressAction = "audio_delay_up"
-                            if (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode) {
-                                exoPlayer?.let {
-                                    if (uiState.durationMs > 0 && it.currentPosition >= uiState.durationMs - 5000) {
-                                        viewModel.startAutoPlayCountdown(0)
-                                    } else {
-                                        it.seekTo(it.currentPosition + 10_000)
-                                    }
-                                }
+                            if (showTvOptionsPanel) {
+                                tvOptionIndex = (tvOptionIndex + 1) % 3
                             } else {
-                                exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
+                                if (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode) {
+                                    exoPlayer?.let {
+                                        if (uiState.durationMs > 0 && it.currentPosition >= uiState.durationMs - 5000) {
+                                            viewModel.startAutoPlayCountdown(0)
+                                        } else {
+                                            it.seekTo(it.currentPosition + 10_000)
+                                        }
+                                    }
+                                } else {
+                                    exoPlayer?.let { it.seekTo(it.currentPosition + 10_000) }
+                                }
+                                viewModel.showControls()
                             }
-                            viewModel.showControls()
                             true
                         }
                         KeyEvent.KEYCODE_MEDIA_PLAY -> {
@@ -895,15 +906,28 @@ fun PlayerScreen(
                             true
                         }
                         KeyEvent.KEYCODE_BACK -> {
-                            false // Let back button navigate normally
+                            if (showTvOptionsPanel) {
+                                showTvOptionsPanel = false
+                                true
+                            } else {
+                                false // Let back button navigate normally
+                            }
                         }
                         else -> false
                     }
                 } else if (event.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
-                    // Cancel long press on key release
-                    longPressAction = null
                     when (event.nativeKeyEvent.keyCode) {
-                        KeyEvent.KEYCODE_DPAD_CENTER,
+                        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                            // Short press: job still active → toggle play/pause
+                            val job = longPressJob
+                            longPressJob = null
+                            if (job != null && job.isActive) {
+                                job.cancel()
+                                exoPlayer?.let { it.playWhenReady = !it.isPlaying }
+                                viewModel.showControls()
+                            }
+                            true
+                        }
                         KeyEvent.KEYCODE_DPAD_UP,
                         KeyEvent.KEYCODE_DPAD_DOWN,
                         KeyEvent.KEYCODE_DPAD_LEFT,
@@ -1415,6 +1439,68 @@ fun PlayerScreen(
                 onDismiss = { showEpgOverlay = false },
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
+        }
+
+        // TV Options Panel — long-press center on Fire TV remote
+        AnimatedVisibility(
+            visible = showTvOptionsPanel,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.88f))
+                    .padding(horizontal = 32.dp, vertical = 20.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val options = listOf(
+                        "Bildformat" to uiState.aspectRatio.label,
+                        "Ton" to if (uiState.audioTracks.isNotEmpty()) uiState.audioTracks.firstOrNull { it.isSelected }?.label ?: uiState.audioTracks.firstOrNull { it.isSelected }?.language ?: "—" else "—",
+                        "Untertitel" to if (uiState.subtitleTracks.isNotEmpty()) uiState.subtitleTracks.firstOrNull { it.isSelected }?.label ?: uiState.subtitleTracks.firstOrNull { it.isSelected }?.language ?: "Aus" else "Aus",
+                    )
+                    options.forEachIndexed { index, (title, value) ->
+                        val isFocused = tvOptionIndex == index
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                                    else Color.White.copy(alpha = 0.08f)
+                                )
+                                .padding(horizontal = 24.dp, vertical = 12.dp),
+                        ) {
+                            Text(
+                                text = title,
+                                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.55f),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = value,
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = "← → wählen  •  OK bestätigen  •  ZURÜCK schließen",
+                    color = Color.White.copy(alpha = 0.4f),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(top = 8.dp),
+                )
+            }
         }
     }
 }
