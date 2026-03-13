@@ -29,15 +29,18 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -87,14 +90,18 @@ fun TvPlayerOverlay(
     modifier: Modifier = Modifier,
 ) {
     val isLiveTv = uiState.contentType == WatchContentType.CHANNEL
-    
+
+    // Focus requester for the overlay
+    val focusRequester = remember { FocusRequester() }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .focusable()
+            .focusRequester(focusRequester)
             .onKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-                
+
                 when (event.key) {
                     Key.DirectionCenter, Key.Enter -> {
                         onPlayPause()
@@ -125,7 +132,7 @@ fun TvPlayerOverlay(
                         true
                     }
                     // Number keys for channel input (Live TV only)
-                    Key.Zero, Key.One, Key.Two, Key.Three, Key.Four, 
+                    Key.Zero, Key.One, Key.Two, Key.Three, Key.Four,
                     Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine -> {
                         if (isLiveTv && onInputChannelNumber != null) {
                             val digit = when (event.key) {

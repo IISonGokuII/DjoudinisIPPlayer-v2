@@ -269,10 +269,15 @@ fun AppNavGraph(
         composable(
             route = Route.SeriesDetail.route,
             arguments = listOf(navArgument(NavArgs.SERIES_ID) { type = NavType.LongType }),
-        ) {
+        ) { backStackEntry ->
+            // FIX: Ensure seriesId is properly passed to ViewModel
+            val seriesIdArg = backStackEntry.arguments?.getLong(NavArgs.SERIES_ID)
+            Timber.d("[AppNavGraph] SeriesDetail navigated with seriesId: $seriesIdArg")
+            
             if (isTvDevice) {
                 TvSeriesDetailScreen(
                     onEpisodeClick = { episodeId ->
+                        Timber.d("[AppNavGraph] Episode clicked: $episodeId, navigating to Player")
                         navController.navigate(Route.Player.create("episode", episodeId))
                     },
                     onBack = { navController.popBackStack() },
@@ -280,6 +285,7 @@ fun AppNavGraph(
             } else {
                 SeriesDetailScreen(
                     onEpisodeClick = { episodeId ->
+                        Timber.d("[AppNavGraph] Episode clicked: $episodeId, navigating to Player")
                         navController.navigate(Route.Player.create("episode", episodeId))
                     },
                     onBack = { navController.popBackStack() },

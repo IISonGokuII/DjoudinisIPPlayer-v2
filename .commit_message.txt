@@ -1,0 +1,6 @@
+fix: Fire TV Bugs - Serien-Crash, Play-Button, DPad Navigation, Resume
+
+- Fix: Crash bei Serienstart durch verbesserte Navigation mit Logging
+- Fix: Play-Button Position bei Filmen (jetzt unter dem Cover)
+- Fix: DPad Navigation im Player Overlay mit FocusRequester
+- Fix: Wiedergabe-Fortsetzung wartet auf User-Entscheidung

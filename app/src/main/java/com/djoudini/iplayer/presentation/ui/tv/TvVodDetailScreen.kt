@@ -89,7 +89,7 @@ private fun TvVodDetailContent(
         modifier = Modifier.fillMaxSize(),
         horizontalArrangement = Arrangement.spacedBy(48.dp),
     ) {
-        // Left side: Movie Poster
+        // Left side: Movie Poster with Play button BELOW
         Column(
             modifier = Modifier
                 .weight(0.35f)
@@ -116,7 +116,39 @@ private fun TvVodDetailContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Play button - MOST PROMINENT, auto-focused for TV
+            // Movie poster FIRST - on the left side
+            val posterUrl = vod.logoUrl
+            if (!posterUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = posterUrl,
+                    contentDescription = vod.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(2f / 3f)
+                        .clip(RoundedCornerShape(16.dp)),
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(2f / 3f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Play button BELOW the poster - MOST PROMINENT, auto-focused for TV
             FocusableCard(
                 onClick = onPlay,
                 modifier = Modifier
@@ -143,38 +175,6 @@ private fun TvVodDetailContent(
                         },
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Movie poster
-            val posterUrl = vod.logoUrl
-            if (!posterUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = posterUrl,
-                    contentDescription = vod.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(2f / 3f)
-                        .clip(RoundedCornerShape(16.dp)),
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(2f / 3f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

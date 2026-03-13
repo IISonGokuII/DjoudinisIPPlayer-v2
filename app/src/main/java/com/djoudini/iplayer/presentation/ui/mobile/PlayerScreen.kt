@@ -229,7 +229,10 @@ fun PlayerScreen(
     }
 
     // Don't start playback while resume dialog is shown
-    val shouldPlay = uiState.streamUrl.isNotBlank() && !uiState.showResumeDialog
+    // FIX: Track if user has made a resume choice
+    var resumeChoiceMade by remember { mutableStateOf(false) }
+    val shouldPlay = uiState.streamUrl.isNotBlank() && 
+        (!uiState.showResumeDialog || resumeChoiceMade)
 
     // CRITICAL FIX: Create player once and keep it alive
     // The player is created regardless of shouldPlay state, then media is loaded when ready
@@ -240,12 +243,14 @@ fun PlayerScreen(
     }
 
     // Set media item and play on streamUrl change
-    LaunchedEffect(uiState.streamUrl, exoPlayer) {
+    LaunchedEffect(uiState.streamUrl, exoPlayer, uiState.showResumeDialog, resumeChoiceMade) {
         // Wait for valid stream URL
         if (uiState.streamUrl.isBlank()) return@LaunchedEffect
-        
-        // Don't start if resume dialog is shown
-        if (uiState.showResumeDialog) return@LaunchedEffect
+
+        // Don't start if resume dialog is shown and user hasn't made a choice yet
+        if (uiState.showResumeDialog && !resumeChoiceMade && uiState.resumePositionMs > 10_000L) {
+            return@LaunchedEffect
+        }
 
         // CRITICAL: Stop current playback before loading new stream
         exoPlayer.stop()
@@ -284,13 +289,26 @@ fun PlayerScreen(
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
 
-        // Resume position for VOD/episodes
-        if (uiState.resumePositionMs > 0) {
+        // Resume position for VOD/episodes - only seek if user chose to resume
+        if (uiState.resumePositionMs > 0 && resumeChoiceMade) {
             exoPlayer.seekTo(uiState.resumePositionMs)
+        } else if (uiState.resumePositionMs > 0 && !resumeChoiceMade) {
+            // User hasn't made a choice yet, don't start playback
+            return@LaunchedEffect
         }
 
         exoPlayer.playWhenReady = true
         viewModel.startProgressTracking()
+    }
+
+    // Handle resume dialog dismissal - reset the flag
+    LaunchedEffect(uiState.showResumeDialog) {
+        if (!uiState.showResumeDialog) {
+            // Dialog was dismissed, user made a choice
+            resumeChoiceMade = true
+        } else {
+            resumeChoiceMade = false
+        }
     }
 
     // CRITICAL: Release player when leaving screen
