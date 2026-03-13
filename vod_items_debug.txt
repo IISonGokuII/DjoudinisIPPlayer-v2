@@ -1,4 +1,0 @@
-=== VOD ITEMS DEBUG ===
-Timestamp: 2026-03-13 01:33:24
-VOD items loaded: 0
-NO VOD ITEMS FOUND!

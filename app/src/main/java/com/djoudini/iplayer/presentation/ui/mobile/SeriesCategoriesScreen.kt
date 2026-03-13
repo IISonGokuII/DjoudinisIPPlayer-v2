@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,22 +14,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,22 +33,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
-import com.djoudini.iplayer.data.local.entity.CategoryEntity
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
-import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import timber.log.Timber
 
+/**
+ * MINIMALE TEST-UI - Phase 3
+ * Nur Text-Listen, keine Grids, keine komplexen Layouts
+ */
 @Composable
 fun SeriesCategoriesScreen(
     onSeriesClick: (Long) -> Unit = {},
@@ -67,44 +57,26 @@ fun SeriesCategoriesScreen(
 
     val context = LocalContext.current
 
-    // Debug logging
-    LaunchedEffect(categories.size, selectedCategoryId) {
-        val logMessage = buildString {
-            appendLine("=== SERIES CATEGORIES DEBUG ===")
-            appendLine("Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
-            appendLine("Categories loaded: ${categories.size}")
-            appendLine("Selected category ID: $selectedCategoryId")
-            categories.forEach { cat ->
-                appendLine("  - Category: ${cat.name} (ID: ${cat.id}, Playlist: ${cat.playlistId})")
-            }
+    // Debug: Logge alle States
+    LaunchedEffect(categories.size) {
+        Timber.d("[TEST-UI] Categories loaded: ${categories.size}")
+        categories.forEach { cat ->
+            Timber.d("[TEST-UI]   Category: ${cat.name} (ID=${cat.id})")
         }
-        Timber.d(logMessage)
-        saveDebugLog(context, "series_categories_debug.txt", logMessage)
+    }
+
+    LaunchedEffect(selectedCategoryId) {
+        Timber.d("[TEST-UI] Selected category: $selectedCategoryId")
     }
 
     LaunchedEffect(seriesItems.size) {
-        val logMessage = buildString {
-            appendLine("=== SERIES ITEMS DEBUG ===")
-            appendLine("Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
-            appendLine("Series items loaded: ${seriesItems.size}")
-            if (seriesItems.isNotEmpty()) {
-                seriesItems.take(20).forEach { series ->
-                    appendLine("  - Series: ${series.name} (ID: ${series.id}, Category: ${series.categoryId})")
-                }
-                if (seriesItems.size > 20) {
-                    appendLine("  ... and ${seriesItems.size - 20} more")
-                }
-            } else {
-                appendLine("NO SERIES FOUND!")
-            }
-        }
-        Timber.d(logMessage)
-        saveDebugLog(context, "series_items_debug.txt", logMessage)
+        Timber.d("[TEST-UI] Series items loaded: ${seriesItems.size}")
     }
 
     // Auto-select first category
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == 0L) {
+            Timber.d("[TEST-UI] Auto-selecting first category: ${categories[0].name}")
             viewModel.selectCategory(categories.first().id)
         }
     }
@@ -112,10 +84,10 @@ fun SeriesCategoriesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.series)) },
+                title = { Text("SERIES TEST - ${categories.size} Kategorien") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                     }
                 },
             )
@@ -126,7 +98,7 @@ fun SeriesCategoriesScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // Sidebar - Kategorien
+            // Linke Seite: Kategorien-Liste
             LazyColumn(
                 modifier = Modifier
                     .width(200.dp)
@@ -137,35 +109,31 @@ fun SeriesCategoriesScreen(
                     val isSelected = category.id == selectedCategoryId
                     Card(
                         onClick = {
-                            Timber.d("[SeriesCategories] Category clicked: ${category.name} (ID: ${category.id})")
+                            Timber.d("[TEST-UI] Category clicked: ${category.name} (ID=${category.id})")
                             viewModel.selectCategory(category.id)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .padding(8.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surfaceVariant,
                         ),
-                        elevation = CardDefaults.cardElevation(
-                            defaultElevation = if (isSelected) 8.dp else 2.dp,
-                        ),
                     ) {
                         Row(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 12.dp),
+                                .fillMaxWidth()
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Folder,
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(20.dp),
                                 tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = category.name,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -173,35 +141,28 @@ fun SeriesCategoriesScreen(
                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
                             )
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Selected",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                )
-                            }
                         }
                     }
                 }
             }
 
-            VerticalDivider(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            )
-
-            // Content - Serie Grid mit Column (NICHT LazyVerticalGrid!)
+            // Rechte Seite: Series-Liste (NUR TEXT!)
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
                     .padding(16.dp),
             ) {
+                // Header
+                Text(
+                    text = "Series in Kategorie: ${categories.find { it.id == selectedCategoryId }?.name ?: "Keine"}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+
+                // Status-Anzeige
                 when {
                     selectedCategoryId == 0L -> {
                         Box(
@@ -209,9 +170,8 @@ fun SeriesCategoriesScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = stringResource(R.string.select_a_category),
+                                text = "👈 Bitte Kategorie auswählen",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -222,44 +182,28 @@ fun SeriesCategoriesScreen(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = stringResource(R.string.no_series_in_category),
+                                    text = "❌ Keine Series gefunden",
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.error,
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "TIP: Go to Dashboard and sync the playlist",
+                                    text = "TIP: Playlist syncen!",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error,
                                 )
                             }
                         }
                     }
                     else -> {
-                        // Einfaches Grid mit Column + Row
-                        val columns = 3 // 3 Spalten für Mobile
-                        val rows = (seriesItems.size + columns - 1) / columns
-                        
-                        for (rowIndex in 0 until rows) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
-                                for (colIndex in 0 until columns) {
-                                    val index = rowIndex * columns + colIndex
-                                    if (index < seriesItems.size) {
-                                        SeriesCard(
-                                            series = seriesItems[index],
-                                            onClick = { onSeriesClick(seriesItems[index].id) },
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                            if (rowIndex < rows - 1) {
-                                Spacer(modifier = Modifier.height(12.dp))
+                        // Series-Liste (einfache Text-Liste)
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(seriesItems, key = { it.id }) { series ->
+                                SeriesTextItem(
+                                    series = series,
+                                    onClick = { onSeriesClick(series.id) },
+                                )
                             }
                         }
                     }
@@ -270,68 +214,29 @@ fun SeriesCategoriesScreen(
 }
 
 @Composable
-private fun SeriesCard(
+private fun SeriesTextItem(
     series: SeriesEntity,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    FocusableCard(
+    Card(
         onClick = onClick,
-        modifier = modifier.width(120.dp).height(200.dp),
-        focusScale = 1.05f,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
         ) {
-            if (!series.coverUrl.isNullOrBlank() &&
-                (series.coverUrl.startsWith("http://") || series.coverUrl.startsWith("https://"))) {
-                AsyncImage(
-                    model = series.coverUrl,
-                    contentDescription = series.name,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().height(140.dp),
-                )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(140.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Folder,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
             Text(
                 text = series.name,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "ID: ${series.id} | Category: ${series.categoryId}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-private fun saveDebugLog(context: android.content.Context, fileName: String, content: String) {
-    try {
-        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
-            android.os.Environment.DIRECTORY_DOWNLOADS
-        )
-        val debugDir = File(downloadsDir, "DjoudinisIPPlayer_Debug")
-        if (!debugDir.exists()) {
-            debugDir.mkdirs()
-        }
-        val logFile = File(debugDir, fileName)
-        logFile.writeText(content)
-        Timber.d("[DebugLog] Saved to: ${logFile.absolutePath}")
-    } catch (e: Exception) {
-        Timber.e(e, "[DebugLog] Failed to save log")
     }
 }
