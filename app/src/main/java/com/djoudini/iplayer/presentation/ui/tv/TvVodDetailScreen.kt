@@ -180,13 +180,16 @@ private fun TvVodDetailContent(
             }
         }
 
-        // Right side: Movie details
-        Column(
+        // Right side: Movie details - use Box with constraints instead of heightIn
+        Box(
             modifier = Modifier
                 .weight(0.65f)
-                .fillMaxHeight()
-                .verticalScroll(scrollState),
+                .fillMaxHeight(),
         ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(scrollState),
+            ) {
             // Title
             Text(
                 text = vod.name,
@@ -335,6 +338,7 @@ private fun TvVodDetailContent(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
             }
         }
     }
