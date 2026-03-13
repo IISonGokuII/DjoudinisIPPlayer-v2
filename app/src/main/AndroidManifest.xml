@@ -13,6 +13,12 @@
     <!-- Wake lock for media playback -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Recording: foreground data transfer service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Recording: post notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Storage permission for crash reports (Android 9 and below) -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
@@ -69,6 +75,12 @@
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Recording ForegroundService -->
+        <service
+            android:name=".data.service.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Remove default WorkManagerInitializer for on-demand initialization -->
         <provider

@@ -16,15 +16,19 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SyncDisabled
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,6 +73,11 @@ fun SettingsScreen(
     var theme by remember { mutableStateOf("dark") }
     var preferredAudioLanguage by remember { mutableStateOf("") }
     var preferredSubtitleLanguage by remember { mutableStateOf("") }
+    var defaultStartTab by remember { mutableStateOf("live") }
+    var screenOrientation by remember { mutableStateOf("auto") }
+    var gestureControlsEnabled by remember { mutableStateOf(true) }
+    var reconnectMaxAttempts by remember { mutableStateOf(3) }
+    var reconnectDelayMs by remember { mutableStateOf(3_000) }
 
     // Load preferences
     scope.launch {
@@ -80,6 +89,11 @@ fun SettingsScreen(
     scope.launch {
         appPreferences.theme.collectLatest { theme = it }
     }
+    scope.launch { appPreferences.defaultStartTab.collectLatest { defaultStartTab = it } }
+    scope.launch { appPreferences.screenOrientation.collectLatest { screenOrientation = it } }
+    scope.launch { appPreferences.gestureControlsEnabled.collectLatest { gestureControlsEnabled = it } }
+    scope.launch { appPreferences.reconnectMaxAttempts.collectLatest { reconnectMaxAttempts = it } }
+    scope.launch { appPreferences.reconnectDelayMs.collectLatest { reconnectDelayMs = it } }
 
     Scaffold(
         topBar = {
@@ -253,6 +267,91 @@ fun SettingsScreen(
                             "tr" -> "fr"
                             "fr" -> ""
                             else -> ""
+                        }
+                    },
+                )
+            }
+
+            // === Playback / Reconnect ===
+            SettingsSection(title = "Wiedergabe") {
+                SettingsItem(
+                    icon = Icons.Default.Wifi,
+                    title = "Reconnect-Versuche",
+                    subtitle = "$reconnectMaxAttempts Versuche bei Stream-Fehler",
+                    onClick = {
+                        scope.launch {
+                            val next = when (reconnectMaxAttempts) {
+                                1 -> 3; 3 -> 5; 5 -> 10; else -> 1
+                            }
+                            appPreferences.setReconnectSettings(next, reconnectDelayMs)
+                            reconnectMaxAttempts = next
+                        }
+                    },
+                )
+                SettingsItem(
+                    icon = Icons.Default.Timer,
+                    title = "Reconnect-Verzögerung",
+                    subtitle = "${reconnectDelayMs / 1_000}s zwischen Versuchen",
+                    onClick = {
+                        scope.launch {
+                            val next = when (reconnectDelayMs) {
+                                1_000 -> 3_000; 3_000 -> 5_000; 5_000 -> 10_000; else -> 1_000
+                            }
+                            appPreferences.setReconnectSettings(reconnectMaxAttempts, next)
+                            reconnectDelayMs = next
+                        }
+                    },
+                )
+                SettingsToggleItem(
+                    icon = Icons.Default.TouchApp,
+                    title = "Gestensteuerung",
+                    subtitle = "Wischen für Helligkeit / Lautstärke / Vor- und Zurückspulen",
+                    checked = gestureControlsEnabled,
+                    onCheckedChange = { enabled ->
+                        scope.launch {
+                            appPreferences.setGestureControlsEnabled(enabled)
+                            gestureControlsEnabled = enabled
+                        }
+                    },
+                )
+                SettingsItem(
+                    icon = Icons.Default.ScreenRotation,
+                    title = "Bildschirmausrichtung",
+                    subtitle = when (screenOrientation) {
+                        "landscape" -> "Querformat (erzwingen)"
+                        "portrait" -> "Hochformat (erzwingen)"
+                        else -> "Automatisch (Sensor)"
+                    },
+                    onClick = {
+                        scope.launch {
+                            val next = when (screenOrientation) {
+                                "auto" -> "landscape"; "landscape" -> "portrait"; else -> "auto"
+                            }
+                            appPreferences.setScreenOrientation(next)
+                            screenOrientation = next
+                        }
+                    },
+                )
+            }
+
+            // === App Behaviour ===
+            SettingsSection(title = "App-Verhalten") {
+                SettingsItem(
+                    icon = Icons.Default.Home,
+                    title = "Standard-Starttab",
+                    subtitle = when (defaultStartTab) {
+                        "live" -> "Live TV"
+                        "movies" -> "Filme"
+                        "series" -> "Serien"
+                        else -> "Live TV"
+                    },
+                    onClick = {
+                        scope.launch {
+                            val next = when (defaultStartTab) {
+                                "live" -> "movies"; "movies" -> "series"; else -> "live"
+                            }
+                            appPreferences.setDefaultStartTab(next)
+                            defaultStartTab = next
                         }
                     },
                 )

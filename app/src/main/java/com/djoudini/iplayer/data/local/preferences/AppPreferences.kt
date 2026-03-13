@@ -104,6 +104,9 @@ class AppPreferences @Inject constructor(
     private object UiKeys {
         val THEME = stringPreferencesKey("ui_theme") // "system", "dark", "light"
         val EPG_HOURS_VISIBLE = intPreferencesKey("ui_epg_hours_visible")
+        val DEFAULT_START_TAB = stringPreferencesKey("ui_default_start_tab") // "live", "movies", "series"
+        val SCREEN_ORIENTATION = stringPreferencesKey("ui_screen_orientation") // "auto", "landscape", "portrait"
+        val GESTURE_CONTROLS = booleanPreferencesKey("ui_gesture_controls")
     }
 
     val theme: Flow<String> = dataStore.data.map { prefs ->
@@ -116,6 +119,51 @@ class AppPreferences @Inject constructor(
 
     val epgHoursVisible: Flow<Int> = dataStore.data.map { prefs ->
         prefs[UiKeys.EPG_HOURS_VISIBLE] ?: 4
+    }
+
+    val defaultStartTab: Flow<String> = dataStore.data.map { prefs ->
+        prefs[UiKeys.DEFAULT_START_TAB] ?: "live"
+    }
+
+    suspend fun setDefaultStartTab(tab: String) {
+        dataStore.edit { it[UiKeys.DEFAULT_START_TAB] = tab }
+    }
+
+    val screenOrientation: Flow<String> = dataStore.data.map { prefs ->
+        prefs[UiKeys.SCREEN_ORIENTATION] ?: "auto"
+    }
+
+    suspend fun setScreenOrientation(orientation: String) {
+        dataStore.edit { it[UiKeys.SCREEN_ORIENTATION] = orientation }
+    }
+
+    val gestureControlsEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[UiKeys.GESTURE_CONTROLS] ?: true
+    }
+
+    suspend fun setGestureControlsEnabled(enabled: Boolean) {
+        dataStore.edit { it[UiKeys.GESTURE_CONTROLS] = enabled }
+    }
+
+    // --- Reconnect Settings ---
+    private object ReconnectKeys {
+        val MAX_ATTEMPTS = intPreferencesKey("reconnect_max_attempts")
+        val DELAY_MS = intPreferencesKey("reconnect_delay_ms")
+    }
+
+    val reconnectMaxAttempts: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[ReconnectKeys.MAX_ATTEMPTS] ?: 3
+    }
+
+    val reconnectDelayMs: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[ReconnectKeys.DELAY_MS] ?: 3_000
+    }
+
+    suspend fun setReconnectSettings(maxAttempts: Int, delayMs: Int) {
+        dataStore.edit { prefs ->
+            prefs[ReconnectKeys.MAX_ATTEMPTS] = maxAttempts
+            prefs[ReconnectKeys.DELAY_MS] = delayMs
+        }
     }
 
     // --- Auto Sync EPG ---

@@ -1,6 +1,13 @@
 package com.djoudini.iplayer.presentation.ui.mobile
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
+import android.os.Build
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
@@ -23,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,8 +46,11 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -97,6 +108,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.compose.material3.HorizontalDivider
 import com.djoudini.iplayer.R
+import com.djoudini.iplayer.data.service.RecordingService
 import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.presentation.viewmodel.AspectRatio
 import com.djoudini.iplayer.presentation.viewmodel.AudioTrackInfo
@@ -117,8 +129,55 @@ fun PlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val activity = LocalContext.current as? Activity
+    val context = LocalContext.current
     var isFullscreen by remember { mutableStateOf(false) }
     var showAudioTrackDialog by remember { mutableStateOf(false) }
+
+    // --- Recording state ---
+    var isRecording by remember { mutableStateOf(false) }
+    var recordingSeconds by remember { mutableStateOf(0L) }
+
+    // Track recording elapsed time while active
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            recordingSeconds = 0L
+            while (isRecording) {
+                delay(1_000)
+                recordingSeconds++
+            }
+        }
+    }
+
+    // Listen for recording completed broadcast
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent?.action == RecordingService.ACTION_RECORDING_COMPLETED) {
+                    isRecording = false
+                }
+            }
+        }
+        val filter = IntentFilter(RecordingService.ACTION_RECORDING_COMPLETED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(receiver, filter)
+        }
+        onDispose { context.unregisterReceiver(receiver) }
+    }
+
+    // --- Gesture HUD state ---
+    var gestureHudType by remember { mutableStateOf("") } // "brightness", "volume", "seek"
+    var gestureHudValue by remember { mutableStateOf(0f) } // 0..1 for br/vol, seconds for seek
+    var gestureHudSeekDelta by remember { mutableStateOf(0L) } // seconds for seek display
+
+    LaunchedEffect(gestureHudType) {
+        if (gestureHudType.isNotEmpty()) {
+            delay(1_500)
+            gestureHudType = ""
+        }
+    }
     var showPlaybackSpeedDialog by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showAudioDelayDialog by remember { mutableStateOf(false) }
@@ -860,31 +919,85 @@ fun PlayerScreen(
                         scaleY = uiState.videoScale
                     }
                     .pointerInput(uiState.videoScale) {
-                        // Simple pinch-to-zoom
+                        // Single-finger swipe gestures: brightness (left), volume (right), seek (horizontal)
+                        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                         awaitEachGesture {
-                            var zooming = false
-                            var initialSpan = 0f
-                            val initialScale = uiState.videoScale
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val startX = down.position.x
+                            val startY = down.position.y
+                            var totalDx = 0f
+                            var totalDy = 0f
+                            var gestureDecided = false
+                            var isHorizontal = false
 
                             do {
                                 val event = awaitPointerEvent()
                                 val changes = event.changes
-                                if (changes.size >= 2) {
+                                if (changes.size == 1) {
+                                    val pos = changes[0].position
+                                    totalDx = pos.x - startX
+                                    totalDy = pos.y - startY
+
+                                    if (!gestureDecided && (kotlin.math.abs(totalDx) > 20f || kotlin.math.abs(totalDy) > 20f)) {
+                                        gestureDecided = true
+                                        isHorizontal = kotlin.math.abs(totalDx) > kotlin.math.abs(totalDy)
+                                    }
+
+                                    if (gestureDecided) {
+                                        if (isHorizontal) {
+                                            // Seek: left = back, right = forward (100px = 10s)
+                                            val seekDelta = (totalDx / 100f * 10f).toLong()
+                                            gestureHudType = "seek"
+                                            gestureHudSeekDelta = seekDelta
+                                        } else {
+                                            // Vertical: left side = brightness, right side = volume
+                                            val fraction = (-totalDy / size.height.toFloat()).coerceIn(-1f, 1f)
+                                            if (startX < size.width / 2f) {
+                                                // Brightness
+                                                val currentBr = activity?.window?.attributes?.screenBrightness
+                                                    ?.takeIf { it >= 0f } ?: 0.5f
+                                                val newBr = (currentBr + fraction * 0.5f).coerceIn(0.01f, 1f)
+                                                activity?.window?.let { win ->
+                                                    win.attributes = win.attributes.apply { screenBrightness = newBr }
+                                                }
+                                                gestureHudType = "brightness"
+                                                gestureHudValue = newBr
+                                            } else {
+                                                // Volume
+                                                val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                                                val newVol = (currentVol + (fraction * maxVolume * 0.5f).toInt())
+                                                    .coerceIn(0, maxVolume)
+                                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
+                                                gestureHudType = "volume"
+                                                gestureHudValue = newVol.toFloat() / maxVolume
+                                            }
+                                        }
+                                    }
+                                } else if (changes.size >= 2) {
+                                    // Pinch-to-zoom
                                     val p0 = changes[0].position
                                     val p1 = changes[1].position
-                                    val dx = p1.x - p0.x
-                                    val dy = p1.y - p0.y
-                                    val span = kotlin.math.sqrt(dx * dx + dy * dy)
-                                    if (!zooming) {
-                                        initialSpan = span
-                                        zooming = true
-                                    } else {
-                                        val scaleChange = span / initialSpan
-                                        val newScale = (initialScale * scaleChange).coerceIn(0.5f, 3.0f)
+                                    val dx2 = p1.x - p0.x; val dy2 = p1.y - p0.y
+                                    val span = kotlin.math.sqrt(dx2 * dx2 + dy2 * dy2)
+                                    val initialScale2 = uiState.videoScale
+                                    val initialSpan2 = span
+                                    if (initialSpan2 > 0f) {
+                                        val scaleChange = span / initialSpan2
+                                        val newScale = (initialScale2 * scaleChange).coerceIn(0.5f, 3.0f)
                                         viewModel.setVideoScale(newScale)
                                     }
                                 }
                             } while (event.changes.any { it.pressed })
+
+                            // Apply seek on gesture end
+                            if (gestureDecided && isHorizontal && gestureHudSeekDelta != 0L) {
+                                val seekMs = gestureHudSeekDelta * 1_000L
+                                exoPlayer?.let { player ->
+                                    val newPos = (player.currentPosition + seekMs).coerceAtLeast(0L)
+                                    player.seekTo(newPos)
+                                }
+                            }
                         }
                     }
             )
@@ -967,6 +1080,35 @@ fun PlayerScreen(
                                     color = Color.LightGray,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 1,
+                                )
+                            }
+                        }
+                        // Recording button (Live TV only)
+                        if (uiState.contentType == WatchContentType.CHANNEL) {
+                            IconButton(onClick = {
+                                if (isRecording) {
+                                    context.startService(
+                                        Intent(context, RecordingService::class.java).apply {
+                                            action = RecordingService.ACTION_STOP
+                                        }
+                                    )
+                                    isRecording = false
+                                } else {
+                                    context.startForegroundService(
+                                        Intent(context, RecordingService::class.java).apply {
+                                            action = RecordingService.ACTION_START
+                                            putExtra(RecordingService.EXTRA_STREAM_URL, uiState.streamUrl)
+                                            putExtra(RecordingService.EXTRA_CHANNEL_NAME, uiState.title)
+                                        }
+                                    )
+                                    isRecording = true
+                                }
+                                viewModel.showControls()
+                            }) {
+                                Icon(
+                                    imageVector = if (isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                                    contentDescription = if (isRecording) "Aufnahme stoppen" else "Aufnahme starten",
+                                    tint = if (isRecording) Color.Red else Color.White,
                                 )
                             }
                         }
@@ -1190,6 +1332,36 @@ fun PlayerScreen(
             }
         }
 
+        // Gesture HUD overlay (center, auto-hides after 1.5s)
+        AnimatedVisibility(
+            visible = gestureHudType.isNotEmpty(),
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.Center),
+        ) {
+            GestureHud(type = gestureHudType, value = gestureHudValue, seekDelta = gestureHudSeekDelta)
+        }
+
+        // Recording indicator (top-left, visible while recording)
+        if (isRecording) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 72.dp, top = 16.dp)
+                    .background(Color.Red.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(Icons.Default.FiberManualRecord, null, tint = Color.White, modifier = Modifier.size(10.dp))
+                val recH = recordingSeconds / 3600
+                val recM = (recordingSeconds % 3600) / 60
+                val recS = recordingSeconds % 60
+                val recTime = if (recH > 0) "%d:%02d:%02d".format(recH, recM, recS) else "%02d:%02d".format(recM, recS)
+                Text("REC  $recTime", color = Color.White, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+            }
+        }
+
         // Modern EPG Info Banner at bottom of screen
         if (uiState.contentType == WatchContentType.CHANNEL) {
             EpgInfoBanner(
@@ -1214,6 +1386,44 @@ private fun formatDuration(ms: Long): String {
         String.format("%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format("%02d:%02d", minutes, seconds)
+    }
+}
+
+/**
+ * Gesture HUD — shows brightness, volume or seek delta as a pill overlay.
+ */
+@Composable
+private fun GestureHud(type: String, value: Float, seekDelta: Long) {
+    val icon = when (type) {
+        "brightness" -> "☀"
+        "volume" -> "🔊"
+        "seek" -> if (seekDelta >= 0) "⏩" else "⏪"
+        else -> ""
+    }
+    val label = when (type) {
+        "brightness" -> "${(value * 100).toInt()}%"
+        "volume" -> "${(value * 100).toInt()}%"
+        "seek" -> if (seekDelta >= 0) "+${seekDelta}s" else "${seekDelta}s"
+        else -> ""
+    }
+    Column(
+        modifier = Modifier
+            .wrapContentSize()
+            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(icon, style = MaterialTheme.typography.headlineMedium, color = Color.White)
+        if (type == "brightness" || type == "volume") {
+            LinearProgressIndicator(
+                progress = { value },
+                modifier = Modifier.width(100.dp).height(4.dp),
+                color = Color.White,
+                trackColor = Color.White.copy(alpha = 0.3f),
+            )
+        }
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = Color.White, fontWeight = FontWeight.Bold)
     }
 }
 

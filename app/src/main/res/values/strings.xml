@@ -170,6 +170,18 @@
     <string name="reset_all_settings_desc">Restore all settings to defaults</string>
     <string name="app_version">Djoudini\'s IP Player v1.0.0</string>
 
+    <!-- Recording -->
+    <string name="recording_start">Start Recording</string>
+    <string name="recording_stop">Stop Recording</string>
+    <string name="recording_saved">Recording saved to Downloads</string>
+
+    <!-- Settings extra -->
+    <string name="reconnect_attempts">Reconnect Attempts</string>
+    <string name="reconnect_delay">Reconnect Delay</string>
+    <string name="gesture_controls">Gesture Controls</string>
+    <string name="screen_orientation">Screen Orientation</string>
+    <string name="default_start_tab">Default Start Tab</string>
+
     <!-- Splash Screen -->
     <string name="splash_welcome">Willkommen bei DjoudiniTV</string>
     <string name="splash_subtitle">Dein IPTV Erlebnis</string>

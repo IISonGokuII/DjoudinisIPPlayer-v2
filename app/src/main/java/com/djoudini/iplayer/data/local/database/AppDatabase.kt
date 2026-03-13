@@ -1,6 +1,5 @@
 package com.djoudini.iplayer.data.local.database
 
-import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.djoudini.iplayer.data.local.dao.CategoryDao
@@ -8,6 +7,7 @@ import com.djoudini.iplayer.data.local.dao.ChannelDao
 import com.djoudini.iplayer.data.local.dao.EpgProgramDao
 import com.djoudini.iplayer.data.local.dao.EpisodeDao
 import com.djoudini.iplayer.data.local.dao.PlaylistDao
+import com.djoudini.iplayer.data.local.dao.RecordingDao
 import com.djoudini.iplayer.data.local.dao.SeriesDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.dao.WatchProgressDao
@@ -16,6 +16,7 @@ import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
 import com.djoudini.iplayer.data.local.entity.EpisodeEntity
 import com.djoudini.iplayer.data.local.entity.PlaylistEntity
+import com.djoudini.iplayer.data.local.entity.RecordingEntity
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
@@ -30,8 +31,9 @@ import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
         EpisodeEntity::class,
         EpgProgramEntity::class,
         WatchProgressEntity::class,
+        RecordingEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,4 +45,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun episodeDao(): EpisodeDao
     abstract fun epgProgramDao(): EpgProgramDao
     abstract fun watchProgressDao(): WatchProgressDao
+    abstract fun recordingDao(): RecordingDao
 }
