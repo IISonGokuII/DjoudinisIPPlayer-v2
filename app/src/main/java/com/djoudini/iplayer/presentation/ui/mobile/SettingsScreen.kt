@@ -30,6 +30,11 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -53,9 +58,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
+import com.djoudini.iplayer.data.local.entity.VpnState
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.domain.repository.VpnRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
+import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -65,6 +73,7 @@ fun SettingsScreen(
     appPreferences: AppPreferences,
     playlistRepository: PlaylistRepository,
     watchProgressRepository: WatchProgressRepository,
+    viewModel: SettingsViewModel,
 ) {
     val scope = rememberCoroutineScope()
     
@@ -356,6 +365,9 @@ fun SettingsScreen(
                     },
                 )
             }
+
+            // === VPN Settings ===
+            VpnSettingsSection(viewModel = viewModel)
 
             SettingsSection(title = stringResource(R.string.appearance)) {
                 SettingsItem(

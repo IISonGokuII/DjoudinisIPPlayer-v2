@@ -1,10 +1,13 @@
 package com.djoudini.iplayer.di
 
+import android.content.Context
+import android.net.ConnectivityManager
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import com.djoudini.iplayer.data.remote.api.XtreamApi
+import com.djoudini.iplayer.data.service.IpCheckService
+import com.djoudini.iplayer.data.service.SpeedTestService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import android.content.Context
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -71,4 +74,21 @@ object NetworkModule {
             .create(XtreamApi::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideConnectivityManager(@ApplicationContext context: Context): ConnectivityManager {
+        return context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    }
+
+    @Provides
+    @Singleton
+    fun provideSpeedTestService(): SpeedTestService {
+        return SpeedTestService()
+    }
+
+    @Provides
+    @Singleton
+    fun provideIpCheckService(): IpCheckService {
+        return IpCheckService()
+    }
 }

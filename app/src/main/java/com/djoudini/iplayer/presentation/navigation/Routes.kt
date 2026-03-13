@@ -43,6 +43,7 @@ sealed class Route(val route: String) {
     data object Settings : Route("settings")
     data object PlayerSettings : Route("player_settings")
     data object AccountInfo : Route("account_info")
+    data object VpnSetup : Route("vpn_setup")
 
     // --- Search ---
     data object Search : Route("search")

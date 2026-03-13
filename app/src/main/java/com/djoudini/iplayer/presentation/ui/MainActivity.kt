@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
@@ -24,6 +25,7 @@ import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.navigation.AppNavGraph
 import com.djoudini.iplayer.presentation.navigation.Route
 import com.djoudini.iplayer.presentation.ui.theme.DjoudinisTheme
+import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import com.djoudini.iplayer.util.CrashHandler
 import com.djoudini.iplayer.util.PermissionHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -118,6 +120,8 @@ private fun AppContent(
         }
     }
 
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+
     startDestination?.let { start ->
         AppNavGraph(
             navController = navController,
@@ -126,6 +130,7 @@ private fun AppContent(
             appPreferences = appPreferences,
             playlistRepository = playlistRepository,
             watchProgressRepository = watchProgressRepository,
+            settingsViewModel = settingsViewModel,
             onChannelClick = { channelId ->
                 navController.navigate(Route.Player.create("channel", channelId))
             },

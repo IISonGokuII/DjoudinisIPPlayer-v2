@@ -29,6 +29,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -157,6 +160,10 @@ fun DashboardScreen(
                 SyncProgressBanner(syncProgress)
                 Spacer(modifier = Modifier.height(16.dp))
             }
+
+            // VPN Status Banner
+            VpnStatusBanner(viewModel = viewModel)
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Continue Watching section
             if (continueWatching.isNotEmpty()) {
@@ -568,6 +575,82 @@ private fun ChannelCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.Medium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun VpnStatusBanner(
+    viewModel: DashboardViewModel,
+) {
+    // Note: DashboardViewModel needs vpnConnectionState exposed
+    // For now, this is a placeholder that will be updated when ViewModel is connected
+    val vpnEnabled = false // TODO: Get from ViewModel
+    val vpnConnected = false // TODO: Get from ViewModel
+    
+    if (!vpnEnabled) return // Don't show if VPN is not enabled
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { /* Navigate to VPN settings */ },
+        colors = CardDefaults.cardColors(
+            containerColor = if (vpnConnected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            },
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = if (vpnConnected) {
+                        Icons.Default.CheckCircle
+                    } else {
+                        Icons.Default.Error
+                    },
+                    contentDescription = null,
+                    tint = if (vpnConnected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+                    modifier = Modifier.size(24.dp),
+                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.vpn),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = if (vpnConnected) {
+                            stringResource(R.string.vpn_connected)
+                        } else {
+                            stringResource(R.string.vpn_disconnected)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp),
             )
         }
     }

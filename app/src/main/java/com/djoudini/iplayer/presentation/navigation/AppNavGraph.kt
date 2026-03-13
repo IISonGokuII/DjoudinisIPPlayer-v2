@@ -22,7 +22,9 @@ import com.djoudini.iplayer.presentation.ui.mobile.SearchScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SeriesDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SettingsScreen
+import com.djoudini.iplayer.presentation.ui.mobile.VpnSetupWizardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSettingsScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvVpnSetupWizardScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
@@ -41,6 +43,7 @@ import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvCategoryFilterScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvFavoritesScreen
+import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import timber.log.Timber
 
 @Composable
@@ -52,6 +55,7 @@ fun AppNavGraph(
     appPreferences: AppPreferences,
     playlistRepository: PlaylistRepository,
     watchProgressRepository: WatchProgressRepository,
+    settingsViewModel: SettingsViewModel,
     onChannelClick: (Long) -> Unit = {},
 ) {
     NavHost(
@@ -385,6 +389,26 @@ fun AppNavGraph(
                     appPreferences = appPreferences,
                     playlistRepository = playlistRepository,
                     watchProgressRepository = watchProgressRepository,
+                    viewModel = settingsViewModel,
+                )
+            }
+        }
+
+        // --- VPN Setup Wizard ---
+        composable(Route.VpnSetup.route) {
+            if (isTvDevice) {
+                TvVpnSetupWizardScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onComplete = {
+                        navController.popBackStack()
+                    },
+                )
+            } else {
+                VpnSetupWizardScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onComplete = {
+                        navController.popBackStack()
+                    },
                 )
             }
         }

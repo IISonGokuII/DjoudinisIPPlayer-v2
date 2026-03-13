@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
+import com.djoudini.iplayer.data.local.entity.VpnProtocol
+import com.djoudini.iplayer.data.local.entity.VpnProviderType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -173,5 +175,108 @@ class AppPreferences @Inject constructor(
 
     suspend fun setAutoSyncEpg(enabled: Boolean) {
         dataStore.edit { it[SyncKeys.AUTO_SYNC_EPG] = enabled }
+    }
+
+    // --- VPN Settings ---
+    private object VpnKeys {
+        val VPN_ENABLED = booleanPreferencesKey("vpn_enabled")
+        val VPN_AUTO_CONNECT = booleanPreferencesKey("vpn_auto_connect")
+        val VPN_AUTO_CONNECT_ON_BOOT = booleanPreferencesKey("vpn_auto_connect_boot")
+        val VPN_CONNECT_BEFORE_STREAMING = booleanPreferencesKey("vpn_connect_before_streaming")
+        val VPN_SERVER_ID = stringPreferencesKey("vpn_server_id")
+        val VPN_PROTOCOL = stringPreferencesKey("vpn_protocol")
+        val VPN_KILL_SWITCH = booleanPreferencesKey("vpn_kill_switch")
+        val VPN_DNS_LEAK_PROTECTION = booleanPreferencesKey("vpn_dns_leak_protection")
+        val VPN_PROVIDER_TYPE = stringPreferencesKey("vpn_provider_type")
+        val VPN_CUSTOM_CONFIG = stringPreferencesKey("vpn_custom_config")
+        val VPN_RECONNECT_DELAY = intPreferencesKey("vpn_reconnect_delay")
+    }
+
+    val vpnEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_ENABLED] ?: false
+    }
+
+    val vpnAutoConnect: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_AUTO_CONNECT] ?: true
+    }
+
+    val vpnAutoConnectOnBoot: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_AUTO_CONNECT_ON_BOOT] ?: false
+    }
+
+    val vpnConnectBeforeStreaming: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_CONNECT_BEFORE_STREAMING] ?: false
+    }
+
+    val vpnServerId: Flow<String> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_SERVER_ID] ?: "de-frankfurt"
+    }
+
+    val vpnProtocol: Flow<String> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_PROTOCOL] ?: VpnProtocol.WIREGUARD.name
+    }
+
+    val vpnKillSwitch: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_KILL_SWITCH] ?: false
+    }
+
+    val vpnDnsLeakProtection: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_DNS_LEAK_PROTECTION] ?: true
+    }
+
+    val vpnProviderType: Flow<String> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_PROVIDER_TYPE] ?: VpnProviderType.FREE_BUILTIN.name
+    }
+
+    val vpnReconnectDelay: Flow<Int> = dataStore.data.map { prefs ->
+        prefs[VpnKeys.VPN_RECONNECT_DELAY] ?: 5
+    }
+
+    suspend fun setVpnEnabled(enabled: Boolean) {
+        dataStore.edit { it[VpnKeys.VPN_ENABLED] = enabled }
+    }
+
+    suspend fun setVpnAutoConnect(enabled: Boolean) {
+        dataStore.edit { it[VpnKeys.VPN_AUTO_CONNECT] = enabled }
+    }
+
+    suspend fun setVpnAutoConnectOnBoot(enabled: Boolean) {
+        dataStore.edit { it[VpnKeys.VPN_AUTO_CONNECT_ON_BOOT] = enabled }
+    }
+
+    suspend fun setVpnConnectBeforeStreaming(enabled: Boolean) {
+        dataStore.edit { it[VpnKeys.VPN_CONNECT_BEFORE_STREAMING] = enabled }
+    }
+
+    suspend fun setVpnServerId(serverId: String) {
+        dataStore.edit { it[VpnKeys.VPN_SERVER_ID] = serverId }
+    }
+
+    suspend fun setVpnProtocol(protocol: String) {
+        dataStore.edit { it[VpnKeys.VPN_PROTOCOL] = protocol }
+    }
+
+    suspend fun setVpnKillSwitch(enabled: Boolean) {
+        dataStore.edit { it[VpnKeys.VPN_KILL_SWITCH] = enabled }
+    }
+
+    suspend fun setVpnDnsLeakProtection(enabled: Boolean) {
+        dataStore.edit { it[VpnKeys.VPN_DNS_LEAK_PROTECTION] = enabled }
+    }
+
+    suspend fun setVpnProviderType(type: String) {
+        dataStore.edit { it[VpnKeys.VPN_PROVIDER_TYPE] = type }
+    }
+
+    suspend fun setVpnCustomConfig(config: String) {
+        dataStore.edit { it[VpnKeys.VPN_CUSTOM_CONFIG] = config }
+    }
+
+    suspend fun setVpnReconnectDelay(seconds: Int) {
+        dataStore.edit { it[VpnKeys.VPN_RECONNECT_DELAY] = seconds }
+    }
+
+    suspend fun getVpnCustomConfig(): String {
+        return dataStore.data.first()[VpnKeys.VPN_CUSTOM_CONFIG] ?: ""
     }
 }

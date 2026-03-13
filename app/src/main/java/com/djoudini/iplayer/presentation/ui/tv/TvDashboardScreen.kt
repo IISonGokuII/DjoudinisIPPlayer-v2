@@ -25,6 +25,9 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -489,7 +492,80 @@ private fun InfoRow(label: String, value: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+@Composable
+private fun TvVpnStatusBanner(
+    viewModel: DashboardViewModel,
+) {
+    // Note: DashboardViewModel needs vpnConnectionState exposed
+    // For now, this is a placeholder that will be updated when ViewModel is connected
+    val vpnEnabled = false // TODO: Get from ViewModel
+    val vpnConnected = false // TODO: Get from ViewModel
+    
+    if (!vpnEnabled) return // Don't show if VPN is not enabled
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (vpnConnected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+            },
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = if (vpnConnected) {
+                        Icons.Default.CheckCircle
+                    } else {
+                        Icons.Default.Error
+                    },
+                    contentDescription = null,
+                    tint = if (vpnConnected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    },
+                    modifier = Modifier.size(32.dp),
+                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.vpn),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = if (vpnConnected) {
+                            stringResource(R.string.vpn_connected)
+                        } else {
+                            stringResource(R.string.vpn_disconnected)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.Default.Security,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp),
+            )
+        }
     }
 }

@@ -244,6 +244,14 @@ fun TvSettingsScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // VPN Settings
+            TvVpnSettingsSection(
+                viewModel = viewModel,
+                onOpenSetupWizard = { },
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
             // Data Management
             TvSettingsSection(title = stringResource(R.string.data_management)) {
                 TvSettingsItem(

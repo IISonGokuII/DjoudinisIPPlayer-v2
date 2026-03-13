@@ -3,10 +3,13 @@ package com.djoudini.iplayer.di
 import com.djoudini.iplayer.data.repository.ChannelRepositoryImpl
 import com.djoudini.iplayer.data.repository.EpgRepositoryImpl
 import com.djoudini.iplayer.data.repository.PlaylistRepositoryImpl
+import com.djoudini.iplayer.data.repository.VpnRepositoryImpl
+import com.djoudini.iplayer.data.repository.VpnSetupRepository
 import com.djoudini.iplayer.data.repository.WatchProgressRepositoryImpl
 import com.djoudini.iplayer.domain.repository.ChannelRepository
 import com.djoudini.iplayer.domain.repository.EpgRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.domain.repository.VpnRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import dagger.Binds
 import dagger.Module
@@ -33,4 +36,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindEpgRepository(impl: EpgRepositoryImpl): EpgRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVpnRepository(impl: VpnRepositoryImpl): VpnRepository
 }
