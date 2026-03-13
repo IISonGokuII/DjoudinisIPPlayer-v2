@@ -2,8 +2,10 @@ package com.djoudini.iplayer.data.service
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -143,10 +145,7 @@ class SpeedTestService @Inject constructor() {
             try {
                 val startTime = System.currentTimeMillis()
                 
-                val requestBody = okhttp3.RequestBody.create(
-                    okhttp3.MediaType.parse("application/octet-stream"),
-                    testData
-                )
+                val requestBody = testData.toRequestBody("application/octet-stream".toMediaType())
                 
                 val request = Request.Builder()
                     .url("https://httpbin.org/post")

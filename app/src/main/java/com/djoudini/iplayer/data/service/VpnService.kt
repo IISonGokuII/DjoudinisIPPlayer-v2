@@ -24,21 +24,10 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * VPN Service for handling VPN connections.
- * 
- * NOTE: For real WireGuard support, integrate the WireGuard Android library:
- * https://git.zx2c4.com/wireguard-android/
- * 
- * Add to build.gradle.kts:
- * implementation("com.wireguard.android:backend:1.0.0")
- * 
- * This implementation uses Android's VpnService API as a placeholder.
- */
-@AndroidEntryPoint
-class VpnService : VpnService() {
-
-/**
- * VPN Service for handling WireGuard VPN connections.
+ * VPN Service for handling VPN connections using Android's VpnService API.
+ *
+ * This implementation uses a placeholder tunnel.
+ * For real WireGuard support, integrate: implementation("com.wireguard.android:backend:1.0.0")
  */
 @AndroidEntryPoint
 class VpnService : VpnService() {

@@ -390,6 +390,7 @@ fun AppNavGraph(
                     playlistRepository = playlistRepository,
                     watchProgressRepository = watchProgressRepository,
                     viewModel = settingsViewModel,
+                    onNavigateToVpnSetup = { navController.navigate(Route.VpnSetup.route) },
                 )
             }
         }

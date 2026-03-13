@@ -74,6 +74,7 @@ fun SettingsScreen(
     playlistRepository: PlaylistRepository,
     watchProgressRepository: WatchProgressRepository,
     viewModel: SettingsViewModel,
+    onNavigateToVpnSetup: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     
@@ -367,7 +368,7 @@ fun SettingsScreen(
             }
 
             // === VPN Settings ===
-            VpnSettingsSection(viewModel = viewModel)
+            VpnSettingsSection(viewModel = viewModel, onNavigateToVpnSetup = onNavigateToVpnSetup)
 
             SettingsSection(title = stringResource(R.string.appearance)) {
                 SettingsItem(

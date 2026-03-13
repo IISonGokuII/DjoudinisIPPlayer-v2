@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Dns
@@ -49,6 +50,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun VpnSettingsSection(
     viewModel: SettingsViewModel,
+    onNavigateToVpnSetup: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     
@@ -244,6 +246,17 @@ fun VpnSettingsSection(
                 onClick = {
                     viewModel.disconnectVpn()
                 },
+            )
+        }
+
+        // VPN Setup Wizard button (always visible)
+        if (onNavigateToVpnSetup != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            VpnSettingsItem(
+                icon = Icons.Default.Build,
+                title = stringResource(R.string.vpn_setup_wizard),
+                subtitle = "Anbieter konfigurieren oder eigene Config importieren",
+                onClick = onNavigateToVpnSetup,
             )
         }
     }

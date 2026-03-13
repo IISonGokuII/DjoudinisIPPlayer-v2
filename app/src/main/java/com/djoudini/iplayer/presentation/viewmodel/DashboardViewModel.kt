@@ -12,7 +12,10 @@ import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.domain.model.SyncProgress
+import com.djoudini.iplayer.data.local.entity.VpnConnectionInfo
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.domain.repository.VpnRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +34,8 @@ class DashboardViewModel @Inject constructor(
     private val vodDao: VodDao,
     private val seriesDao: SeriesDao,
     private val episodeDao: EpisodeDao,
+    private val appPreferences: AppPreferences,
+    private val vpnRepository: VpnRepository,
 ) : ViewModel() {
 
     // OPTIMIERUNG: SharingStarted.Lazily für persistenten Cache
@@ -69,6 +74,12 @@ class DashboardViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     val syncProgress: StateFlow<SyncProgress> = playlistRepository.syncProgress
+
+    val vpnEnabled: StateFlow<Boolean> = appPreferences.vpnEnabled
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
+    val vpnConnectionInfo: StateFlow<VpnConnectionInfo> = vpnRepository.connectionInfo
+        .stateIn(viewModelScope, SharingStarted.Lazily, VpnConnectionInfo())
 
     fun syncPlaylist() {
         val playlistId = activePlaylist.value?.id ?: return

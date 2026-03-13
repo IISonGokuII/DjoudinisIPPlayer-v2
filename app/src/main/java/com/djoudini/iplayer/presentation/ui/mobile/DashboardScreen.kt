@@ -60,6 +60,7 @@ import com.djoudini.iplayer.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.data.local.entity.VpnState
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.domain.model.SyncProgress
 import com.djoudini.iplayer.presentation.components.ProgressRing
@@ -162,7 +163,7 @@ fun DashboardScreen(
             }
 
             // VPN Status Banner
-            VpnStatusBanner(viewModel = viewModel)
+            VpnStatusBanner(viewModel = viewModel, onNavigateToSettings = onNavigateSettings)
             Spacer(modifier = Modifier.height(16.dp))
 
             // Continue Watching section
@@ -583,18 +584,18 @@ private fun ChannelCard(
 @Composable
 private fun VpnStatusBanner(
     viewModel: DashboardViewModel,
+    onNavigateToSettings: () -> Unit,
 ) {
-    // Note: DashboardViewModel needs vpnConnectionState exposed
-    // For now, this is a placeholder that will be updated when ViewModel is connected
-    val vpnEnabled = false // TODO: Get from ViewModel
-    val vpnConnected = false // TODO: Get from ViewModel
-    
+    val vpnEnabled by viewModel.vpnEnabled.collectAsStateWithLifecycle()
+    val vpnConnectionInfo by viewModel.vpnConnectionInfo.collectAsStateWithLifecycle()
+    val vpnConnected = vpnConnectionInfo.state is VpnState.Connected
+
     if (!vpnEnabled) return // Don't show if VPN is not enabled
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Navigate to VPN settings */ },
+            .clickable { onNavigateToSettings() },
         colors = CardDefaults.cardColors(
             containerColor = if (vpnConnected) {
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
