@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import coil.compose.AsyncImage
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
@@ -294,6 +295,7 @@ private fun TvSeriesCard(
     FocusableCard(
         onClick = {
             Timber.d("[TvSeriesCard] Card clicked: ${series.name} (ID=${series.id})")
+            FirebaseCrashlytics.getInstance().log("Series card clicked: ${series.name} (ID=$series.id)")
             onClick()
         },
         modifier = Modifier

@@ -13,6 +13,7 @@ import com.djoudini.iplayer.data.remote.api.XtreamApi
 import com.djoudini.iplayer.domain.model.PlaylistType
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.presentation.navigation.NavArgs
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -38,11 +39,20 @@ class SeriesDetailViewModel @Inject constructor(
     // FIX: seriesId korrekt aus SavedStateHandle auslesen mit verbessertem Error-Handling
     private val seriesId: Long = savedStateHandle[NavArgs.SERIES_ID] ?: run {
         val allKeys = savedStateHandle.keys()
-        Timber.e("seriesId is null! Available keys: $allKeys")
+        val errorMsg = "seriesId is null! Available keys: $allKeys"
+        
+        // Log to Timber
+        Timber.e(errorMsg)
         allKeys.forEach { key ->
             Timber.e("  $key -> ${savedStateHandle.get<Any>(key)}")
         }
-        throw IllegalStateException("seriesId argument is missing! Navigation error. Available keys: $allKeys")
+        
+        // Log to Firebase Crashlytics for remote crash reporting
+        FirebaseCrashlytics.getInstance().log(errorMsg)
+        FirebaseCrashlytics.getInstance().setCustomKey("available_keys", allKeys.joinToString(", "))
+        FirebaseCrashlytics.getInstance().recordException(IllegalStateException(errorMsg))
+        
+        throw IllegalStateException(errorMsg)
     }
 
     // FIX: Validate seriesId immediately
@@ -50,9 +60,16 @@ class SeriesDetailViewModel @Inject constructor(
         if (seriesId <= 0) {
             val errorMsg = "Invalid seriesId: $seriesId. Must be > 0"
             Timber.e(errorMsg)
+            
+            // Log to Firebase Crashlytics
+            FirebaseCrashlytics.getInstance().log(errorMsg)
+            FirebaseCrashlytics.getInstance().setCustomKey("invalid_series_id", seriesId)
+            FirebaseCrashlytics.getInstance().recordException(IllegalStateException(errorMsg))
+            
             throw IllegalStateException(errorMsg)
         }
         Timber.d("[SeriesDetailViewModel] seriesId from SavedStateHandle: $seriesId")
+        FirebaseCrashlytics.getInstance().log("Loading series with ID: $seriesId")
     }
 
     // FIX: Track active collection jobs to prevent memory leaks
