@@ -17,8 +17,6 @@ class WireGuardTunnel(
 
     override fun getName(): String = name
 
-    override fun getState(): Tunnel.State = state
-
     override fun onStateChange(newState: Tunnel.State) {
         state = newState
         onStateChanged(newState)

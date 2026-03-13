@@ -61,8 +61,11 @@ class VpnStateManager @Inject constructor() {
  */
 sealed class VpnState {
     object Disconnected : VpnState()
-    data class Connecting(val tunnelName: String) : VpnState()
-    data class Connected(val tunnelName: String, val connectedSince: Long) : VpnState()
+    data class Connecting(override val tunnelName: String) : VpnState()
+    data class Connected(
+        override val tunnelName: String,
+        val connectedSince: Long,
+    ) : VpnState()
     object Disconnecting : VpnState()
     data class Error(val message: String) : VpnState()
     
@@ -70,7 +73,7 @@ sealed class VpnState {
     val isConnecting: Boolean get() = this is Connecting || this is Disconnecting
     val isError: Boolean get() = this is Error
     
-    val tunnelName: String?
+    open val tunnelName: String?
         get() = when (this) {
             is Connected -> tunnelName
             is Connecting -> tunnelName

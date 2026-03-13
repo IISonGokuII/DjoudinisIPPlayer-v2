@@ -118,7 +118,7 @@ class IpCheckService @Inject constructor() {
             lastError = result.error
             
             if (i < retries - 1) {
-                kotlinx.coroutines.delay(1000 * (i + 1)) // Exponential backoff
+                kotlinx.coroutines.delay(1000L * (i + 1)) // Exponential backoff
             }
         }
         

@@ -79,16 +79,13 @@ fun TvVpnSetupWizardScreen(
     viewModel: VpnSetupViewModel = hiltViewModel(),
 ) {
     val setupState by viewModel.setupState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    
     // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val filePath = it.path ?: return@let
             viewModel.importConfigFile(
-                filePath = filePath,
+                uri = it,
                 onSuccess = { },
                 onError = { }
             )
@@ -305,9 +302,6 @@ private fun TvVpnProviderCard(
     provider: VpnProviderInfo,
     onClick: () -> Unit,
 ) {
-    val focusRequester = remember { FocusRequester() }
-    var isFocused by remember { mutableStateOf(false) }
-
     FocusableCard(
         onClick = onClick,
         modifier = Modifier
