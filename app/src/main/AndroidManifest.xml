@@ -89,19 +89,24 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- VPN Service -->
+        <!-- VPN Notification Service (foreground notification while tunnel is active) -->
         <service
             android:name=".data.service.VpnService"
-            android:enabled="true"
             android:exported="false"
-            android:permission="android.permission.BIND_VPN_SERVICE"
             android:foregroundServiceType="specialUse">
-            <intent-filter>
-                <action android:name="android.net.VpnService" />
-            </intent-filter>
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="vpn" />
+        </service>
+
+        <!-- WireGuard GoBackend VPN Service (real WireGuard tunnel via native Go library) -->
+        <service
+            android:name="com.wireguard.android.backend.GoBackend$VpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
         </service>
 
         <!-- VPN Boot Receiver -->

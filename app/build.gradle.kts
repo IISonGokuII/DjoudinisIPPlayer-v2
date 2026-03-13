@@ -152,6 +152,10 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // WireGuard GoBackend (native Go library for real WireGuard tunnels)
+    implementation("com.wireguard.android:tunnel:1.0.20231018")
+    implementation("com.wireguard.android:backend:1.0.20231018")
+
     // DataStore
     implementation(libs.datastore.preferences)
 

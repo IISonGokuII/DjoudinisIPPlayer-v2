@@ -14,8 +14,10 @@ import com.djoudini.iplayer.data.service.IpCheckService
 import com.djoudini.iplayer.data.service.SpeedTestService
 import com.djoudini.iplayer.data.service.VpnPermissionManager
 import com.djoudini.iplayer.data.service.VpnService
-import com.djoudini.iplayer.data.service.VpnStateManager
+import com.djoudini.iplayer.data.service.WireGuardTunnel
 import com.djoudini.iplayer.domain.repository.VpnRepository
+import com.wireguard.android.backend.GoBackend
+import com.wireguard.config.Config
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +32,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.File
 import java.io.FileNotFoundException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,13 +42,18 @@ class VpnRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val appPreferences: AppPreferences,
     private val connectivityManager: ConnectivityManager,
-    private val vpnStateManager: VpnStateManager,
     private val vpnPermissionManager: VpnPermissionManager,
     private val speedTestService: SpeedTestService,
     private val ipCheckService: IpCheckService,
 ) : VpnRepository {
 
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** GoBackend manages the real WireGuard tunnel via native Go library. */
+    private val goBackend: GoBackend by lazy { GoBackend(context) }
+
+    /** Currently active tunnel; null when disconnected. */
+    @Volatile private var currentTunnel: WireGuardTunnel? = null
 
     private val _connectionState = MutableStateFlow(VpnConnectionInfo())
     override val connectionInfo: Flow<VpnConnectionInfo> = _connectionState.asStateFlow()
@@ -241,8 +249,6 @@ class VpnRepositoryImpl @Inject constructor(
                 // Check if Android VPN permission is granted
                 val permissionIntent = android.net.VpnService.prepare(context)
                 if (permissionIntent != null) {
-                    // Permission not yet granted — ask MainActivity to show the dialog.
-                    // connect() is re-triggered automatically after the user accepts.
                     Timber.d("VPN permission required, requesting from UI")
                     vpnPermissionManager.requestPermission {
                         repoScope.launch { connect(serverId) }
@@ -251,38 +257,87 @@ class VpnRepositoryImpl @Inject constructor(
                     return Result.failure(VpnPermissionRequiredException())
                 }
 
-                val config = getVpnConfigForServer(serverId, server)
+                val configString = getVpnConfigForServer(serverId, server)
 
-                val intent = Intent(context, VpnService::class.java).apply {
-                    action = VpnService.ACTION_CONNECT
-                    putExtra(VpnService.EXTRA_CONFIG, config)
-                    putExtra(VpnService.EXTRA_TUNNEL_NAME, server.name)
-                    putExtra(VpnService.EXTRA_SERVER_ENDPOINT, "${server.hostname}:${server.port}")
-                }
-                context.startForegroundService(intent)
-
-                // Brief wait for the service to establish the tunnel
-                kotlinx.coroutines.delay(2000)
-
-                _connectionState.update {
-                    VpnConnectionInfo(
-                        server = server,
-                        state = VpnState.Connected,
-                        connectedSince = System.currentTimeMillis(),
-                        localIp = "10.0.0.${(1..254).random()}",
-                        currentPing = server.ping,
+                // Reject template configs with unfilled placeholders
+                if (configString.contains("<INSERT_")) {
+                    _connectionState.update { it.copy(state = VpnState.Disconnected) }
+                    return Result.failure(
+                        Exception("Bitte importiere eine echte WireGuard-Config-Datei im Einrichtungsassistenten.")
                     )
                 }
-                Timber.d("VPN connected to ${server.name}")
+
+                // Validate with our parser (checks PrivateKey + Peer present)
+                if (!WireGuardConfigParser.parse(configString).isValid) {
+                    _connectionState.update { it.copy(state = VpnState.Disconnected) }
+                    return Result.failure(
+                        Exception("Ungültige WireGuard-Config. Bitte importiere deine Config-Datei im Einrichtungsassistenten.")
+                    )
+                }
+
+                // Parse with GoBackend's Config class
+                val wireGuardConfig = withContext(Dispatchers.IO) {
+                    Config.parse(configString.reader().buffered())
+                }
+
+                // Derive the tunnel's local IP from the Interface.Address field
+                val localIp = wireGuardConfig.`interface`.addresses
+                    .firstOrNull()?.address?.hostAddress ?: "10.0.0.2"
+
+                // Create WireGuard tunnel with state callbacks
+                val tunnel = WireGuardTunnel(server.name) { newState ->
+                    repoScope.launch {
+                        when (newState) {
+                            com.wireguard.android.backend.Tunnel.State.UP -> {
+                                _connectionState.update {
+                                    VpnConnectionInfo(
+                                        server = server,
+                                        state = VpnState.Connected,
+                                        connectedSince = System.currentTimeMillis(),
+                                        localIp = localIp,
+                                        currentPing = server.ping,
+                                    )
+                                }
+                                context.startForegroundService(
+                                    Intent(context, VpnService::class.java).apply {
+                                        action = VpnService.ACTION_SHOW
+                                        putExtra(VpnService.EXTRA_TUNNEL_NAME, server.name)
+                                    }
+                                )
+                            }
+                            com.wireguard.android.backend.Tunnel.State.DOWN -> {
+                                _connectionState.update {
+                                    VpnConnectionInfo(server = it.server, state = VpnState.Disconnected)
+                                }
+                                context.startService(
+                                    Intent(context, VpnService::class.java).apply {
+                                        action = VpnService.ACTION_HIDE
+                                    }
+                                )
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+                currentTunnel = tunnel
+
+                // Start real WireGuard tunnel via GoBackend (blocks until UP or throws)
+                withContext(Dispatchers.IO) {
+                    goBackend.setState(
+                        tunnel,
+                        com.wireguard.android.backend.Tunnel.State.UP,
+                        wireGuardConfig,
+                    )
+                }
+
+                Timber.d("WireGuard tunnel UP for ${server.name}")
                 Result.success(Unit)
 
             } catch (e: VpnPermissionRequiredException) {
                 Result.failure(e)
             } catch (e: Exception) {
                 Timber.e(e, "VPN connection failed")
-                _connectionState.update {
-                    it.copy(state = VpnState.Error(e.message ?: "Unknown error"))
-                }
+                _connectionState.update { it.copy(state = VpnState.Error(e.message ?: "Unknown error")) }
                 Result.failure(e)
             }
         }
@@ -324,17 +379,28 @@ class VpnRepositoryImpl @Inject constructor(
         return connectionMutex.withLock {
             try {
                 Timber.d("Disconnecting VPN")
+                _connectionState.update { it.copy(state = VpnState.Disconnecting) }
 
-                _connectionState.update {
-                    it.copy(state = VpnState.Disconnecting)
-                }
-
-                kotlinx.coroutines.delay(500)
-
-                _connectionState.update {
-                    VpnConnectionInfo(
-                        server = it.server,
-                        state = VpnState.Disconnected
+                val tunnel = currentTunnel
+                if (tunnel != null) {
+                    // Tell GoBackend to tear down the WireGuard tunnel
+                    withContext(Dispatchers.IO) {
+                        goBackend.setState(
+                            tunnel,
+                            com.wireguard.android.backend.Tunnel.State.DOWN,
+                            null,
+                        )
+                    }
+                    currentTunnel = null
+                } else {
+                    // No active tunnel — just update state and hide notification
+                    _connectionState.update {
+                        VpnConnectionInfo(server = it.server, state = VpnState.Disconnected)
+                    }
+                    context.startService(
+                        Intent(context, VpnService::class.java).apply {
+                            action = VpnService.ACTION_HIDE
+                        }
                     )
                 }
 
