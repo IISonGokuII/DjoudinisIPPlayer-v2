@@ -15,6 +15,7 @@ import com.djoudini.iplayer.data.worker.SyncScheduler
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.util.CrashHandler
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 import javax.inject.Inject
@@ -50,6 +51,16 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
 
         // Initialize Crash Handler (MUST be before WorkManager)
         CrashHandler.init(this)
+
+        // Initialize Firebase Crashlytics for non-debug builds
+        if (!BuildConfig.DEBUG) {
+            try {
+                FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+                Timber.d("[DjoudinisApp] Firebase Crashlytics enabled for release builds")
+            } catch (e: Exception) {
+                Timber.e(e, "[DjoudinisApp] Firebase Crashlytics init failed")
+            }
+        }
 
         // Initialize WorkManager
         WorkManager.initialize(

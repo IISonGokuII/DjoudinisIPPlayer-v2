@@ -8,6 +8,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.widget.Toast
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import timber.log.Timber
 import java.io.File
 import java.io.FileWriter
@@ -20,6 +21,7 @@ import java.util.Locale
 /**
  * Global Crash Handler that saves crash reports to Downloads folder
  * and shows error dialog to user.
+ * Also reports to Firebase Crashlytics for online monitoring.
  */
 object CrashHandler : Thread.UncaughtExceptionHandler {
 
@@ -32,6 +34,16 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
      */
     fun init(context: Context) {
         this.context = context.applicationContext
+        
+        // Initialize Firebase Crashlytics
+        try {
+            FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+            FirebaseCrashlytics.getInstance().setCustomKey("app_version", getAppVersion(context))
+            Timber.d("[CrashHandler] Firebase Crashlytics initialized")
+        } catch (e: Exception) {
+            Timber.e(e, "[CrashHandler] Firebase Crashlytics init failed (expected in debug builds without google-services.json)")
+        }
+        
         defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(this)
         Timber.d("[CrashHandler] Initialized")
@@ -47,6 +59,16 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
         Timber.e(throwable, "[CrashHandler] Uncaught exception in thread: ${thread.name}")
+
+        // Report to Firebase Crashlytics
+        try {
+            FirebaseCrashlytics.getInstance().recordException(throwable)
+            FirebaseCrashlytics.getInstance().setCustomKey("thread_name", thread.name)
+            FirebaseCrashlytics.getInstance().log("Crash in thread: ${thread.name}")
+            Timber.d("[CrashHandler] Reported to Firebase Crashlytics")
+        } catch (e: Exception) {
+            Timber.e(e, "[CrashHandler] Failed to report to Firebase")
+        }
 
         // Save crash report to file
         val reportFile = saveCrashReport(throwable, thread)
@@ -312,6 +334,18 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
             clipboard.setPrimaryClip(clip)
         } catch (e: Exception) {
             Timber.e(e, "[CrashHandler] Failed to copy to clipboard")
+        }
+    }
+
+    /**
+     * Get app version string for crash reports
+     */
+    private fun getAppVersion(context: Context): String {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            "${packageInfo.versionName} (${packageInfo.versionCode})"
+        } catch (e: Exception) {
+            "unknown"
         }
     }
 }

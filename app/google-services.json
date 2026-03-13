@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "706758714858",
+    "project_id": "com-djoudini-iplayer",
+    "storage_bucket": "com-djoudini-iplayer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706758714858:android:6029f083fb5c993e38fe93",
+        "android_client_info": {
+          "package_name": "com.djoudini.iplayer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCePHt5ODJciphi5aNfNjO-nFbPiWhzdVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706758714858:android:6029f083fb5c993e38fe93",
+        "android_client_info": {
+          "package_name": "com.djoudini.iplayer.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCePHt5ODJciphi5aNfNjO-nFbPiWhzdVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

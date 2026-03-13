@@ -25,6 +25,8 @@ minSdk = "24"
 targetSdk = "35"
 compileSdk = "35"
 jvmTarget = "17"
+googleServices = "4.4.2"
+firebaseCrashlytics = "3.0.2"
 
 [libraries]
 # Compose BOM
@@ -109,3 +111,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }

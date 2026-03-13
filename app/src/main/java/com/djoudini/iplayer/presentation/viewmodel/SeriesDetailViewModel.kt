@@ -35,10 +35,24 @@ class SeriesDetailViewModel @Inject constructor(
     private val watchProgressDao: WatchProgressDao,
 ) : ViewModel() {
 
-    // FIX: seriesId korrekt aus SavedStateHandle auslesen
+    // FIX: seriesId korrekt aus SavedStateHandle auslesen mit verbessertem Error-Handling
     private val seriesId: Long = savedStateHandle[NavArgs.SERIES_ID] ?: run {
-        Timber.e("seriesId is null! Using 0L as fallback")
-        0L
+        val allKeys = savedStateHandle.keys()
+        Timber.e("seriesId is null! Available keys: $allKeys")
+        allKeys.forEach { key ->
+            Timber.e("  $key -> ${savedStateHandle.get<Any>(key)}")
+        }
+        throw IllegalStateException("seriesId argument is missing! Navigation error. Available keys: $allKeys")
+    }
+
+    // FIX: Validate seriesId immediately
+    init {
+        if (seriesId <= 0) {
+            val errorMsg = "Invalid seriesId: $seriesId. Must be > 0"
+            Timber.e(errorMsg)
+            throw IllegalStateException(errorMsg)
+        }
+        Timber.d("[SeriesDetailViewModel] seriesId from SavedStateHandle: $seriesId")
     }
 
     // FIX: Track active collection jobs to prevent memory leaks
@@ -61,8 +75,6 @@ class SeriesDetailViewModel @Inject constructor(
     val episodeProgress: StateFlow<Map<Long, WatchProgressEntity>> = _episodeProgress.asStateFlow()
 
     init {
-        Timber.d("[SeriesDetailViewModel] seriesId from SavedStateHandle: $seriesId")
-        
         viewModelScope.launch {
             Timber.d("[SeriesDetailViewModel] Loading series with ID: $seriesId")
             val s = seriesDao.getById(seriesId)
