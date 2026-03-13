@@ -68,7 +68,7 @@ fun TvSeriesDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         if (series == null) {
             // Loading state
@@ -192,30 +192,30 @@ private fun TvSeriesHeader(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        // Series poster
+        // Series poster – fixed size to keep header compact
         if (!series.coverUrl.isNullOrBlank()) {
             AsyncImage(
                 model = series.coverUrl,
                 contentDescription = series.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .width(150.dp)
-                    .aspectRatio(2f / 3f)
-                    .clip(RoundedCornerShape(12.dp)),
+                    .width(110.dp)
+                    .height(155.dp)
+                    .clip(RoundedCornerShape(10.dp)),
             )
         } else {
             Box(
                 modifier = Modifier
-                    .width(150.dp)
-                    .aspectRatio(2f / 3f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .width(110.dp)
+                    .height(155.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Tv,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -328,13 +328,14 @@ private fun TvEpisodeCard(
                     contentDescription = episode.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(140.dp)
+                        .width(120.dp)
+                        .fillMaxHeight()
                         .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(70.dp)
+                        .size(64.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
