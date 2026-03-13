@@ -293,6 +293,18 @@ class ContentListViewModel @Inject constructor(
         }
     }
 
+    fun toggleVodFavorite(vodId: Long, currentFavorite: Boolean) {
+        viewModelScope.launch {
+            vodDao.setFavorite(vodId, !currentFavorite)
+        }
+    }
+
+    fun toggleSeriesFavorite(seriesId: Long, currentFavorite: Boolean) {
+        viewModelScope.launch {
+            seriesDao.setFavorite(seriesId, !currentFavorite)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         // ViewModel is being destroyed, all flows are automatically cancelled by viewModelScope

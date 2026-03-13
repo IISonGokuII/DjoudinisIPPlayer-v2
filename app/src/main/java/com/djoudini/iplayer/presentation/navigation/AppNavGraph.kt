@@ -159,6 +159,7 @@ fun AppNavGraph(
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
                             "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
                             "episode" -> navController.navigate(Route.Player.create("episode", contentId))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
                             else -> navController.navigate(Route.Player.create(contentType, contentId))
@@ -178,6 +179,7 @@ fun AppNavGraph(
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
                             "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
                             "episode" -> navController.navigate(Route.Player.create("episode", contentId))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
                             else -> navController.navigate(Route.Player.create(contentType, contentId))

@@ -20,15 +20,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,6 +81,7 @@ import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 import com.djoudini.iplayer.presentation.viewmodel.ChannelWithEpg
+import com.djoudini.iplayer.presentation.viewmodel.ViewMode
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -102,6 +106,8 @@ fun TvLiveCategoriesScreen(
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val channels by viewModel.filteredChannels.collectAsStateWithLifecycle()
     val inlineSearch by viewModel.inlineSearchQuery.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
     var selectedChannel by remember { mutableStateOf<ChannelEntity?>(null) }
@@ -253,7 +259,7 @@ fun TvLiveCategoriesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -268,7 +274,33 @@ fun TvLiveCategoriesScreen(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
+                // Sort button
+                IconButton(onClick = { viewModel.cycleSortMode() }) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Sort,
+                            contentDescription = "Sort",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = sortMode.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+                // View mode button
+                IconButton(onClick = { viewModel.cycleViewMode() }) {
+                    Icon(
+                        imageVector = if (viewMode == ViewMode.LIST) Icons.Default.ViewList else Icons.Default.GridView,
+                        contentDescription = "View mode",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
 
             HorizontalDivider(
@@ -301,6 +333,7 @@ fun TvLiveCategoriesScreen(
                             currentProgram = channelWithEpg.currentProgram,
                             timeFormat = timeFormat,
                             isSelected = selectedChannel?.id == channelWithEpg.channel.id,
+                            compact = viewMode != ViewMode.LIST,
                             onClick = {
                                 if (selectedChannel?.id == channelWithEpg.channel.id) {
                                     // Already selected - open fullscreen
@@ -309,6 +342,9 @@ fun TvLiveCategoriesScreen(
                                     // Different channel - change preview
                                     selectedChannel = channelWithEpg.channel
                                 }
+                            },
+                            onToggleFavorite = {
+                                viewModel.toggleFavorite(channelWithEpg.channel.id, channelWithEpg.channel.isFavorite)
                             },
                         )
                     }
@@ -496,15 +532,19 @@ private fun ChannelItem(
     currentProgram: EpgProgramEntity?,
     timeFormat: SimpleDateFormat,
     isSelected: Boolean,
+    compact: Boolean = false,
     onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+    val itemHeight = if (compact) 56.dp else 80.dp
+    val logoSize = if (compact) 40.dp else 56.dp
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(itemHeight)
             .focusable(interactionSource = interactionSource)
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyUp &&
@@ -526,13 +566,13 @@ private fun ChannelItem(
                     else -> Color.Transparent
                 }
             )
-            .padding(12.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Channel logo or icon
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(logoSize)
                 .clip(RoundedCornerShape(8.dp)),
         ) {
             if (!channel.logoUrl.isNullOrBlank()) {
@@ -550,7 +590,7 @@ private fun ChannelItem(
                     Icon(
                         imageVector = Icons.Default.LiveTv,
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(if (compact) 22.dp else 32.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -565,28 +605,43 @@ private fun ChannelItem(
         ) {
             Text(
                 text = channel.name,
-                style = MaterialTheme.typography.bodyLarge,
+                style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            currentProgram?.let { program ->
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = program.title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            if (!compact) {
+                currentProgram?.let { program ->
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = program.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
+        }
+
+        // Favorite button
+        IconButton(
+            onClick = onToggleFavorite,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = if (channel.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (channel.isFavorite) "Aus Favoriten entfernen" else "Zu Favoriten hinzufügen",
+                tint = if (channel.isFavorite) MaterialTheme.colorScheme.error
+                       else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(18.dp),
+            )
         }
 
         // Playing indicator
         if (isSelected) {
-            Spacer(modifier = Modifier.width(8.dp))
             Box(
                 modifier = Modifier
                     .size(24.dp)

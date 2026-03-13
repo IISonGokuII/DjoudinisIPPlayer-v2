@@ -23,10 +23,14 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -65,6 +69,7 @@ fun TvSeriesCategoriesScreen(
     val categories by viewModel.seriesCategories.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val seriesItems by viewModel.filteredSeriesItems.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
 
     val sidebarFocusRequester = remember { FocusRequester() }
 
@@ -134,7 +139,34 @@ fun TvSeriesCategoriesScreen(
                     text = stringResource(R.string.series),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
                 )
+
+                // Sort button
+                FocusableCard(
+                    onClick = { viewModel.cycleSortMode() },
+                    modifier = Modifier.size(56.dp),
+                    focusScale = 1.1f,
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = "Sort",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = sortMode.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -176,6 +208,7 @@ fun TvSeriesCategoriesScreen(
                             TvSeriesCard(
                                 series = seriesItems[index],
                                 onClick = { onSeriesClick(seriesItems[index].id) },
+                                onToggleFavorite = { viewModel.toggleSeriesFavorite(seriesItems[index].id, seriesItems[index].isFavorite) },
                             )
                         }
                     }
@@ -290,6 +323,7 @@ private fun TvSeriesCategorySidebar(
 private fun TvSeriesCard(
     series: SeriesEntity,
     onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
 ) {
     Timber.d("[TvSeriesCard] Creating card for: ${series.name} (ID=${series.id})")
     FocusableCard(
@@ -303,60 +337,79 @@ private fun TvSeriesCard(
             .height(300.dp),
         focusScale = 1.05f,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-        ) {
-            // Series poster
-            if (!series.coverUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = series.coverUrl,
-                    contentDescription = series.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+            ) {
+                // Series poster
+                if (!series.coverUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = series.coverUrl,
+                        contentDescription = series.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tv,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Series title
+                Text(
+                    text = series.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Tv,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+
+                // Genre if available
+                series.genre?.let { genre ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = genre,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Series title
-            Text(
-                text = series.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            // Genre if available
-            series.genre?.let { genre ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = genre,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            // Favorite button overlay (top-right)
+            IconButton(
+                onClick = onToggleFavorite,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(36.dp),
+            ) {
+                Icon(
+                    imageVector = if (series.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (series.isFavorite) "Aus Favoriten entfernen" else "Zu Favoriten hinzufügen",
+                    tint = if (series.isFavorite) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.size(24.dp),
                 )
             }
         }

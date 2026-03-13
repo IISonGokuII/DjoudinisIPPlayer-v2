@@ -23,10 +23,14 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -64,6 +68,7 @@ fun TvVodCategoriesScreen(
     val categories by viewModel.vodCategories.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val vodItems by viewModel.filteredVodItems.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
 
     val sidebarFocusRequester = remember { FocusRequester() }
 
@@ -133,7 +138,34 @@ fun TvVodCategoriesScreen(
                     text = stringResource(R.string.movies),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
                 )
+
+                // Sort button
+                FocusableCard(
+                    onClick = { viewModel.cycleSortMode() },
+                    modifier = Modifier.size(56.dp),
+                    focusScale = 1.1f,
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Sort,
+                                contentDescription = "Sort",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Text(
+                                text = sortMode.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -175,6 +207,7 @@ fun TvVodCategoriesScreen(
                             TvVodCard(
                                 vod = vodItems[index],
                                 onClick = { onVodClick(vodItems[index].id) },
+                                onToggleFavorite = { viewModel.toggleVodFavorite(vodItems[index].id, vodItems[index].isFavorite) },
                             )
                         }
                     }
@@ -289,6 +322,7 @@ private fun TvVodCategorySidebar(
 private fun TvVodCard(
     vod: VodEntity,
     onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
 ) {
     Timber.d("[TvVodCard] Creating card for: ${vod.name} (ID=${vod.id})")
     FocusableCard(
@@ -301,58 +335,77 @@ private fun TvVodCard(
             .height(300.dp),
         focusScale = 1.05f,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-        ) {
-            // Movie poster
-            if (!vod.logoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = vod.logoUrl,
-                    contentDescription = vod.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+            ) {
+                // Movie poster
+                if (!vod.logoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = vod.logoUrl,
+                        contentDescription = vod.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Movie,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Movie title
+                Text(
+                    text = vod.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Movie,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+
+                // Release year
+                vod.year?.let { year ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = year.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Movie title
-            Text(
-                text = vod.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            // Release year
-            vod.year?.let { year ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = year.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Favorite button overlay (top-right)
+            IconButton(
+                onClick = onToggleFavorite,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(36.dp),
+            ) {
+                Icon(
+                    imageVector = if (vod.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (vod.isFavorite) "Aus Favoriten entfernen" else "Zu Favoriten hinzufügen",
+                    tint = if (vod.isFavorite) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.size(24.dp),
                 )
             }
         }
