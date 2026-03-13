@@ -22,7 +22,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 /**
  * Centralized app preferences backed by DataStore.
- * Covers player config, sync intervals, Trakt.tv tokens, UI preferences.
+ * Covers player config, sync intervals, UI preferences.
  */
 @Singleton
 class AppPreferences @Inject constructor(
@@ -97,45 +97,6 @@ class AppPreferences @Inject constructor(
         dataStore.edit { prefs ->
             prefs[SyncKeys.PLAYLIST_SYNC_INTERVAL_HOURS] = playlistHours
             prefs[SyncKeys.EPG_SYNC_INTERVAL_HOURS] = epgHours
-        }
-    }
-
-    // --- Trakt.tv ---
-    private object TraktKeys {
-        val ACCESS_TOKEN = stringPreferencesKey("trakt_access_token")
-        val REFRESH_TOKEN = stringPreferencesKey("trakt_refresh_token")
-        val EXPIRES_AT = longPreferencesKey("trakt_expires_at")
-        val ENABLED = booleanPreferencesKey("trakt_enabled")
-    }
-
-    val traktAccessToken: Flow<String?> = dataStore.data.map { prefs ->
-        prefs[TraktKeys.ACCESS_TOKEN]
-    }
-
-    val traktEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[TraktKeys.ENABLED] ?: false
-    }
-
-    suspend fun saveTraktTokens(accessToken: String, refreshToken: String, expiresAt: Long) {
-        dataStore.edit { prefs ->
-            prefs[TraktKeys.ACCESS_TOKEN] = accessToken
-            prefs[TraktKeys.REFRESH_TOKEN] = refreshToken
-            prefs[TraktKeys.EXPIRES_AT] = expiresAt
-            prefs[TraktKeys.ENABLED] = true
-        }
-    }
-
-    suspend fun getTraktRefreshToken(): String? {
-        // FIX: Use first() instead of collect() - collect() blocks forever on DataStore
-        return dataStore.data.first()[TraktKeys.REFRESH_TOKEN]
-    }
-
-    suspend fun clearTraktTokens() {
-        dataStore.edit { prefs ->
-            prefs.remove(TraktKeys.ACCESS_TOKEN)
-            prefs.remove(TraktKeys.REFRESH_TOKEN)
-            prefs.remove(TraktKeys.EXPIRES_AT)
-            prefs[TraktKeys.ENABLED] = false
         }
     }
 

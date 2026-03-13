@@ -38,6 +38,10 @@ class EpgViewModel @Inject constructor(
         loadEpg()
     }
 
+    fun reload() {
+        loadEpg()
+    }
+
     private fun loadEpg() {
         viewModelScope.launch {
             val startTime = System.currentTimeMillis()

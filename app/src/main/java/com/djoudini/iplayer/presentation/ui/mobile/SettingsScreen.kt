@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SyncDisabled
@@ -51,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
-import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import kotlinx.coroutines.flow.collectLatest
@@ -62,14 +60,12 @@ fun SettingsScreen(
     onBack: () -> Unit,
     appPreferences: AppPreferences,
     playlistRepository: PlaylistRepository,
-    traktRepository: TraktRepository,
     watchProgressRepository: WatchProgressRepository,
 ) {
     val scope = rememberCoroutineScope()
     
     var playerConfig by remember { mutableStateOf(PlayerConfig()) }
     var autoSyncEnabled by remember { mutableStateOf(true) }
-    var traktEnabled by remember { mutableStateOf(false) }
     var theme by remember { mutableStateOf("dark") }
     var preferredAudioLanguage by remember { mutableStateOf("") }
     var preferredSubtitleLanguage by remember { mutableStateOf("") }
@@ -80,9 +76,6 @@ fun SettingsScreen(
     }
     scope.launch {
         appPreferences.autoSyncEnabled.collectLatest { autoSyncEnabled = it }
-    }
-    scope.launch {
-        appPreferences.traktEnabled.collectLatest { traktEnabled = it }
     }
     scope.launch {
         appPreferences.theme.collectLatest { theme = it }
@@ -260,23 +253,6 @@ fun SettingsScreen(
                             "tr" -> "fr"
                             "fr" -> ""
                             else -> ""
-                        }
-                    },
-                )
-            }
-
-            SettingsSection(title = stringResource(R.string.trakt_tv)) {
-                SettingsToggleItem(
-                    icon = Icons.Default.Speed,
-                    title = if (traktEnabled) stringResource(R.string.connected) else stringResource(R.string.connect_trakt),
-                    subtitle = if (traktEnabled) stringResource(R.string.watch_progress_synced) else stringResource(R.string.sync_watched_content),
-                    checked = traktEnabled,
-                    onCheckedChange = {
-                        if (traktEnabled) {
-                            scope.launch {
-                                traktRepository.disconnect()
-                                traktEnabled = false
-                            }
                         }
                     },
                 )

@@ -10,7 +10,6 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.util.DebugLogger
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
-import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.data.worker.SyncScheduler
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
@@ -34,9 +33,6 @@ class DjoudinisApp : Application(), ImageLoaderFactory {
 
     @Inject
     lateinit var appPreferences: AppPreferences
-
-    @Inject
-    lateinit var traktRepository: TraktRepository
 
     @Inject
     lateinit var watchProgressRepository: WatchProgressRepository

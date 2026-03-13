@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.SyncDisabled
@@ -60,7 +59,6 @@ fun TvSettingsScreen(
 ) {
     val playerConfig by viewModel.playerConfig.collectAsStateWithLifecycle()
     val autoSyncEnabled by viewModel.autoSyncEnabled.collectAsStateWithLifecycle()
-    val traktEnabled by viewModel.traktEnabled.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val preferredAudioLanguage = viewModel.audioLanguage()
     val preferredSubtitleLanguage = viewModel.subtitleLanguage()
@@ -220,21 +218,6 @@ fun TvSettingsScreen(
                             else -> ""
                         }
                         viewModel.updatePreferredSubtitleLanguage(next)
-                    },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Trakt.tv Settings
-            TvSettingsSection(title = stringResource(R.string.trakt_tv)) {
-                TvSettingsToggleItem(
-                    icon = Icons.Default.Speed,
-                    title = if (traktEnabled) stringResource(R.string.connected) else stringResource(R.string.connect_trakt),
-                    subtitle = if (traktEnabled) stringResource(R.string.watch_progress_synced) else stringResource(R.string.sync_watched_content),
-                    checked = traktEnabled,
-                    onCheckedChange = {
-                        if (traktEnabled) viewModel.disconnectTrakt()
                     },
                 )
             }

@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
-import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +20,6 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val appPreferences: AppPreferences,
     private val playlistRepository: PlaylistRepository,
-    private val traktRepository: TraktRepository,
     private val watchProgressRepository: WatchProgressRepository,
 ) : ViewModel() {
 
@@ -39,9 +37,6 @@ class SettingsViewModel @Inject constructor(
 
     val autoSyncEnabled: StateFlow<Boolean> = appPreferences.autoSyncEnabled
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
-
-    val traktEnabled: StateFlow<Boolean> = appPreferences.traktEnabled
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     val theme: StateFlow<String> = appPreferences.theme
         .stateIn(viewModelScope, SharingStarted.Lazily, "dark")
@@ -98,12 +93,6 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Ignore
             }
-        }
-    }
-
-    fun disconnectTrakt() {
-        viewModelScope.launch {
-            traktRepository.disconnect()
         }
     }
 

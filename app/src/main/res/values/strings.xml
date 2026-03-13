@@ -159,11 +159,7 @@
     <string name="auto_system_default">Auto (system default)</string>
     <string name="preferred_subtitle_language">Preferred Subtitle Language</string>
     <string name="off">Off</string>
-    <string name="trakt_tv">Trakt.tv</string>
     <string name="connected">Connected</string>
-    <string name="connect_trakt">Connect Trakt.tv</string>
-    <string name="watch_progress_synced">Watch progress synced</string>
-    <string name="sync_watched_content">Sync watched movies &amp; series</string>
     <string name="appearance">Appearance</string>
     <string name="theme">Theme</string>
     <string name="data_management">Data Management</string>

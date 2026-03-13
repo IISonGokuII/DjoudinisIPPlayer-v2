@@ -1,7 +1,6 @@
 package com.djoudini.iplayer.di
 
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
-import com.djoudini.iplayer.data.remote.api.TraktApi
 import com.djoudini.iplayer.data.remote.api.XtreamApi
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -72,25 +71,4 @@ object NetworkModule {
             .create(XtreamApi::class.java)
     }
 
-    @Provides
-    @Singleton
-    fun provideTraktApi(okHttpClient: OkHttpClient, moshi: Moshi): TraktApi {
-        val traktClient = okHttpClient.newBuilder()
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .header("Content-Type", "application/json")
-                    .header("trakt-api-version", "2")
-                    .header("trakt-api-key", "") // Set via BuildConfig in production
-                    .build()
-                chain.proceed(request)
-            }
-            .build()
-
-        return Retrofit.Builder()
-            .baseUrl("https://api.trakt.tv/")
-            .client(traktClient)
-            .addConverterFactory(MoshiConverterFactory.create(moshi))
-            .build()
-            .create(TraktApi::class.java)
-    }
 }

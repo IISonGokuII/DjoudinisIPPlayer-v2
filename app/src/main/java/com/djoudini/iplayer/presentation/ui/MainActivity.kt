@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
-import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.navigation.AppNavGraph
@@ -39,9 +38,6 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var appPreferences: AppPreferences
-
-    @Inject
-    lateinit var traktRepository: TraktRepository
 
     @Inject
     lateinit var watchProgressRepository: WatchProgressRepository
@@ -70,7 +66,6 @@ class MainActivity : ComponentActivity() {
                     AppContent(
                         playlistRepository = playlistRepository,
                         appPreferences = appPreferences,
-                        traktRepository = traktRepository,
                         watchProgressRepository = watchProgressRepository,
                         isTvDevice = isTvDevice,
                     )
@@ -107,7 +102,6 @@ class MainActivity : ComponentActivity() {
 private fun AppContent(
     playlistRepository: PlaylistRepository,
     appPreferences: AppPreferences,
-    traktRepository: TraktRepository,
     watchProgressRepository: WatchProgressRepository,
     isTvDevice: Boolean,
 ) {
@@ -131,7 +125,6 @@ private fun AppContent(
             isTvDevice = isTvDevice,
             appPreferences = appPreferences,
             playlistRepository = playlistRepository,
-            traktRepository = traktRepository,
             watchProgressRepository = watchProgressRepository,
             onChannelClick = { channelId ->
                 navController.navigate(Route.Player.create("channel", channelId))

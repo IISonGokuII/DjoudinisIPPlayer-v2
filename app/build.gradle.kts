@@ -35,8 +35,8 @@ android {
             buildConfigField("String", "DEFAULT_USER_AGENT", "\"VLC/3.0.20 LibVLC/3.0.20\"")
         }
         release {
-            isMinifyEnabled = false  // ← Testweise deaktivieren
-            isShrinkResources = false  // ← Testweise deaktivieren
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

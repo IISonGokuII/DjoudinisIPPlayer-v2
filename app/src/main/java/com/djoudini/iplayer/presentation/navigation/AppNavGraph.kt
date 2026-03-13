@@ -8,7 +8,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
-import com.djoudini.iplayer.data.repository.TraktRepository
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.ui.mobile.CategoryFilterScreen
@@ -51,7 +50,6 @@ fun AppNavGraph(
     modifier: Modifier = Modifier,
     appPreferences: AppPreferences,
     playlistRepository: PlaylistRepository,
-    traktRepository: TraktRepository,
     watchProgressRepository: WatchProgressRepository,
     onChannelClick: (Long) -> Unit = {},
 ) {
@@ -377,7 +375,6 @@ fun AppNavGraph(
                     onBack = { navController.popBackStack() },
                     appPreferences = appPreferences,
                     playlistRepository = playlistRepository,
-                    traktRepository = traktRepository,
                     watchProgressRepository = watchProgressRepository,
                 )
             }

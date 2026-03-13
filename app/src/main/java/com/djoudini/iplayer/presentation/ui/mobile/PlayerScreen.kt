@@ -6,6 +6,8 @@ import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -640,15 +642,6 @@ fun PlayerScreen(
                 onClick = { viewModel.toggleControls() },
             ),
     ) {
-        // EPG Overlay - Shows current and next program for 5 seconds
-        if (showEpgOverlay && uiState.contentType == WatchContentType.CHANNEL) {
-            EpgOverlay(
-                currentProgram = uiState.currentProgram,
-                nextProgram = uiState.nextProgram,
-                onDismiss = { showEpgOverlay = false },
-            )
-        }
-
         // Video surface with Pinch-to-Zoom and Aspect Ratio
         if (exoPlayer != null) {
             val playerView = remember { mutableStateOf<PlayerView?>(null) }
@@ -1009,6 +1002,19 @@ fun PlayerScreen(
                 }
             }
         }
+
+        // Modern EPG Info Banner at bottom of screen
+        if (uiState.contentType == WatchContentType.CHANNEL) {
+            EpgInfoBanner(
+                visible = showEpgOverlay,
+                channelName = uiState.title,
+                channelLogo = uiState.logoUrl,
+                currentProgram = uiState.currentProgram,
+                nextProgram = uiState.nextProgram,
+                onDismiss = { showEpgOverlay = false },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 
@@ -1024,97 +1030,160 @@ private fun formatDuration(ms: Long): String {
     }
 }
 
+/**
+ * Modernes EPG-Infobanner – erscheint unten im Player für 5 Sekunden.
+ * Zeigt Kanalname, aktuelles Programm mit Fortschrittsbalken und nächstes Programm.
+ */
 @Composable
-private fun EpgOverlay(
+private fun EpgInfoBanner(
+    visible: Boolean,
+    channelName: String,
+    channelLogo: String?,
     currentProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
     nextProgram: com.djoudini.iplayer.data.local.entity.EpgProgramEntity?,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val timeFormat = remember { java.text.SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.Black.copy(alpha = 0.8f))
-            .padding(16.dp),
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        modifier = modifier,
     ) {
-        Column {
-            // Current program
-            currentProgram?.let { current ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.95f)),
+                        startY = 0f,
+                        endY = 200f,
+                    )
+                )
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Channel header row: Logo + Name + Close button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Jetzt",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
+                    // Channel logo
+                    if (!channelLogo.isNullOrBlank()) {
+                        coil.compose.AsyncImage(
+                            model = channelLogo,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(4.dp)),
                         )
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    Text(
+                        text = channelName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(36.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Schließen",
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+
+                currentProgram?.let { current ->
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // "JETZT" label
+                    Text(
+                        text = "JETZT",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // Program title + time
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
                         Text(
                             text = current.title,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${timeFormat.format(Date(current.startTime))} - ${timeFormat.format(Date(current.stopTime))}",
+                            text = "${timeFormat.format(Date(current.startTime))} – ${timeFormat.format(Date(current.stopTime))}",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = Color.White.copy(alpha = 0.65f),
                         )
                     }
-                }
-            }
 
-            // Next program
-            nextProgram?.let { next ->
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    // Progress bar: current position within program
+                    val now = System.currentTimeMillis()
+                    val totalDuration = (current.stopTime - current.startTime).toFloat()
+                    val elapsed = (now - current.startTime).toFloat()
+                    val progress = if (totalDuration > 0) (elapsed / totalDuration).coerceIn(0f, 1f) else 0f
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(2.dp)),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = Color.White.copy(alpha = 0.2f),
+                    )
+                }
+
+                nextProgram?.let { next ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
-                            text = "Als nächstes",
+                            text = "DANACH  ",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Color.White.copy(alpha = 0.5f),
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text = next.title,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.9f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.7f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${timeFormat.format(Date(next.startTime))} - ${timeFormat.format(Date(next.stopTime))}",
+                            text = timeFormat.format(Date(next.startTime)),
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = Color.White.copy(alpha = 0.45f),
                         )
                     }
                 }
             }
-        }
-
-        // Dismiss button
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(32.dp),
-        ) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = "Schließen",
-                tint = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp),
-            )
         }
     }
 }

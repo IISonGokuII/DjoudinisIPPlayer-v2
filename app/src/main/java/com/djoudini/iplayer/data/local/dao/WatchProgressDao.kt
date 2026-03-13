@@ -54,12 +54,8 @@ interface WatchProgressDao {
     """)
     fun observeEpisodeProgress(playlistId: Long, episodeIds: List<Long>): Flow<List<WatchProgressEntity>>
 
-    @Query("SELECT * FROM watch_progress WHERE trakt_synced = 0")
-    suspend fun getUnsyncedForTrakt(): List<WatchProgressEntity>
-
-    @Query("UPDATE watch_progress SET trakt_synced = 1 WHERE id = :progressId")
-    suspend fun markTraktSynced(progressId: Long)
-
     @Query("DELETE FROM watch_progress WHERE playlist_id = :playlistId")
     suspend fun deleteByPlaylist(playlistId: Long)
+
+    suspend fun clearAll(playlistId: Long) = deleteByPlaylist(playlistId)
 }

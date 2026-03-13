@@ -144,10 +144,9 @@ class PlayerViewModel @Inject constructor(
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
     private var progressSaveJob: Job? = null
-    // NEW: Sleep timer job
     private var sleepTimerJob: Job? = null
-    // NEW: Auto-play job
     private var autoPlayJob: Job? = null
+    private var epgRefreshJob: Job? = null
 
     init {
         loadContent()
@@ -181,6 +180,9 @@ class PlayerViewModel @Inject constructor(
         // Load EPG data
         val currentProgram = channel.tvgId?.let { epgRepository.getCurrentProgram(it) }
         val nextProgram = channel.tvgId?.let { epgRepository.getNextProgram(it) }
+
+        // Start periodic EPG refresh every 60 seconds
+        channel.tvgId?.let { startEpgRefresh(it) }
 
         // Build fallback URLs for LiveTV streams
         val fallbackUrls = buildStreamFallbacks(channel.streamUrl, channel.containerExtension)
@@ -426,6 +428,20 @@ class PlayerViewModel @Inject constructor(
         progressSaveJob?.cancel()
         sleepTimerJob?.cancel()
         autoPlayJob?.cancel()
+        epgRefreshJob?.cancel()
+    }
+
+    /** Refreshes EPG (current/next program) every 60 seconds for live channels. */
+    private fun startEpgRefresh(tvgId: String) {
+        epgRefreshJob?.cancel()
+        epgRefreshJob = viewModelScope.launch {
+            while (isActive) {
+                delay(60_000)
+                val current = epgRepository.getCurrentProgram(tvgId)
+                val next = epgRepository.getNextProgram(tvgId)
+                _uiState.update { it.copy(currentProgram = current, nextProgram = next) }
+            }
+        }
     }
 
     // ==================== SLEEP TIMER ====================
