@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +58,7 @@ import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
+import timber.log.Timber
 
 /**
  * TV-optimized Series categories screen with Outlook-style sidebar.
@@ -252,11 +254,15 @@ private fun TvSeriesCategorySidebar(
             items(categories, key = { it.id }) { category ->
                 val isSelected = category.id == selectedCategoryId
                 FocusableCard(
-                    onClick = { onSelectCategory(category.id) },
+                    onClick = { 
+                        Timber.d("[TvSeriesCategories] Category clicked: ${category.name} (ID: ${category.id})")
+                        onSelectCategory(category.id)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp),
-                    focusScale = 1.0f,
+                        .height(64.dp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    focusScale = 1.05f,
                 ) {
                     Row(
                         modifier = Modifier
@@ -268,7 +274,7 @@ private fun TvSeriesCategorySidebar(
                             imageVector = Icons.Default.Folder,
                             contentDescription = null,
                             modifier = Modifier.size(28.dp),
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary
+                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (expanded) {
@@ -277,12 +283,21 @@ private fun TvSeriesCategorySidebar(
                                 text = category.name,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f),
                             )
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Selected",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            }
                         }
                     }
                 }
