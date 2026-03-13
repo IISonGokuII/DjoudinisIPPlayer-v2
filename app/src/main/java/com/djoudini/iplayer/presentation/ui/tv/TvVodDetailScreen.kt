@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,7 +60,7 @@ fun TvVodDetailScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
         if (vod == null) {
             TvVodDetailLoading()
@@ -92,14 +92,14 @@ private fun TvVodDetailContent(
         // Left side: Movie Poster with Play button BELOW
         Column(
             modifier = Modifier
-                .weight(0.35f)
+                .width(220.dp)
                 .fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Back button at top
             FocusableCard(
                 onClick = onBack,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(44.dp),
                 focusScale = 1.1f,
             ) {
                 Box(
@@ -114,9 +114,9 @@ private fun TvVodDetailContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Movie poster FIRST - on the left side
+            // Movie poster – capped height so play button is ALWAYS visible
             val posterUrl = vod.logoUrl
             if (!posterUrl.isNullOrBlank()) {
                 AsyncImage(
@@ -125,14 +125,14 @@ private fun TvVodDetailContent(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(2f / 3f)
+                        .heightIn(max = 240.dp)
                         .clip(RoundedCornerShape(12.dp)),
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(2f / 3f)
+                        .height(200.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
@@ -146,15 +146,14 @@ private fun TvVodDetailContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Play button BELOW the poster - MOST PROMINENT, auto-focused for TV
-            // Using a more visible design with primary color background
+            // Play button – always below the poster, prominent & auto-focusable
             FocusableCard(
                 onClick = onPlay,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
+                    .height(56.dp),
                 focusScale = 1.1f,
             ) {
                 Box(
@@ -190,16 +189,13 @@ private fun TvVodDetailContent(
             }
         }
 
-        // Right side: Movie details - use Box with constraints instead of heightIn
-        Box(
+        // Right side: Movie details
+        Column(
             modifier = Modifier
-                .weight(0.65f)
-                .fillMaxHeight(),
+                .weight(1f)
+                .fillMaxHeight()
+                .verticalScroll(scrollState),
         ) {
-            Column(
-                modifier = Modifier
-                    .verticalScroll(scrollState),
-            ) {
             // Title
             Text(
                 text = vod.name,
@@ -354,7 +350,6 @@ private fun TvVodDetailContent(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
             }
         }
     }
