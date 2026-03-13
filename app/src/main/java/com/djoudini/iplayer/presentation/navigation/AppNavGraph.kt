@@ -41,6 +41,7 @@ import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvCategoryFilterScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvFavoritesScreen
+import timber.log.Timber
 
 @Composable
 fun AppNavGraph(
