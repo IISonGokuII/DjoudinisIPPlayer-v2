@@ -1,7 +1,7 @@
 === VOD CATEGORIES DEBUG ===
-Timestamp: 2026-03-13 00:43:28
+Timestamp: 2026-03-13 01:02:03
 Categories loaded: 16
-Selected category ID: 416
+Selected category ID: 420
   - Category: VOD | DE - ABENTEUER (ID: 416, Playlist: 1)
   - Category: VOD | DE - AKTION & KRIMI (ID: 415, Playlist: 1)
   - Category: VOD | DE - ANIME (ID: 411, Playlist: 1)
