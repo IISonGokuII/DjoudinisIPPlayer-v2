@@ -873,6 +873,27 @@ class PlayerViewModel @Inject constructor(
         _uiState.update { it.copy(showTrackSelection = show) }
     }
 
+    /**
+     * Mark a specific audio track as selected in the UI state.
+     * Actual ExoPlayer track selection is handled directly in PlayerScreen with TrackSelectionOverride.
+     */
+    fun selectAudioTrack(index: Int) {
+        val updated = _uiState.value.audioTracks.mapIndexed { i, t ->
+            t.copy(isSelected = i == index)
+        }
+        _uiState.update { it.copy(audioTracks = updated) }
+    }
+
+    /**
+     * Mark a specific subtitle track as selected in the UI state.
+     */
+    fun selectSubtitleTrack(index: Int) {
+        val updated = _uiState.value.subtitleTracks.mapIndexed { i, t ->
+            t.copy(isSelected = i == index)
+        }
+        _uiState.update { it.copy(subtitleTracks = updated) }
+    }
+
     // ==================== CHANNEL NUMBER INPUT ====================
 
     /**

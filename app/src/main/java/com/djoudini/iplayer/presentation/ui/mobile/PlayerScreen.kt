@@ -120,6 +120,10 @@ fun PlayerScreen(
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showAudioDelayDialog by remember { mutableStateOf(false) }
     var currentPlaybackSpeed by remember { mutableStateOf(1f) }
+    var showSubtitleTrackDialog by remember { mutableStateOf(false) }
+    // Maps flat track index → (TrackGroup, trackIndexInGroup) for ExoPlayer selection
+    var audioTrackGroupMap by remember { mutableStateOf<List<Pair<androidx.media3.common.TrackGroup, Int>>>(emptyList()) }
+    var subtitleTrackGroupMap by remember { mutableStateOf<List<Pair<androidx.media3.common.TrackGroup, Int>>>(emptyList()) }
 
     // Immersive fullscreen mode with smooth transition
     LaunchedEffect(isFullscreen) {
@@ -277,6 +281,86 @@ fun PlayerScreen(
         }
     }
 
+    // Track changes listener: reads audio/subtitle tracks from ExoPlayer and updates ViewModel.
+    // Also auto-selects a compatible audio track if the default one can't be decoded.
+    DisposableEffect(exoPlayer) {
+        val listener = object : Player.Listener {
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                val audioTracks = mutableListOf<AudioTrackInfo>()
+                val subtitleTracks = mutableListOf<SubtitleTrackInfo>()
+                val newAudioMap = mutableListOf<Pair<androidx.media3.common.TrackGroup, Int>>()
+                val newSubtitleMap = mutableListOf<Pair<androidx.media3.common.TrackGroup, Int>>()
+
+                tracks.groups.forEach { group ->
+                    when (group.type) {
+                        C.TRACK_TYPE_AUDIO -> {
+                            for (i in 0 until group.length) {
+                                val fmt = group.getTrackFormat(i)
+                                val codec = fmt.sampleMimeType?.substringAfterLast('/') ?: ""
+                                audioTracks.add(AudioTrackInfo(
+                                    index = audioTracks.size,
+                                    language = fmt.language ?: "und",
+                                    label = buildString {
+                                        append(fmt.label ?: fmt.language ?: "Audio ${audioTracks.size + 1}")
+                                        if (codec.isNotBlank()) append(" [$codec]")
+                                        if (fmt.channelCount > 0) append(" ${fmt.channelCount}ch")
+                                    },
+                                    isSelected = group.isTrackSelected(i),
+                                ))
+                                newAudioMap.add(Pair(group.mediaTrackGroup, i))
+                            }
+                        }
+                        C.TRACK_TYPE_TEXT -> {
+                            for (i in 0 until group.length) {
+                                val fmt = group.getTrackFormat(i)
+                                subtitleTracks.add(SubtitleTrackInfo(
+                                    index = subtitleTracks.size,
+                                    language = fmt.language ?: "und",
+                                    label = fmt.label ?: fmt.language ?: "Untertitel ${subtitleTracks.size + 1}",
+                                    isSelected = group.isTrackSelected(i),
+                                ))
+                                newSubtitleMap.add(Pair(group.mediaTrackGroup, i))
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+
+                viewModel.updateTracks(audioTracks, subtitleTracks)
+                audioTrackGroupMap = newAudioMap
+                subtitleTrackGroupMap = newSubtitleMap
+
+                // Auto-fallback: if all selected audio tracks are Dolby/DTS (not supported on
+                // most mobile devices), prefer AAC/MP3/Opus instead.
+                val dolbyMimes = setOf("audio/ac3", "audio/eac3", "audio/x-e-ac-3", "audio/true-hd")
+                val selectedAudio = tracks.groups
+                    .filter { it.type == C.TRACK_TYPE_AUDIO }
+                    .any { g -> (0 until g.length).any { g.isTrackSelected(it) && (g.getTrackFormat(it).sampleMimeType in dolbyMimes) } }
+
+                if (selectedAudio) {
+                    // Try to find a non-Dolby audio group
+                    val aacGroup = tracks.groups
+                        .filter { it.type == C.TRACK_TYPE_AUDIO }
+                        .find { g -> (0 until g.length).any { g.getTrackFormat(it).sampleMimeType !in dolbyMimes } }
+
+                    if (aacGroup != null) {
+                        val trackIdx = (0 until aacGroup.length)
+                            .first { aacGroup.getTrackFormat(it).sampleMimeType !in dolbyMimes }
+                        try {
+                            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                .buildUpon()
+                                .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+                                .addOverride(TrackSelectionOverride(aacGroup.mediaTrackGroup, trackIdx))
+                                .build()
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose { exoPlayer.removeListener(listener) }
+    }
+
     // Resume dialog
     if (uiState.showResumeDialog) {
         val mins = uiState.resumePositionMs / 60_000
@@ -299,40 +383,130 @@ fun PlayerScreen(
         )
     }
 
-    // Audio Track Info Dialog (simplified)
+    // Audio Track Selection Dialog
     if (showAudioTrackDialog) {
         AlertDialog(
             onDismissRequest = { showAudioTrackDialog = false },
             title = { Text(stringResource(R.string.audio_track)) },
             text = {
                 Column {
-                    Text(
-                        text = "Audio-Spur Information:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = "Die Audio-Spur wird automatisch vom Stream geladen.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Bei den meisten IPTV-Streams ist nur eine Audio-Spur verfügbar. Wenn mehrere Audio-Spuren vorhanden sind (z.B. bei Filmen mit Mehrsprachigkeit), werden diese automatisch von ExoPlayer erkannt.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tipp: Wenn kein Ton zu hören ist, überprüfe die Lautstärke deines Geräts oder versuche den Stream neu zu laden.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
+                    if (uiState.audioTracks.isEmpty()) {
+                        Text(
+                            text = "Keine Audio-Spuren erkannt. Starte den Stream neu oder warte kurz.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        // Auto option
+                        Text(
+                            text = if (!uiState.audioTracks.any { it.isSelected }) "✓ Automatisch" else "  Automatisch",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (!uiState.audioTracks.any { it.isSelected }) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                        .buildUpon()
+                                        .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+                                        .build()
+                                    viewModel.updateTracks(
+                                        uiState.audioTracks.map { it.copy(isSelected = false) },
+                                        uiState.subtitleTracks,
+                                    )
+                                    showAudioTrackDialog = false
+                                }
+                                .padding(vertical = 10.dp),
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        uiState.audioTracks.forEachIndexed { idx, track ->
+                            Text(
+                                text = if (track.isSelected) "✓ ${track.label}" else "  ${track.label}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (track.isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val (group, trackIdx) = audioTrackGroupMap.getOrNull(idx) ?: return@clickable
+                                        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                            .buildUpon()
+                                            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+                                            .addOverride(TrackSelectionOverride(group, trackIdx))
+                                            .build()
+                                        viewModel.selectAudioTrack(idx)
+                                        showAudioTrackDialog = false
+                                    }
+                                    .padding(vertical = 10.dp),
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showAudioTrackDialog = false }) {
+                    Text(stringResource(R.string.close))
+                }
+            },
+        )
+    }
+
+    // Subtitle Track Selection Dialog
+    if (showSubtitleTrackDialog) {
+        AlertDialog(
+            onDismissRequest = { showSubtitleTrackDialog = false },
+            title = { Text(stringResource(R.string.subtitles)) },
+            text = {
+                Column {
+                    // "Off" option
+                    Text(
+                        text = if (uiState.subtitleTracks.none { it.isSelected }) "✓ Aus" else "  Aus",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (uiState.subtitleTracks.none { it.isSelected }) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                    .buildUpon()
+                                    .setIgnoredTextSelectionFlags(C.SELECTION_FLAG_DEFAULT or C.SELECTION_FLAG_FORCED)
+                                    .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                                    .build()
+                                viewModel.updateTracks(uiState.audioTracks, uiState.subtitleTracks.map { it.copy(isSelected = false) })
+                                showSubtitleTrackDialog = false
+                            }
+                            .padding(vertical = 10.dp),
+                    )
+                    if (uiState.subtitleTracks.isNotEmpty()) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        uiState.subtitleTracks.forEachIndexed { idx, track ->
+                            Text(
+                                text = if (track.isSelected) "✓ ${track.label}" else "  ${track.label}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (track.isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val (group, trackIdx) = subtitleTrackGroupMap.getOrNull(idx) ?: return@clickable
+                                        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                                            .buildUpon()
+                                            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                                            .addOverride(TrackSelectionOverride(group, trackIdx))
+                                            .build()
+                                        viewModel.selectSubtitleTrack(idx)
+                                        showSubtitleTrackDialog = false
+                                    }
+                                    .padding(vertical = 10.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSubtitleTrackDialog = false }) {
                     Text(stringResource(R.string.close))
                 }
             },
@@ -798,6 +972,16 @@ fun PlayerScreen(
                             viewModel.showControls()
                         }) {
                             Icon(Icons.Default.Audiotrack, stringResource(R.string.audio_track), tint = Color.White)
+                        }
+                        IconButton(onClick = {
+                            showSubtitleTrackDialog = true
+                            viewModel.showControls()
+                        }) {
+                            Icon(
+                                Icons.Default.Subtitles,
+                                stringResource(R.string.subtitles),
+                                tint = if (uiState.subtitleTracks.any { it.isSelected }) MaterialTheme.colorScheme.primary else Color.White,
+                            )
                         }
                         IconButton(onClick = {
                             showPlaybackSpeedDialog = true

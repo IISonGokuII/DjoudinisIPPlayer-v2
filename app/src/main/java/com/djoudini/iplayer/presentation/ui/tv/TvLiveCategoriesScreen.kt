@@ -45,8 +45,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -98,10 +107,13 @@ fun TvLiveCategoriesScreen(
     var selectedChannel by remember { mutableStateOf<ChannelEntity?>(null) }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     val context = LocalContext.current
+    val firstCategoryFocusRequester = remember { FocusRequester() }
 
     // Initialize player once
     LaunchedEffect(Unit) {
         exoPlayer = ExoPlayer.Builder(context).build()
+        // Set initial D-pad focus to first category item, not the search TextField
+        try { firstCategoryFocusRequester.requestFocus() } catch (_: Exception) {}
     }
 
     // Update player when channel changes (preview only, NOT fullscreen)
@@ -192,7 +204,8 @@ fun TvLiveCategoriesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp)
-                    .height(48.dp),
+                    .height(48.dp)
+                    .focusProperties { canFocus = false },
                 textStyle = MaterialTheme.typography.bodySmall,
             )
 
@@ -214,13 +227,14 @@ fun TvLiveCategoriesScreen(
                         count = channels.size,
                         isSelected = selectedCategoryId == 0L,
                         onClick = { viewModel.selectCategory(0L) },
+                        focusRequester = firstCategoryFocusRequester,
                     )
                 }
 
                 items(categories, key = { it.id }) { category ->
                     CategoryItem(
                         name = category.name,
-                        count = null, // Could add count if available
+                        count = null,
                         isSelected = category.id == selectedCategoryId,
                         onClick = { viewModel.selectCategory(category.id) },
                     )
@@ -410,17 +424,39 @@ private fun CategoryItem(
     count: Int?,
     isSelected: Boolean,
     onClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val focusModifier = if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier
+
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clickable(onClick = onClick)
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else Color.Transparent
-            )
-            .padding(horizontal = 16.dp),
+        modifier = focusModifier
+            .then(Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .focusable(interactionSource = interactionSource)
+                .onKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyUp &&
+                        (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                    ) {
+                        onClick()
+                        true
+                    } else false
+                }
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick,
+                )
+                .background(
+                    when {
+                        isSelected -> MaterialTheme.colorScheme.primaryContainer
+                        isFocused -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        else -> Color.Transparent
+                    }
+                )
+                .padding(horizontal = 16.dp)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -462,14 +498,33 @@ private fun ChannelItem(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp)
-            .clickable(onClick = onClick)
+            .focusable(interactionSource = interactionSource)
+            .onKeyEvent { event ->
+                if (event.type == KeyEventType.KeyUp &&
+                    (event.key == Key.DirectionCenter || event.key == Key.Enter)
+                ) {
+                    onClick()
+                    true
+                } else false
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                else Color.Transparent
+                when {
+                    isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    isFocused -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                    else -> Color.Transparent
+                }
             )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
