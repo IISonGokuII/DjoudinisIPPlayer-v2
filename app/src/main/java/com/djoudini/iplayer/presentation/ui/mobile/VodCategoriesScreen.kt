@@ -269,8 +269,6 @@ private fun VodCard(
                     model = vod.logoUrl,
                     contentDescription = vod.name,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    placeholder = androidx.compose.ui.res.painterResource(R.drawable.placeholder_image),
-                    error = androidx.compose.ui.res.painterResource(R.drawable.error_image),
                     modifier = Modifier.fillMaxWidth().weight(1f)
                         .padding(bottom = 8.dp),
                 )

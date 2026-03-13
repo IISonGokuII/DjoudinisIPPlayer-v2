@@ -1,0 +1,186 @@
+═══════════════════════════════════════════════════════════
+           DJOUDINI'S IP PLAYER - CRASH REPORT
+═══════════════════════════════════════════════════════════
+
+📅 TIMESTAMP: 2026-03-13 01:33:16
+
+📱 DEVICE INFO:
+   Manufacturer: vivo
+   Model: V2405A
+   Product: PD2405M
+   Android Version: 16 (API 36)
+   SDK: 36
+   Display: PD2405C_A_16.1.19.6.W10
+
+📦 APP INFO:
+   Package: com.djoudini.iplayer.debug
+   Version Name: 1.0.0
+   Version Code: 1
+   Long Version Code: 1
+
+🧵 THREAD INFO:
+   Thread Name: main
+   Thread ID: 2
+
+❌ EXCEPTION INFO:
+   Type: java.lang.IllegalArgumentException
+   Message: Only VectorDrawables and rasterized asset types are supported ex. PNG, JPG, WEBP
+   Cause: null
+
+📚 STACK TRACE:
+───────────────────────────────────────────────────────────
+java.lang.IllegalArgumentException: Only VectorDrawables and rasterized asset types are supported ex. PNG, JPG, WEBP
+	at androidx.compose.ui.res.PainterResources_androidKt.loadVectorResource(PainterResources.android.kt:99)
+	at androidx.compose.ui.res.PainterResources_androidKt.painterResource(PainterResources.android.kt:70)
+	at com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreenKt$SeriesCard$1.invoke(SeriesCategoriesScreen.kt:275)
+	at com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreenKt$SeriesCard$1.invoke(SeriesCategoriesScreen.kt:265)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:118)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at com.djoudini.iplayer.presentation.components.FocusableCardKt$FocusableCard$2.invoke(FocusableCard.kt:139)
+	at com.djoudini.iplayer.presentation.components.FocusableCardKt$FocusableCard$2.invoke(FocusableCard.kt:98)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:118)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.material3.CardKt$Card$1.invoke(Card.kt:888)
+	at androidx.compose.material3.CardKt$Card$1.invoke(Card.kt:96)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:109)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.material3.SurfaceKt$Surface$1.invoke(Surface.kt:126)
+	at androidx.compose.material3.SurfaceKt$Surface$1.invoke(Surface.kt:108)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:109)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:380)
+	at androidx.compose.material3.SurfaceKt.Surface-T9BRK9s(Surface.kt:105)
+	at androidx.compose.material3.CardKt.Card(Card.kt:89)
+	at com.djoudini.iplayer.presentation.components.FocusableCardKt.FocusableCard-uDo3WH8(FocusableCard.kt:66)
+	at com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreenKt.SeriesCard(SeriesCategoriesScreen.kt:261)
+	at com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreenKt.access$SeriesCard(SeriesCategoriesScreen.kt:1)
+	at com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreenKt$SeriesCategoriesScreen$6$1$2$3$1$2.invoke(SeriesCategoriesScreen.kt:243)
+	at com.djoudini.iplayer.presentation.ui.mobile.SeriesCategoriesScreenKt$SeriesCategoriesScreen$6$1$2$3$1$2.invoke(SeriesCategoriesScreen.kt:242)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:139)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.foundation.lazy.grid.LazyGridItemProviderImpl$Item$1.invoke(LazyGridItemProvider.kt:78)
+	at androidx.compose.foundation.lazy.grid.LazyGridItemProviderImpl$Item$1.invoke(LazyGridItemProvider.kt:76)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:109)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:401)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutPinnableItemKt.LazyLayoutPinnableItem(LazyLayoutPinnableItem.kt:58)
+	at androidx.compose.foundation.lazy.grid.LazyGridItemProviderImpl.Item(LazyGridItemProvider.kt:76)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt$SkippableItem$1.invoke(LazyLayoutItemContentFactory.kt:136)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt$SkippableItem$1.invoke(LazyLayoutItemContentFactory.kt:135)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:109)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.runtime.CompositionLocalKt.CompositionLocalProvider(CompositionLocal.kt:401)
+	at androidx.compose.runtime.saveable.SaveableStateHolderImpl.SaveableStateProvider(SaveableStateHolder.kt:85)
+	at androidx.compose.foundation.lazy.layout.LazySaveableStateHolder.SaveableStateProvider(LazySaveableStateHolder.kt:85)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt.SkippableItem-JVlU9Rs(LazyLayoutItemContentFactory.kt:135)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactoryKt.access$SkippableItem-JVlU9Rs(LazyLayoutItemContentFactory.kt:1)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactory$CachedItemContent$createContentLambda$1.invoke(LazyLayoutItemContentFactory.kt:101)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutItemContentFactory$CachedItemContent$createContentLambda$1.invoke(LazyLayoutItemContentFactory.kt:91)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:109)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$subcompose$3$1$1.invoke(SubcomposeLayout.kt:1017)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$subcompose$3$1$1.invoke(SubcomposeLayout.kt:493)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:109)
+	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
+	at androidx.compose.runtime.ActualJvm_jvmKt.invokeComposable(ActualJvm.jvm.kt:97)
+	at androidx.compose.runtime.ComposerImpl.doCompose(Composer.kt:3595)
+	at androidx.compose.runtime.ComposerImpl.composeContent$runtime_release(Composer.kt:3522)
+	at androidx.compose.runtime.CompositionImpl.composeContent(Composition.kt:743)
+	at androidx.compose.runtime.Recomposer.composeInitial$runtime_release(Recomposer.kt:1122)
+	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime_release(Composer.kt:3876)
+	at androidx.compose.runtime.ComposerImpl$CompositionContextImpl.composeInitial$runtime_release(Composer.kt:3876)
+	at androidx.compose.runtime.CompositionImpl.composeInitial(Composition.kt:649)
+	at androidx.compose.runtime.CompositionImpl.setContent(Composition.kt:635)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcomposeInto(SubcomposeLayout.kt:516)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:488)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:479)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState.subcompose(SubcomposeLayout.kt:463)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$Scope.subcompose(SubcomposeLayout.kt:895)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScopeImpl.measure-0kLqBqw(LazyLayoutMeasureScope.kt:125)
+	at androidx.compose.foundation.lazy.grid.LazyGridMeasuredItemProvider.getAndMeasure-m8Kt_7k(LazyGridMeasuredItemProvider.kt:62)
+	at androidx.compose.foundation.lazy.grid.LazyGridMeasuredLineProvider.getAndMeasure(LazyGridMeasuredLineProvider.kt:72)
+	at androidx.compose.foundation.lazy.grid.LazyGridMeasureKt.measureLazyGrid-OZKpZRA(LazyGridMeasure.kt:202)
+	at androidx.compose.foundation.lazy.grid.LazyGridKt$rememberLazyGridMeasurePolicy$1$1.invoke-0kLqBqw(LazyGrid.kt:341)
+	at androidx.compose.foundation.lazy.grid.LazyGridKt$rememberLazyGridMeasurePolicy$1$1.invoke(LazyGrid.kt:172)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutKt$LazyLayout$3$2$1.invoke-0kLqBqw(LazyLayout.kt:119)
+	at androidx.compose.foundation.lazy.layout.LazyLayoutKt$LazyLayout$3$2$1.invoke(LazyLayout.kt:112)
+	at androidx.compose.ui.layout.LayoutNodeSubcompositionsState$createMeasurePolicy$1.measure-3p2s80s(SubcomposeLayout.kt:725)
+	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:135)
+	at androidx.compose.ui.graphics.SimpleGraphicsLayerModifier.measure-3p2s80s(GraphicsLayerModifier.kt:646)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:188)
+	at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:699)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:188)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$performMeasureBlock$1.invoke(LayoutNodeLayoutDelegate.kt:316)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$performMeasureBlock$1.invoke(LayoutNodeLayoutDelegate.kt:315)
+	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:503)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:502)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:258)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:133)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:113)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate.performMeasure-BRTryo0(LayoutNodeLayoutDelegate.kt:1782)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate.access$performMeasure-BRTryo0(LayoutNodeLayoutDelegate.kt:40)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$MeasurePassDelegate.remeasure-BRTryo0(LayoutNodeLayoutDelegate.kt:696)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$MeasurePassDelegate.measure-BRTryo0(LayoutNodeLayoutDelegate.kt:672)
+	at androidx.compose.foundation.layout.BoxMeasurePolicy.measure-3p2s80s(Box.kt:151)
+	at androidx.compose.ui.node.InnerNodeCoordinator.measure-BRTryo0(InnerNodeCoordinator.kt:135)
+	at androidx.compose.foundation.layout.FillNode.measure-3p2s80s(Size.kt:699)
+	at androidx.compose.ui.node.LayoutModifierNodeCoordinator.measure-BRTryo0(LayoutModifierNodeCoordinator.kt:188)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$performMeasureBlock$1.invoke(LayoutNodeLayoutDelegate.kt:316)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$performMeasureBlock$1.invoke(LayoutNodeLayoutDelegate.kt:315)
+	at androidx.compose.runtime.snapshots.Snapshot$Companion.observe(Snapshot.kt:2441)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver$ObservedScopeMap.observe(SnapshotStateObserver.kt:502)
+	at androidx.compose.runtime.snapshots.SnapshotStateObserver.observeReads(SnapshotStateObserver.kt:258)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeReads$ui_release(OwnerSnapshotObserver.kt:133)
+	at androidx.compose.ui.node.OwnerSnapshotObserver.observeMeasureSnapshotReads$ui_release(OwnerSnapshotObserver.kt:113)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate.performMeasure-BRTryo0(LayoutNodeLayoutDelegate.kt:1782)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate.access$performMeasure-BRTryo0(LayoutNodeLayoutDelegate.kt:40)
+	at androidx.compose.ui.node.LayoutNodeLayoutDelegate$MeasurePassDelegate.remeasure-BRTryo0(LayoutNodeLayoutDelegate.kt:696)
+	at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui_release(LayoutNode.kt:1222)
+	at androidx.compose.ui.node.LayoutNode.remeasure-_Sx5XlM$ui_release$default(LayoutNode.kt:1213)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.doRemeasure-sdFAvZA(MeasureAndLayoutDelegate.kt:369)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureAndRelayoutIfNeeded(MeasureAndLayoutDelegate.kt:566)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.remeasureAndRelayoutIfNeeded$default(MeasureAndLayoutDelegate.kt:534)
+	at androidx.compose.ui.node.MeasureAndLayoutDelegate.measureAndLayout(MeasureAndLayoutDelegate.kt:390)
+	at androidx.compose.ui.platform.AndroidComposeView.measureAndLayout(AndroidComposeView.android.kt:1268)
+	at androidx.compose.ui.node.Owner.measureAndLayout$default(Owner.kt:248)
+	at androidx.compose.ui.platform.AndroidComposeView.dispatchDraw(AndroidComposeView.android.kt:1556)
+	at android.view.View.draw(View.java:25940)
+	at android.view.View.updateDisplayListIfDirty(View.java:24598)
+	at android.view.ViewGroup.recreateChildDisplayList(ViewGroup.java:4638)
+	at android.view.ViewGroup.dispatchGetDisplayList(ViewGroup.java:4611)
+	at android.view.View.updateDisplayListIfDirty(View.java:24530)
+	at android.view.ViewGroup.recreateChildDisplayList(ViewGroup.java:4638)
+	at android.view.ViewGroup.dispatchGetDisplayList(ViewGroup.java:4611)
+	at android.view.View.updateDisplayListIfDirty(View.java:24530)
+	at android.view.ViewGroup.recreateChildDisplayList(ViewGroup.java:4638)
+	at android.view.ViewGroup.dispatchGetDisplayList(ViewGroup.java:4611)
+	at android.view.View.updateDisplayListIfDirty(View.java:24530)
+	at android.view.ViewGroup.recreateChildDisplayList(ViewGroup.java:4638)
+	at android.view.ViewGroup.dispatchGetDisplayList(ViewGroup.java:4611)
+	at android.view.View.updateDisplayListIfDirty(View.java:24530)
+	at android.view.ThreadedRenderer.updateViewTreeDisplayList(ThreadedRenderer.java:817)
+	at android.view.ThreadedRenderer.updateRootDisplayList(ThreadedRenderer.java:823)
+	at android.view.ThreadedRenderer.draw(ThreadedRenderer.java:928)
+	at android.view.ViewRootImpl.draw(ViewRootImpl.java:6830)
+	at android.view.ViewRootImpl.performDraw(ViewRootImpl.java:6462)
+	at android.view.ViewRootImpl.performTraversals(ViewRootImpl.java:5329)
+	at android.view.ViewRootImpl.doTraversal(ViewRootImpl.java:3702)
+	at android.view.ViewRootImpl$TraversalRunnable.run(ViewRootImpl.java:12309)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:2302)
+	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:2311)
+	at android.view.Choreographer.doCallbacks(Choreographer.java:1638)
+	at android.view.Choreographer.doFrame(Choreographer.java:1422)
+	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:2136)
+	at android.os.Handler.handleCallback(Handler.java:1051)
+	at android.os.Handler.dispatchMessage(Handler.java:107)
+	at android.os.Looper.loopOnce(Looper.java:266)
+	at android.os.Looper.loop(Looper.java:361)
+	at android.app.ActivityThread.main(ActivityThread.java:10340)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:675)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1002)
+───────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════
+                      END OF REPORT
+═══════════════════════════════════════════════════════════
