@@ -35,13 +35,12 @@ class SeriesDetailViewModel @Inject constructor(
     private val watchProgressDao: WatchProgressDao,
 ) : ViewModel() {
 
-    private val seriesId: Long = try {
-        savedStateHandle.get<Long>(NavArgs.SERIES_ID) ?: 0L
-    } catch (e: Exception) {
-        Timber.e(e, "Failed to get seriesId from SavedStateHandle")
+    // FIX: seriesId korrekt aus SavedStateHandle auslesen
+    private val seriesId: Long = savedStateHandle[NavArgs.SERIES_ID] ?: run {
+        Timber.e("seriesId is null! Using 0L as fallback")
         0L
     }
-    
+
     // FIX: Track active collection jobs to prevent memory leaks
     private var episodesJob: Job? = null
     private var progressJob: Job? = null
@@ -62,11 +61,18 @@ class SeriesDetailViewModel @Inject constructor(
     val episodeProgress: StateFlow<Map<Long, WatchProgressEntity>> = _episodeProgress.asStateFlow()
 
     init {
+        Timber.d("[SeriesDetailViewModel] seriesId from SavedStateHandle: $seriesId")
+        
         viewModelScope.launch {
+            Timber.d("[SeriesDetailViewModel] Loading series with ID: $seriesId")
             val s = seriesDao.getById(seriesId)
+            Timber.d("[SeriesDetailViewModel] Series loaded: ${s?.name ?: "null"}")
             _series.value = s
             if (s != null) {
+                Timber.d("[SeriesDetailViewModel] Fetching episodes for series: ${s.name}")
                 fetchEpisodesFromApi(s)
+            } else {
+                Timber.e("[SeriesDetailViewModel] Series not found in database! ID: $seriesId")
             }
             _isLoading.value = false
         }
