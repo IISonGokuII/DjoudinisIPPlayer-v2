@@ -139,11 +139,7 @@
     <string name="auto_system_default">Automatisch (Systemstandard)</string>
     <string name="preferred_subtitle_language">Bevorzugte Untertitelsprache</string>
     <string name="off">Aus</string>
-    <string name="trakt_tv">Trakt.tv</string>
     <string name="connected">Verbunden</string>
-    <string name="connect_trakt">Trakt.tv verbinden</string>
-    <string name="watch_progress_synced">Wiedergabefortschritt synchronisiert</string>
-    <string name="sync_watched_content">Gesehene Filme &amp; Serien synchronisieren</string>
     <string name="appearance">Darstellung</string>
     <string name="theme">Design</string>
     <string name="data_management">Datenverwaltung</string>

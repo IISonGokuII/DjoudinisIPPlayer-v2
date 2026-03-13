@@ -139,11 +139,7 @@
     <string name="auto_system_default">Otomatik (sistem varsayılanı)</string>
     <string name="preferred_subtitle_language">Tercih Edilen Altyazı Dili</string>
     <string name="off">Kapalı</string>
-    <string name="trakt_tv">Trakt.tv</string>
     <string name="connected">Bağlı</string>
-    <string name="connect_trakt">Trakt.tv Bağla</string>
-    <string name="watch_progress_synced">İzleme ilerlemesi senkronize edildi</string>
-    <string name="sync_watched_content">İzlenen film &amp; dizileri senkronize et</string>
     <string name="appearance">Görünüm</string>
     <string name="theme">Tema</string>
     <string name="data_management">Veri Yönetimi</string>
