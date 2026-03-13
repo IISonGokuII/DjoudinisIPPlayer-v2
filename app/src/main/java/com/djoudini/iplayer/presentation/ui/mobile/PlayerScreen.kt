@@ -191,7 +191,7 @@ fun PlayerScreen(
     // TV Options Panel (long press center on Fire TV)
     val scope = rememberCoroutineScope()
     var showTvOptionsPanel by remember { mutableStateOf(false) }
-    var tvOptionIndex by remember { mutableStateOf(0) } // 0=AspectRatio, 1=Audio, 2=Subtitle
+    var tvOptionIndex by remember { mutableStateOf(0) } // 0=Bildformat, 1=Ton, 2=Untertitel, 3=Sleeptimer, [4=Aufnahme if Live]
     var longPressJob by remember { mutableStateOf<Job?>(null) }
     // Maps flat track index → (TrackGroup, trackIndexInGroup) for ExoPlayer selection
     var audioTrackGroupMap by remember { mutableStateOf<List<Pair<androidx.media3.common.TrackGroup, Int>>>(emptyList()) }
@@ -830,15 +830,39 @@ fun PlayerScreen(
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                             if (showTvOptionsPanel) {
                                 // Activate the focused option in the TV options panel
+                                // indices: 0=Bildformat, 1=Ton, 2=Untertitel, 3=Sleeptimer, 4=Aufnahme(live)
                                 when (tvOptionIndex) {
                                     0 -> viewModel.cycleAspectRatio()
                                     1 -> { showAudioTrackDialog = true; showTvOptionsPanel = false }
                                     2 -> { showSubtitleTrackDialog = true; showTvOptionsPanel = false }
+                                    3 -> { showSleepTimerDialog = true; showTvOptionsPanel = false }
+                                    4 -> {
+                                        // Recording toggle (only reachable for Live TV)
+                                        if (isRecording) {
+                                            context.startService(
+                                                Intent(context, RecordingService::class.java).apply {
+                                                    action = RecordingService.ACTION_STOP
+                                                }
+                                            )
+                                            isRecording = false
+                                        } else {
+                                            context.startForegroundService(
+                                                Intent(context, RecordingService::class.java).apply {
+                                                    action = RecordingService.ACTION_START
+                                                    putExtra(RecordingService.EXTRA_STREAM_URL, uiState.streamUrl)
+                                                    putExtra(RecordingService.EXTRA_CHANNEL_NAME, uiState.title)
+                                                }
+                                            )
+                                            isRecording = true
+                                        }
+                                        showTvOptionsPanel = false
+                                    }
                                 }
                             } else {
                                 // Start long-press timer: 600ms → show TV options panel
                                 val job = scope.launch {
                                     delay(600)
+                                    tvOptionIndex = 0
                                     showTvOptionsPanel = true
                                 }
                                 longPressJob = job
@@ -867,7 +891,8 @@ fun PlayerScreen(
                         }
                         KeyEvent.KEYCODE_DPAD_LEFT -> {
                             if (showTvOptionsPanel) {
-                                tvOptionIndex = (tvOptionIndex - 1 + 3) % 3
+                                val count = if (uiState.contentType == WatchContentType.CHANNEL) 5 else 4
+                                tvOptionIndex = (tvOptionIndex - 1 + count) % count
                             } else {
                                 exoPlayer?.let { it.seekTo((it.currentPosition - 10_000).coerceAtLeast(0)) }
                                 viewModel.showControls()
@@ -876,7 +901,8 @@ fun PlayerScreen(
                         }
                         KeyEvent.KEYCODE_DPAD_RIGHT -> {
                             if (showTvOptionsPanel) {
-                                tvOptionIndex = (tvOptionIndex + 1) % 3
+                                val count = if (uiState.contentType == WatchContentType.CHANNEL) 5 else 4
+                                tvOptionIndex = (tvOptionIndex + 1) % count
                             } else {
                                 if (uiState.contentType == WatchContentType.EPISODE && uiState.hasNextEpisode) {
                                     exoPlayer?.let {
@@ -1459,35 +1485,51 @@ fun PlayerScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val options = listOf(
-                        "Bildformat" to uiState.aspectRatio.label,
-                        "Ton" to if (uiState.audioTracks.isNotEmpty()) uiState.audioTracks.firstOrNull { it.isSelected }?.label ?: uiState.audioTracks.firstOrNull { it.isSelected }?.language ?: "—" else "—",
-                        "Untertitel" to if (uiState.subtitleTracks.isNotEmpty()) uiState.subtitleTracks.firstOrNull { it.isSelected }?.label ?: uiState.subtitleTracks.firstOrNull { it.isSelected }?.language ?: "Aus" else "Aus",
-                    )
+                    val sleepTimerLabel = when {
+                        uiState.sleepTimerActive -> {
+                            val rem = uiState.sleepTimerRemainingSeconds
+                            "${rem / 60}m ${rem % 60}s"
+                        }
+                        else -> "Aus"
+                    }
+                    val options = buildList {
+                        add("Bildformat" to uiState.aspectRatio.label)
+                        add("Ton" to (uiState.audioTracks.firstOrNull { it.isSelected }?.let { it.label ?: it.language } ?: "—"))
+                        add("Untertitel" to (uiState.subtitleTracks.firstOrNull { it.isSelected }?.let { it.label ?: it.language } ?: "Aus"))
+                        add("Sleeptimer" to sleepTimerLabel)
+                        if (uiState.contentType == WatchContentType.CHANNEL) {
+                            add("Aufnahme" to if (isRecording) "●  Läuft" else "Aus")
+                        }
+                    }
                     options.forEachIndexed { index, (title, value) ->
                         val isFocused = tvOptionIndex == index
+                        val isRecordingTile = title == "Aufnahme" && isRecording
+                        val isTimerActive = title == "Sleeptimer" && uiState.sleepTimerActive
+                        val accentColor = when {
+                            isRecordingTile -> Color.Red.copy(alpha = 0.85f)
+                            isTimerActive && isFocused -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.85f)
+                            isFocused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                            else -> Color.White.copy(alpha = 0.08f)
+                        }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-                                    else Color.White.copy(alpha = 0.08f)
-                                )
+                                .background(accentColor)
                                 .padding(horizontal = 24.dp, vertical = 12.dp),
                         ) {
                             Text(
                                 text = title,
-                                color = if (isFocused) Color.White else Color.White.copy(alpha = 0.55f),
+                                color = if (isFocused || isRecordingTile) Color.White else Color.White.copy(alpha = 0.55f),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = value,
-                                color = Color.White,
+                                color = if (isRecordingTile) Color.White else Color.White,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+                                fontWeight = if (isFocused || isRecordingTile) FontWeight.Bold else FontWeight.Normal,
                             )
                         }
                     }
