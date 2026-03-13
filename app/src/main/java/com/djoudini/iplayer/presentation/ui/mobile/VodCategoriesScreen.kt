@@ -13,11 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -126,6 +125,7 @@ fun VodCategoriesScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            // Sidebar - Kategorien
             LazyColumn(
                 modifier = Modifier
                     .width(200.dp)
@@ -135,7 +135,7 @@ fun VodCategoriesScreen(
                 items(categories, key = { it.id }) { category ->
                     val isSelected = category.id == selectedCategoryId
                     Card(
-                        onClick = { 
+                        onClick = {
                             Timber.d("[VodCategories] Category clicked: ${category.name} (ID: ${category.id})")
                             viewModel.selectCategory(category.id)
                         },
@@ -193,14 +193,20 @@ fun VodCategoriesScreen(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
             )
 
-            Box(
+            // Content - VOD Grid mit Column (NICHT LazyVerticalGrid!)
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
             ) {
                 when {
                     selectedCategoryId == 0L -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Text(
                                 text = stringResource(R.string.select_a_category),
                                 style = MaterialTheme.typography.bodyLarge,
@@ -209,7 +215,10 @@ fun VodCategoriesScreen(
                         }
                     }
                     vodItems.isEmpty() -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = stringResource(R.string.no_movies_in_category),
@@ -226,21 +235,30 @@ fun VodCategoriesScreen(
                         }
                     }
                     else -> {
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 150.dp),
-                            contentPadding = PaddingValues(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            items(
-                                count = vodItems.size,
-                                key = { index -> vodItems[index].id },
-                            ) { index ->
-                                VodCard(
-                                    vod = vodItems[index],
-                                    onClick = { onVodClick(vodItems[index].id) },
-                                )
+                        // Einfaches Grid mit Column + Row
+                        val columns = 3 // 3 Spalten für Mobile
+                        val rows = (vodItems.size + columns - 1) / columns
+                        
+                        for (rowIndex in 0 until rows) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                for (colIndex in 0 until columns) {
+                                    val index = rowIndex * columns + colIndex
+                                    if (index < vodItems.size) {
+                                        VodCard(
+                                            vod = vodItems[index],
+                                            onClick = { onVodClick(vodItems[index].id) },
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                            if (rowIndex < rows - 1) {
+                                Spacer(modifier = Modifier.height(12.dp))
                             }
                         }
                     }
@@ -254,28 +272,27 @@ fun VodCategoriesScreen(
 private fun VodCard(
     vod: VodEntity,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     FocusableCard(
         onClick = onClick,
-        modifier = Modifier.width(150.dp).height(240.dp),
+        modifier = modifier.width(120.dp).height(200.dp),
         focusScale = 1.05f,
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(8.dp),
         ) {
-            if (!vod.logoUrl.isNullOrBlank() && 
+            if (!vod.logoUrl.isNullOrBlank() &&
                 (vod.logoUrl.startsWith("http://") || vod.logoUrl.startsWith("https://"))) {
                 AsyncImage(
                     model = vod.logoUrl,
                     contentDescription = vod.name,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                        .padding(bottom = 8.dp),
+                    modifier = Modifier.fillMaxWidth().height(140.dp),
                 )
             } else {
                 Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                        .padding(bottom = 8.dp)
+                    modifier = Modifier.fillMaxWidth().height(140.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -287,6 +304,8 @@ private fun VodCard(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = vod.name,

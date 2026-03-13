@@ -1,7 +1,6 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -46,7 +42,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,12 +55,6 @@ import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 import timber.log.Timber
 
-/**
- * TV-optimized Series categories screen with Outlook-style sidebar.
- * Left: Category sidebar
- * Right: Series grid
- * Designed for D-Pad navigation on Fire TV / Android TV.
- */
 @Composable
 fun TvSeriesCategoriesScreen(
     onSeriesClick: (Long) -> Unit,
@@ -78,7 +67,6 @@ fun TvSeriesCategoriesScreen(
 
     val sidebarFocusRequester = remember { FocusRequester() }
 
-    // Automatische Auswahl der ersten Kategorie wenn keine ausgewählt ist
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == 0L) {
             viewModel.selectCategory(categories.first().id)
@@ -103,13 +91,14 @@ fun TvSeriesCategoriesScreen(
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
         )
 
-        // Series content area
+        // Content - Series Grid mit Column (NICHT LazyVerticalGrid!)
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
         ) {
-            // Header with back button
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -140,64 +129,59 @@ fun TvSeriesCategoriesScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Series grid
-            if (selectedCategoryId == 0L) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.select_a_category),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else if (seriesItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.no_series_in_category),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "${seriesItems.size} Serien",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                // FINALE LÖSUNG: LazyVerticalGrid mit count und key (nicht direkte List)
-                LazyVerticalGrid(
-                    modifier = Modifier.fillMaxSize(),
-                    columns = GridCells.Adaptive(minSize = 180.dp),
-                    contentPadding = PaddingValues(end = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    items(
-                        count = seriesItems.size,
-                        key = { index -> seriesItems[index].id },
-                    ) { index ->
-                        TvSeriesCard(
-                            series = seriesItems[index],
-                            onClick = { onSeriesClick(seriesItems[index].id) },
+            when {
+                selectedCategoryId == 0L -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.select_a_category),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                }
+                seriesItems.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.no_series_in_category),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                else -> {
+                    // Series Grid - 4 Spalten für TV
+                    val columns = 4
+                    val rows = (seriesItems.size + columns - 1) / columns
+
+                    for (rowIndex in 0 until rows) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            for (colIndex in 0 until columns) {
+                                val index = rowIndex * columns + colIndex
+                                if (index < seriesItems.size) {
+                                    TvSeriesCard(
+                                        series = seriesItems[index],
+                                        onClick = { onSeriesClick(seriesItems[index].id) },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                        if (rowIndex < rows - 1) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
                     }
                 }
             }
@@ -248,13 +232,12 @@ private fun TvSeriesCategorySidebar(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
 
         LazyColumn(
-            modifier = Modifier
-                .weight(1f),
+            modifier = Modifier.weight(1f),
         ) {
             items(categories, key = { it.id }) { category ->
                 val isSelected = category.id == selectedCategoryId
                 FocusableCard(
-                    onClick = { 
+                    onClick = {
                         Timber.d("[TvSeriesCategories] Category clicked: ${category.name} (ID: ${category.id})")
                         onSelectCategory(category.id)
                     },
@@ -310,12 +293,11 @@ private fun TvSeriesCategorySidebar(
 private fun TvSeriesCard(
     series: SeriesEntity,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     FocusableCard(
         onClick = onClick,
-        modifier = Modifier
-            .width(180.dp)
-            .height(280.dp),
+        modifier = modifier.width(200.dp).height(300.dp),
         focusScale = 1.05f,
     ) {
         Column(
@@ -324,24 +306,21 @@ private fun TvSeriesCard(
                 .padding(12.dp),
         ) {
             // Series poster
-            if (!series.coverUrl.isNullOrBlank() && 
-                (series.coverUrl.startsWith("http://") || series.coverUrl.startsWith("https://"))) {
+            if (!series.coverUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = series.coverUrl,
                     contentDescription = series.name,
                     contentScale = ContentScale.Crop,
-                    placeholder = painterResource(id = android.R.drawable.ic_menu_gallery),
-                    error = painterResource(id = android.R.drawable.ic_menu_report_image),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .height(200.dp)
                         .clip(RoundedCornerShape(8.dp)),
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
+                        .height(200.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center,
@@ -360,7 +339,7 @@ private fun TvSeriesCard(
             // Series title
             Text(
                 text = series.name,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -368,6 +347,7 @@ private fun TvSeriesCard(
 
             // Genre if available
             series.genre?.let { genre ->
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = genre,
                     style = MaterialTheme.typography.labelSmall,
