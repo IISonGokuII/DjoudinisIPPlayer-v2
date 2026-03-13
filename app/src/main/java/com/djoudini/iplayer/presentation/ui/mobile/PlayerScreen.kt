@@ -90,6 +90,8 @@ import android.view.MotionEvent
 import android.app.Activity
 import android.view.KeyEvent
 import android.view.WindowInsetsController
+import android.os.PowerManager
+import android.os.PowerManager.WakeLock
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -209,6 +211,28 @@ fun PlayerScreen(
                     )
                 } else {
                     window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+                }
+            }
+        }
+    }
+
+    // FIX: Keep screen on during playback - prevents Fire TV screensaver
+    DisposableEffect(activity, uiState.isPlaying) {
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        
+        // Also acquire WakeLock for extra safety (Fire TV specific)
+        val powerManager = activity?.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val wakeLock = powerManager?.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "DjoudinisIPPlayer::PlaybackLock"
+        )
+        wakeLock?.acquire(10*60*60*1000L) // 10 hours max
+        
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
                 }
             }
         }
