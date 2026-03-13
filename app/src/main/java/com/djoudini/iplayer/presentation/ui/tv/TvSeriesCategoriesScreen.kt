@@ -290,8 +290,12 @@ private fun TvSeriesCard(
     series: SeriesEntity,
     onClick: () -> Unit,
 ) {
+    Timber.d("[TvSeriesCard] Creating card for: ${series.name} (ID=${series.id})")
     FocusableCard(
-        onClick = onClick,
+        onClick = {
+            Timber.d("[TvSeriesCard] Card clicked: ${series.name} (ID=${series.id})")
+            onClick()
+        },
         modifier = Modifier
             .width(200.dp)
             .height(300.dp),
