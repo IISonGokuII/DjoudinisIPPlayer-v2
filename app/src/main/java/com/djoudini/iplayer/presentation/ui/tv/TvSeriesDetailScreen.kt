@@ -364,7 +364,7 @@ private fun TvEpisodeCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Plot preview
                 episode.plot?.let { plot ->
                     Text(
@@ -376,7 +376,7 @@ private fun TvEpisodeCard(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                
+
                 // Progress bar
                 progress?.let { prog ->
                     Row(
@@ -405,24 +405,20 @@ private fun TvEpisodeCard(
 
             Spacer(modifier = Modifier.width(24.dp))
 
-            // Play button (larger, more prominent)
-            FocusableCard(
-                onClick = onClick,
+            // Play button - integrated into the card, not separate focus
+            Box(
                 modifier = Modifier
-                    .size(64.dp),
-                focusScale = 1.1f,
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Abspielen",
-                        modifier = Modifier.size(36.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Abspielen",
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }

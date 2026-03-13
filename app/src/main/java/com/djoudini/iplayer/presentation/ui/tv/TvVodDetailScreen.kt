@@ -149,33 +149,43 @@ private fun TvVodDetailContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Play button BELOW the poster - MOST PROMINENT, auto-focused for TV
+            // Using a more visible design with primary color background
             FocusableCard(
                 onClick = onPlay,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp),
+                    .height(80.dp),
                 focusScale = 1.1f,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(36.dp),
-                    )
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = if (hasResume) {
-                            stringResource(R.string.continue_watching)
-                        } else {
-                            stringResource(R.string.play)
-                        },
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (hasResume) {
+                                stringResource(R.string.continue_watching)
+                            } else {
+                                stringResource(R.string.play)
+                            },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    }
                 }
             }
         }
