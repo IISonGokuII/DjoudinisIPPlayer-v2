@@ -29,9 +29,11 @@ import com.djoudini.iplayer.presentation.ui.mobile.VodCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.VodDetailScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.MultiViewScreen
+import com.djoudini.iplayer.presentation.ui.mobile.RecordingsScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvEpgGridScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvLiveCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvMultiViewScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvRecordingsScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSearchScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSeriesCategoriesScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvSeriesDetailScreen
@@ -160,11 +162,12 @@ fun AppNavGraph(
                     onNavigateSearch = { navController.navigate(Route.Search.route) },
                     onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
                     onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
+                    onNavigateRecordings = { navController.navigate(Route.Recordings.route) },
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
-                            "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            "vod" -> navController.navigate(Route.Player.create("vod", contentId, autoResume = true))
                             "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
-                            "episode" -> navController.navigate(Route.Player.create("episode", contentId))
+                            "episode" -> navController.navigate(Route.Player.create("episode", contentId, autoResume = true))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
                             else -> navController.navigate(Route.Player.create(contentType, contentId))
                         }
@@ -180,11 +183,12 @@ fun AppNavGraph(
                     onNavigateSearch = { navController.navigate(Route.Search.route) },
                     onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
                     onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
+                    onNavigateRecordings = { navController.navigate(Route.Recordings.route) },
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
-                            "vod" -> navController.navigate(Route.VodDetail.create(contentId))
+                            "vod" -> navController.navigate(Route.Player.create("vod", contentId, autoResume = true))
                             "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
-                            "episode" -> navController.navigate(Route.Player.create("episode", contentId))
+                            "episode" -> navController.navigate(Route.Player.create("episode", contentId, autoResume = true))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
                             else -> navController.navigate(Route.Player.create(contentType, contentId))
                         }
@@ -306,6 +310,10 @@ fun AppNavGraph(
             arguments = listOf(
                 navArgument(NavArgs.CONTENT_TYPE) { type = NavType.StringType },
                 navArgument(NavArgs.CONTENT_ID) { type = NavType.LongType },
+                navArgument(NavArgs.AUTO_RESUME) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
             ),
         ) {
             PlayerScreen(
@@ -343,6 +351,18 @@ fun AppNavGraph(
                 )
             } else {
                 MultiViewScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+        }
+
+        composable(Route.Recordings.route) {
+            if (isTvDevice) {
+                TvRecordingsScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            } else {
+                RecordingsScreen(
                     onBack = { navController.popBackStack() },
                 )
             }

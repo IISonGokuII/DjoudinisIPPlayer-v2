@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -82,6 +83,7 @@ fun TvDashboardScreen(
     onNavigateSearch: () -> Unit,
     onNavigateMultiView: () -> Unit,
     onNavigateFavorites: () -> Unit,
+    onNavigateRecordings: () -> Unit,
     onContinueWatchingClick: (contentType: String, contentId: Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
@@ -291,7 +293,7 @@ fun TvDashboardScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Row 2: Favorites, MultiView, EPG Guide
+        // Row 2: Favorites, Recordings, EPG Guide
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -303,9 +305,9 @@ fun TvDashboardScreen(
                 modifier = Modifier.weight(1f),
             )
             TvDashboardTile(
-                title = stringResource(R.string.multi_view),
-                icon = Icons.Default.GridView,
-                onClick = onNavigateMultiView,
+                title = stringResource(R.string.recordings),
+                icon = Icons.Default.VideoLibrary,
+                onClick = onNavigateRecordings,
                 modifier = Modifier.weight(1f),
             )
             TvDashboardTile(
@@ -314,6 +316,22 @@ fun TvDashboardScreen(
                 onClick = onNavigateEpg,
                 modifier = Modifier.weight(1f),
             )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            TvDashboardTile(
+                title = stringResource(R.string.multi_view),
+                icon = Icons.Default.GridView,
+                onClick = onNavigateMultiView,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
         }
 
     }

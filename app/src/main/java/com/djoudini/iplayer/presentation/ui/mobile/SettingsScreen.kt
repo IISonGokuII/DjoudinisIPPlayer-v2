@@ -56,15 +56,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
-import com.djoudini.iplayer.data.local.entity.VpnState
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
-import com.djoudini.iplayer.domain.repository.VpnRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -77,33 +75,17 @@ fun SettingsScreen(
     onNavigateToVpnSetup: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
-    
-    var playerConfig by remember { mutableStateOf(PlayerConfig()) }
-    var autoSyncEnabled by remember { mutableStateOf(true) }
-    var theme by remember { mutableStateOf("dark") }
+    val playerConfig by appPreferences.playerConfig.collectAsStateWithLifecycle(initialValue = PlayerConfig())
+    val autoSyncEnabled by appPreferences.autoSyncEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val theme by appPreferences.theme.collectAsStateWithLifecycle(initialValue = "dark")
+    val defaultStartTab by appPreferences.defaultStartTab.collectAsStateWithLifecycle(initialValue = "live")
+    val screenOrientation by appPreferences.screenOrientation.collectAsStateWithLifecycle(initialValue = "auto")
+    val gestureControlsEnabled by appPreferences.gestureControlsEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val reconnectMaxAttempts by appPreferences.reconnectMaxAttempts.collectAsStateWithLifecycle(initialValue = 3)
+    val reconnectDelayMs by appPreferences.reconnectDelayMs.collectAsStateWithLifecycle(initialValue = 3_000)
+
     var preferredAudioLanguage by remember { mutableStateOf("") }
     var preferredSubtitleLanguage by remember { mutableStateOf("") }
-    var defaultStartTab by remember { mutableStateOf("live") }
-    var screenOrientation by remember { mutableStateOf("auto") }
-    var gestureControlsEnabled by remember { mutableStateOf(true) }
-    var reconnectMaxAttempts by remember { mutableStateOf(3) }
-    var reconnectDelayMs by remember { mutableStateOf(3_000) }
-
-    // Load preferences
-    scope.launch {
-        appPreferences.playerConfig.collectLatest { playerConfig = it }
-    }
-    scope.launch {
-        appPreferences.autoSyncEnabled.collectLatest { autoSyncEnabled = it }
-    }
-    scope.launch {
-        appPreferences.theme.collectLatest { theme = it }
-    }
-    scope.launch { appPreferences.defaultStartTab.collectLatest { defaultStartTab = it } }
-    scope.launch { appPreferences.screenOrientation.collectLatest { screenOrientation = it } }
-    scope.launch { appPreferences.gestureControlsEnabled.collectLatest { gestureControlsEnabled = it } }
-    scope.launch { appPreferences.reconnectMaxAttempts.collectLatest { reconnectMaxAttempts = it } }
-    scope.launch { appPreferences.reconnectDelayMs.collectLatest { reconnectDelayMs = it } }
 
     Scaffold(
         topBar = {
@@ -162,7 +144,6 @@ fun SettingsScreen(
                     onCheckedChange = { enabled ->
                         scope.launch {
                             appPreferences.setAutoSyncEnabled(enabled)
-                            autoSyncEnabled = enabled
                         }
                     },
                 )
@@ -214,7 +195,6 @@ fun SettingsScreen(
                                 )
                             }
                             appPreferences.updatePlayerConfig(newConfig)
-                            playerConfig = newConfig
                         }
                     },
                 )
@@ -227,7 +207,6 @@ fun SettingsScreen(
                         scope.launch {
                             val newConfig = playerConfig.copy(preferSoftwareDecoding = prefer)
                             appPreferences.updatePlayerConfig(newConfig)
-                            playerConfig = newConfig
                         }
                     },
                 )
@@ -240,7 +219,6 @@ fun SettingsScreen(
                         scope.launch {
                             val newConfig = playerConfig.copy(enableTunneledPlayback = enabled)
                             appPreferences.updatePlayerConfig(newConfig)
-                            playerConfig = newConfig
                         }
                     },
                 )
@@ -294,7 +272,6 @@ fun SettingsScreen(
                                 1 -> 3; 3 -> 5; 5 -> 10; else -> 1
                             }
                             appPreferences.setReconnectSettings(next, reconnectDelayMs)
-                            reconnectMaxAttempts = next
                         }
                     },
                 )
@@ -308,7 +285,6 @@ fun SettingsScreen(
                                 1_000 -> 3_000; 3_000 -> 5_000; 5_000 -> 10_000; else -> 1_000
                             }
                             appPreferences.setReconnectSettings(reconnectMaxAttempts, next)
-                            reconnectDelayMs = next
                         }
                     },
                 )
@@ -320,7 +296,6 @@ fun SettingsScreen(
                     onCheckedChange = { enabled ->
                         scope.launch {
                             appPreferences.setGestureControlsEnabled(enabled)
-                            gestureControlsEnabled = enabled
                         }
                     },
                 )
@@ -338,7 +313,6 @@ fun SettingsScreen(
                                 "auto" -> "landscape"; "landscape" -> "portrait"; else -> "auto"
                             }
                             appPreferences.setScreenOrientation(next)
-                            screenOrientation = next
                         }
                     },
                 )
@@ -361,7 +335,6 @@ fun SettingsScreen(
                                 "live" -> "movies"; "movies" -> "series"; else -> "live"
                             }
                             appPreferences.setDefaultStartTab(next)
-                            defaultStartTab = next
                         }
                     },
                 )
@@ -383,7 +356,6 @@ fun SettingsScreen(
                                 else -> "system"
                             }
                             appPreferences.setTheme(next)
-                            theme = next
                         }
                     },
                 )
@@ -414,9 +386,6 @@ fun SettingsScreen(
                             appPreferences.updatePlayerConfig(PlayerConfig())
                             appPreferences.setTheme("dark")
                             appPreferences.setAutoSyncEnabled(true)
-                            playerConfig = PlayerConfig()
-                            theme = "dark"
-                            autoSyncEnabled = true
                         }
                     },
                 )

@@ -16,6 +16,7 @@ import com.djoudini.iplayer.data.service.SpeedTestService
 import com.djoudini.iplayer.data.service.VpnPermissionManager
 import com.djoudini.iplayer.data.service.VpnService
 import com.djoudini.iplayer.data.service.WireGuardTunnel
+import com.djoudini.iplayer.util.startCompatService
 import com.djoudini.iplayer.domain.repository.VpnRepository
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.config.Config
@@ -126,7 +127,7 @@ class VpnRepositoryImpl @Inject constructor(
                                         remoteIp = remoteIp,
                                     )
                                 }
-                                context.startForegroundService(
+                                context.startCompatService(
                                     Intent(context, VpnService::class.java).apply {
                                         action = VpnService.ACTION_SHOW
                                         putExtra(VpnService.EXTRA_TUNNEL_NAME, server.name)

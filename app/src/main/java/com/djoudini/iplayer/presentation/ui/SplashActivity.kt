@@ -4,6 +4,7 @@ import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.app.Activity
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
  *
  * Diese Activity fügt dann die Animation hinzu (5-10 Sekunden).
  */
+@SuppressLint("CustomSplashScreen")
 class SplashActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(

@@ -24,6 +24,7 @@
     <string name="series">Serien</string>
     <string name="epg_guide">TV-Programm</string>
     <string name="multi_view">Mehrfachansicht</string>
+    <string name="recordings">Aufnahmen</string>
     <string name="settings">Einstellungen</string>
     <string name="account_info">Kontoinformationen</string>
     <string name="status">Status</string>
@@ -148,4 +149,16 @@
     <string name="reset_all_settings">Alle Einstellungen zurücksetzen</string>
     <string name="reset_all_settings_desc">Alle Einstellungen auf Standardwerte zurücksetzen</string>
     <string name="app_version">Djoudini\'s IP Player v1.0.0</string>
+    <string name="recording_start">Aufnahme starten</string>
+    <string name="recording_stop">Aufnahme stoppen</string>
+    <string name="recording_saved">Aufnahme in Downloads gespeichert</string>
+    <string name="recording_in_progress">Aufnahme laeuft</string>
+    <string name="recording_completed">Abgeschlossen</string>
+    <string name="recording_failed">Fehlgeschlagen</string>
+    <string name="open_recording">Aufnahme oeffnen</string>
+    <string name="no_recordings">Keine Aufnahmen vorhanden</string>
+    <string name="no_recordings_hint">Starte eine Live-TV-Aufnahme, dann erscheint sie hier.</string>
+    <string name="recordings_hint_tv">Hier findest du gespeicherte und laufende Aufnahmen.</string>
+    <string name="recording_started_at">Gestartet</string>
+    <string name="recording_ready_to_open">Bereit zum Oeffnen</string>
 </resources>

@@ -168,13 +168,18 @@ object PermissionHelper {
      */
     fun shouldShowPermissionRationale(activity: Activity): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val shouldShowNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    activity,
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            } else {
+                false
+            }
             return ActivityCompat.shouldShowRequestPermissionRationale(
                 activity,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) || ActivityCompat.shouldShowRequestPermissionRationale(
-                activity,
-                Manifest.permission.POST_NOTIFICATIONS
-            )
+            ) || shouldShowNotifications
         }
         return false
     }

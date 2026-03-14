@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation">
     <string name="app_name">Djoudini\'s IP Player</string>
 
     <!-- Common -->
@@ -28,6 +29,7 @@
     <string name="series">Series</string>
     <string name="epg_guide">EPG Guide</string>
     <string name="multi_view">Multi View</string>
+    <string name="recordings">Recordings</string>
     <string name="settings">Settings</string>
     <string name="account_info">Account Info</string>
     <string name="status">Status</string>
@@ -174,6 +176,15 @@
     <string name="recording_start">Start Recording</string>
     <string name="recording_stop">Stop Recording</string>
     <string name="recording_saved">Recording saved to Downloads</string>
+    <string name="recording_in_progress">Recording running</string>
+    <string name="recording_completed">Completed</string>
+    <string name="recording_failed">Failed</string>
+    <string name="open_recording">Open recording</string>
+    <string name="no_recordings">No recordings available</string>
+    <string name="no_recordings_hint">Start a live TV recording and it will appear here.</string>
+    <string name="recordings_hint_tv">Open your saved recordings or check active captures.</string>
+    <string name="recording_started_at">Started</string>
+    <string name="recording_ready_to_open">Ready to open</string>
 
     <!-- Settings extra -->
     <string name="reconnect_attempts">Reconnect Attempts</string>

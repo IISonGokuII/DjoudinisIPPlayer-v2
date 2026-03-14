@@ -78,7 +78,7 @@ fun TvChannelListScreen(
                                 contentDescription = channelWithEpg.channel.name,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(48.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                             )
                             Spacer(modifier = Modifier.width(16.dp))
@@ -87,9 +87,9 @@ fun TvChannelListScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = channelWithEpg.channel.name,
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             channelWithEpg.currentProgram?.let { program ->

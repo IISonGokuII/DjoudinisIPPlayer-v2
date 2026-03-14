@@ -55,7 +55,7 @@ class SpeedTestService @Inject constructor() {
             
             // Ping Google DNS as a reliable target
             val process = Runtime.getRuntime().exec("ping -c 1 -W 5 8.8.8.8")
-            process.waitFor(6, TimeUnit.SECONDS)
+            waitForProcess(process, 6_000)
             
             val endTime = System.currentTimeMillis()
             ((endTime - startTime) / 2).toInt()
@@ -172,6 +172,21 @@ class SpeedTestService @Inject constructor() {
      */
     suspend fun quickPingTest(): Int = withContext(Dispatchers.IO) {
         measurePing()
+    }
+
+    private fun waitForProcess(process: Process, timeoutMs: Long) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                process.exitValue()
+                return
+            } catch (_: IllegalThreadStateException) {
+                Thread.sleep(100)
+            }
+        }
+
+        process.destroy()
+        throw IllegalStateException("Ping command timed out")
     }
 }
 

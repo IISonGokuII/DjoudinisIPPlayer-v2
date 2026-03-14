@@ -20,9 +20,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -117,6 +120,7 @@ import com.djoudini.iplayer.presentation.viewmodel.AudioTrackInfo
 import com.djoudini.iplayer.presentation.viewmodel.PlayerViewModel
 import com.djoudini.iplayer.presentation.viewmodel.SleepTimerPreset
 import com.djoudini.iplayer.presentation.viewmodel.SubtitleTrackInfo
+import com.djoudini.iplayer.util.startCompatService
 import androidx.media3.common.Player
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -224,9 +228,11 @@ fun PlayerScreen(
         }
     }
 
-    // FIX: Keep screen on during playback - prevents Fire TV screensaver
-    DisposableEffect(activity, uiState.isPlaying) {
+    // Keep screen awake for the whole player session. Fire TV can still launch
+    // the screensaver if we only react to playback state toggles.
+    DisposableEffect(activity, uiState.streamUrl) {
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        activity?.window?.decorView?.keepScreenOn = true
         
         // Also acquire WakeLock for extra safety (Fire TV specific)
         val powerManager = activity?.getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -238,6 +244,7 @@ fun PlayerScreen(
         
         onDispose {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.window?.decorView?.keepScreenOn = false
             wakeLock?.let {
                 if (it.isHeld) {
                     it.release()
@@ -260,11 +267,8 @@ fun PlayerScreen(
         }
     }
 
-    // Don't start playback while resume dialog is shown
-    // FIX: Track if user has made a resume choice
-    var resumeChoiceMade by remember { mutableStateOf(false) }
-    val shouldPlay = uiState.streamUrl.isNotBlank() && 
-        (!uiState.showResumeDialog || resumeChoiceMade)
+    // Don't start playback while the user has not decided whether to resume.
+    var resumeChoice by remember(uiState.contentType, uiState.contentId) { mutableStateOf<Boolean?>(null) }
 
     // CRITICAL FIX: Create player once and keep it alive
     // The player is created regardless of shouldPlay state, then media is loaded when ready
@@ -274,24 +278,9 @@ fun PlayerScreen(
         )
     }
 
-    // Set media item and play on streamUrl change
-    LaunchedEffect(uiState.streamUrl, exoPlayer, uiState.showResumeDialog, resumeChoiceMade) {
-        // Wait for valid stream URL
-        if (uiState.streamUrl.isBlank()) return@LaunchedEffect
-
-        // Don't start if resume dialog is shown and user hasn't made a choice yet
-        if (uiState.showResumeDialog && !resumeChoiceMade && uiState.resumePositionMs > 10_000L) {
-            return@LaunchedEffect
-        }
-
-        // CRITICAL: Stop current playback before loading new stream
-        exoPlayer.stop()
-        exoPlayer.clearMediaItems()
-
-        // Add error listener
-        exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
+    DisposableEffect(exoPlayer, viewModel) {
+        val errorListener = object : Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                // If error is from renderer (e.g. bad track selection), clear overrides and retry
                 if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_DECODING_FAILED ||
                     error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                     error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED
@@ -305,7 +294,6 @@ fun PlayerScreen(
                     return
                 }
 
-                // Try fallback URL for LiveTV before showing error
                 val nextUrl = viewModel.tryNextFallback()
                 if (nextUrl != null) {
                     exoPlayer.setMediaItem(MediaItem.fromUri(nextUrl))
@@ -315,16 +303,30 @@ fun PlayerScreen(
                     viewModel.onPlaybackError(error.localizedMessage ?: "Playback failed")
                 }
             }
-        })
+        }
+
+        exoPlayer.addListener(errorListener)
+        onDispose { exoPlayer.removeListener(errorListener) }
+    }
+
+    // Set media item and play on streamUrl change
+    LaunchedEffect(uiState.streamUrl, exoPlayer, uiState.showResumeDialog, resumeChoice) {
+        if (uiState.streamUrl.isBlank()) return@LaunchedEffect
+        if (uiState.showResumeDialog && !uiState.autoResume && resumeChoice == null && uiState.resumePositionMs > 10_000L) {
+            return@LaunchedEffect
+        }
+
+        exoPlayer.stop()
+        exoPlayer.clearMediaItems()
 
         val mediaItem = MediaItem.fromUri(uiState.streamUrl)
         exoPlayer.setMediaItem(mediaItem)
         exoPlayer.prepare()
 
         // Resume position for VOD/episodes - only seek if user chose to resume
-        if (uiState.resumePositionMs > 0 && resumeChoiceMade) {
+        if (uiState.resumePositionMs > 0 && (resumeChoice == true || uiState.autoResume)) {
             exoPlayer.seekTo(uiState.resumePositionMs)
-        } else if (uiState.resumePositionMs > 0 && !resumeChoiceMade) {
+        } else if (uiState.resumePositionMs > 0 && !uiState.autoResume && resumeChoice == null) {
             // User hasn't made a choice yet, don't start playback
             return@LaunchedEffect
         }
@@ -333,19 +335,10 @@ fun PlayerScreen(
         viewModel.startProgressTracking()
     }
 
-    // Handle resume dialog dismissal - reset the flag
-    LaunchedEffect(uiState.showResumeDialog) {
-        if (!uiState.showResumeDialog) {
-            // Dialog was dismissed, user made a choice
-            resumeChoiceMade = true
-        } else {
-            resumeChoiceMade = false
-        }
-    }
-
     // CRITICAL: Release player when leaving screen
     DisposableEffect(Unit) {
         onDispose {
+            viewModel.stopProgressTracking()
             exoPlayer.stop()
             exoPlayer.clearMediaItems()
             exoPlayer.release()
@@ -387,8 +380,6 @@ fun PlayerScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.stopProgressTracking()
-            exoPlayer.release()
         }
     }
 
@@ -473,24 +464,33 @@ fun PlayerScreen(
     }
 
     // Resume dialog
-    if (uiState.showResumeDialog) {
-        val mins = uiState.resumePositionMs / 60_000
-        AlertDialog(
-            onDismissRequest = { viewModel.onResumeChoice(false) },
-            title = { Text(stringResource(R.string.continue_watching_title)) },
-            text = {
-                Text(stringResource(R.string.resume_message, mins))
+        if (uiState.showResumeDialog) {
+            val mins = uiState.resumePositionMs / 60_000
+            AlertDialog(
+            onDismissRequest = {
+                resumeChoice = false
+                viewModel.onResumeChoice(false)
             },
-            confirmButton = {
-                Button(onClick = { viewModel.onResumeChoice(true) }) {
-                    Text(stringResource(R.string.continue_btn))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { viewModel.onResumeChoice(false) }) {
-                    Text(stringResource(R.string.start_over))
-                }
-            },
+                title = { Text(stringResource(R.string.continue_watching_title)) },
+                text = {
+                    Text(stringResource(R.string.resume_message, mins))
+                },
+                confirmButton = {
+                Button(onClick = {
+                    resumeChoice = true
+                    viewModel.onResumeChoice(true)
+                }) {
+                        Text(stringResource(R.string.continue_btn))
+                    }
+                },
+                dismissButton = {
+                OutlinedButton(onClick = {
+                    resumeChoice = false
+                    viewModel.onResumeChoice(false)
+                }) {
+                        Text(stringResource(R.string.start_over))
+                    }
+                },
         )
     }
 
@@ -826,6 +826,13 @@ fun PlayerScreen(
             .onKeyEvent { event ->
                 if (event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                     when (event.nativeKeyEvent.keyCode) {
+                        KeyEvent.KEYCODE_MENU -> {
+                            showTvOptionsPanel = !showTvOptionsPanel
+                            if (showTvOptionsPanel) {
+                                tvOptionIndex = 0
+                            }
+                            true
+                        }
                         KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                             if (showTvOptionsPanel) {
                                 // Activate the focused option in the TV options panel
@@ -845,7 +852,7 @@ fun PlayerScreen(
                                             )
                                             isRecording = false
                                         } else {
-                                            context.startForegroundService(
+                                            context.startCompatService(
                                                 Intent(context, RecordingService::class.java).apply {
                                                     action = RecordingService.ACTION_START
                                                     putExtra(RecordingService.EXTRA_STREAM_URL, uiState.streamUrl)
@@ -869,22 +876,28 @@ fun PlayerScreen(
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_UP -> {
-                            if (showTvOptionsPanel) {
-                                showTvOptionsPanel = false
-                            } else if (uiState.contentType == WatchContentType.CHANNEL) {
+                            if (uiState.contentType == WatchContentType.CHANNEL) {
                                 viewModel.playPreviousChannel()
                             } else {
-                                viewModel.toggleControls()
+                                if (showTvOptionsPanel) {
+                                    val count = if (uiState.contentType == WatchContentType.CHANNEL) 5 else 4
+                                    tvOptionIndex = (tvOptionIndex - 1 + count) % count
+                                } else {
+                                    viewModel.toggleControls()
+                                }
                             }
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            if (showTvOptionsPanel) {
-                                showTvOptionsPanel = false
-                            } else if (uiState.contentType == WatchContentType.CHANNEL) {
+                            if (uiState.contentType == WatchContentType.CHANNEL) {
                                 viewModel.playNextChannel()
                             } else {
-                                viewModel.toggleControls()
+                                if (showTvOptionsPanel) {
+                                    val count = if (uiState.contentType == WatchContentType.CHANNEL) 5 else 4
+                                    tvOptionIndex = (tvOptionIndex + 1) % count
+                                } else {
+                                    viewModel.toggleControls()
+                                }
                             }
                             true
                         }
@@ -970,40 +983,38 @@ fun PlayerScreen(
             ),
     ) {
         // Video surface with Pinch-to-Zoom and Aspect Ratio
-        val playerView = remember { mutableStateOf<PlayerView?>(null) }
-            
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val forcedAspectRatio = forcedAspectRatio(uiState.aspectRatio)
+            val videoSurfaceModifier = when (forcedAspectRatio) {
+                null -> Modifier.fillMaxSize()
+                else -> {
+                    val containerRatio = maxWidth / maxHeight
+                    if (containerRatio > forcedAspectRatio) {
+                        Modifier.fillMaxHeight().aspectRatio(forcedAspectRatio)
+                    } else {
+                        Modifier.fillMaxWidth().aspectRatio(forcedAspectRatio)
+                    }
+                }
+            }
+
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
                         player = exoPlayer
                         useController = false
+                        keepScreenOn = true
                         layoutParams = FrameLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT,
                         )
-                        // Set aspect ratio mode based on current setting
-                        resizeMode = when (uiState.aspectRatio) {
-                            AspectRatio.FIT_16_9 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            AspectRatio.FIT_4_3 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            AspectRatio.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                            AspectRatio.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                            AspectRatio.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                        }
-                        playerView.value = this
+                        resizeMode = playerResizeMode(uiState.aspectRatio)
                     }
                 },
                 update = { playerView ->
-                    // Update resizeMode when aspectRatio changes
-                    playerView.resizeMode = when (uiState.aspectRatio) {
-                        AspectRatio.FIT_16_9 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        AspectRatio.FIT_4_3 -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        AspectRatio.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        AspectRatio.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                        AspectRatio.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                    }
+                    playerView.resizeMode = playerResizeMode(uiState.aspectRatio)
                 },
-                modifier = Modifier
-                    .fillMaxSize()
+                modifier = videoSurfaceModifier
+                    .align(Alignment.Center)
                     .graphicsLayer {
                         scaleX = uiState.videoScale
                         scaleY = uiState.videoScale
@@ -1091,6 +1102,7 @@ fun PlayerScreen(
                         }
                     }
             )
+        }
 
         // Loading indicator
         if (uiState.isLoading) {
@@ -1183,7 +1195,7 @@ fun PlayerScreen(
                                     )
                                     isRecording = false
                                 } else {
-                                    context.startForegroundService(
+                                    context.startCompatService(
                                         Intent(context, RecordingService::class.java).apply {
                                             action = RecordingService.ACTION_START
                                             putExtra(RecordingService.EXTRA_STREAM_URL, uiState.streamUrl)
@@ -1532,7 +1544,7 @@ fun PlayerScreen(
                     }
                 }
                 Text(
-                    text = "← → wählen  •  OK bestätigen  •  ZURÜCK schließen",
+                    text = "MENU oeffnet  •  ← → waehlen  •  OK bestaetigen  •  ↑ ↓ Sender wechseln  •  ZURUECK schliessen",
                     color = Color.White.copy(alpha = 0.4f),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier
@@ -1544,15 +1556,33 @@ fun PlayerScreen(
     }
 }
 
+private fun playerResizeMode(aspectRatio: AspectRatio): Int {
+    return when (aspectRatio) {
+        AspectRatio.FIT_16_9,
+        AspectRatio.FIT_4_3,
+        AspectRatio.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+        AspectRatio.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+        AspectRatio.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+    }
+}
+
+private fun forcedAspectRatio(aspectRatio: AspectRatio): Float? {
+    return when (aspectRatio) {
+        AspectRatio.FIT_16_9 -> 16f / 9f
+        AspectRatio.FIT_4_3 -> 4f / 3f
+        else -> null
+    }
+}
+
 private fun formatDuration(ms: Long): String {
     val totalSeconds = ms / 1000
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
     return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
+        String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
     } else {
-        String.format("%02d:%02d", minutes, seconds)
+        String.format(Locale.ROOT, "%02d:%02d", minutes, seconds)
     }
 }
 

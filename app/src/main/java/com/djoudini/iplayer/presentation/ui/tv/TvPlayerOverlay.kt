@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.presentation.viewmodel.PlayerUiState
+import java.util.Locale
 
 /**
  * TV-optimized player overlay with D-Pad key handling.
@@ -476,8 +477,8 @@ private fun formatTvDuration(ms: Long): String {
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
     return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
+        String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
     } else {
-        String.format("%02d:%02d", minutes, seconds)
+        String.format(Locale.ROOT, "%02d:%02d", minutes, seconds)
     }
 }

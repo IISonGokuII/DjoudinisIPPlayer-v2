@@ -1,5 +1,7 @@
 package com.djoudini.iplayer.data.local.entity
 
+import java.util.Locale
+
 /**
  * VPN Server entity representing an available VPN endpoint.
  */
@@ -102,6 +104,6 @@ data class VpnConnectionInfo(
             val hours = it / 3600
             val minutes = (it % 3600) / 60
             val seconds = it % 60
-            String.format("%02d:%02d:%02d", hours, minutes, seconds)
+            String.format(Locale.ROOT, "%02d:%02d:%02d", hours, minutes, seconds)
         }
 }

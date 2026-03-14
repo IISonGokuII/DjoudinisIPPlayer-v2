@@ -29,8 +29,12 @@ sealed class Route(val route: String) {
     }
 
     // --- Player ---
-    data object Player : Route("player/{contentType}/{contentId}") {
-        fun create(contentType: String, contentId: Long) = "player/$contentType/$contentId"
+    data object Player : Route("player/{contentType}/{contentId}?autoResume={autoResume}") {
+        fun create(
+            contentType: String,
+            contentId: Long,
+            autoResume: Boolean = false,
+        ) = "player/$contentType/$contentId?autoResume=$autoResume"
     }
 
     // --- Multi-View ---
@@ -50,6 +54,7 @@ sealed class Route(val route: String) {
     
     // --- Favorites ---
     data object Favorites : Route("favorites")
+    data object Recordings : Route("recordings")
 }
 
 /** Navigation argument keys */
@@ -59,4 +64,5 @@ object NavArgs {
     const val SERIES_ID = "seriesId"
     const val CONTENT_TYPE = "contentType"
     const val CONTENT_ID = "contentId"
+    const val AUTO_RESUME = "autoResume"
 }

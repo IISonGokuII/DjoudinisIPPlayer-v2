@@ -82,6 +82,7 @@ data class PlayerUiState(
     // Resume
     val resumePositionMs: Long = 0L,
     val showResumeDialog: Boolean = false,
+    val autoResume: Boolean = false,
     // Controls visibility
     val controlsVisible: Boolean = true,
     val isPlaying: Boolean = false,
@@ -139,6 +140,7 @@ class PlayerViewModel @Inject constructor(
 
     private val contentTypeArg: String = savedStateHandle.get<String>(NavArgs.CONTENT_TYPE) ?: "channel"
     private val contentId: Long = savedStateHandle.get<Long>(NavArgs.CONTENT_ID) ?: 0L
+    private val autoResumeArg: Boolean = savedStateHandle.get<Boolean>(NavArgs.AUTO_RESUME) ?: false
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -261,7 +263,8 @@ class PlayerViewModel @Inject constructor(
                 playlistId = playlistId,
                 isLoading = false,
                 resumePositionMs = resumePositionMs,
-                showResumeDialog = hasProgress,
+                showResumeDialog = hasProgress && !autoResumeArg,
+                autoResume = autoResumeArg,
                 description = vod.plot, // NEW: Load description
             )
         }
@@ -296,15 +299,16 @@ class PlayerViewModel @Inject constructor(
                 contentType = contentType,
                 playlistId = playlistId,
                 seriesId = episode.seriesId,
+                autoResume = autoResumeArg,
             )
         }
     }
 
     fun onResumeChoice(resume: Boolean) {
         if (!resume) {
-            _uiState.update { it.copy(resumePositionMs = 0L) }
+            _uiState.update { it.copy(resumePositionMs = 0L, autoResume = false) }
         }
-        _uiState.update { it.copy(showResumeDialog = false) }
+        _uiState.update { it.copy(showResumeDialog = false, autoResume = false) }
     }
 
     fun updatePlaybackState(isPlaying: Boolean, positionMs: Long, durationMs: Long) {
@@ -397,6 +401,11 @@ class PlayerViewModel @Inject constructor(
                 _uiState.update { it.copy(currentProgram = current, nextProgram = next) }
             }
         }
+    }
+
+    private fun stopEpgRefresh() {
+        epgRefreshJob?.cancel()
+        epgRefreshJob = null
     }
 
     // ==================== SLEEP TIMER ====================
@@ -698,6 +707,11 @@ class PlayerViewModel @Inject constructor(
                             resumePositionMs = resumePositionMs,
                             showResumeDialog = hasProgress,
                             hasNextEpisode = hasNext,
+                        ).copy(
+                            contentType = WatchContentType.EPISODE,
+                            playlistId = state.playlistId,
+                            seriesId = nextEpisode.seriesId,
+                            autoResume = false,
                         )
                     }
                 } else {
@@ -836,14 +850,36 @@ class PlayerViewModel @Inject constructor(
     private suspend fun updateCurrentChannel(
         channel: com.djoudini.iplayer.data.local.entity.ChannelEntity,
     ) {
+        val state = _uiState.value
         val currentProgram = channel.tvgId?.let { epgRepository.getCurrentProgram(it) }
         val nextProgram = channel.tvgId?.let { epgRepository.getNextProgram(it) }
+        val recentChannels = if (state.playlistId != 0L) {
+            channelDao.getRecentlyWatchedIds(state.playlistId, excludeId = channel.id, limit = 5)
+        } else {
+            emptyList()
+        }
+
+        if (channel.tvgId != null) {
+            startEpgRefresh(channel.tvgId)
+        } else {
+            stopEpgRefresh()
+        }
+
         _uiState.update {
             PlayerContentStateFactory.channelPlaybackState(
                 currentState = it,
                 channel = channel.toPlaybackSnapshot(),
                 currentProgram = currentProgram,
                 nextProgram = nextProgram,
+            ).copy(
+                contentType = WatchContentType.CHANNEL,
+                playlistId = state.playlistId,
+                categoryId = channel.categoryId,
+                isFavorite = channel.isFavorite,
+                recentChannels = recentChannels,
+                channelNumberInput = "",
+                showChannelNumberInput = false,
+                autoResume = false,
             )
         }
     }

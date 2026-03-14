@@ -251,7 +251,7 @@ fun TvLiveCategoriesScreen(
         // === MIDDLE: Channel List (30% of remaining space) ===
         Column(
             modifier = Modifier
-                .weight(0.4f)
+                .weight(0.46f)
                 .fillMaxHeight()
                 .background(MaterialTheme.colorScheme.surface),
         ) {
@@ -355,7 +355,7 @@ fun TvLiveCategoriesScreen(
         // === RIGHT: Live Preview (60% of remaining space) ===
         Box(
             modifier = Modifier
-                .weight(0.6f)
+                .weight(0.54f)
                 .fillMaxHeight()
                 .background(Color.Black),
         ) {
@@ -538,8 +538,8 @@ private fun ChannelItem(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
-    val itemHeight = if (compact) 56.dp else 80.dp
-    val logoSize = if (compact) 40.dp else 56.dp
+    val itemHeight = if (compact) 64.dp else 88.dp
+    val logoSize = if (compact) 32.dp else 44.dp
 
     Row(
         modifier = Modifier
@@ -605,11 +605,11 @@ private fun ChannelItem(
         ) {
             Text(
                 text = channel.name,
-                style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = if (isSelected) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
+                maxLines = if (compact) 2 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (!compact) {

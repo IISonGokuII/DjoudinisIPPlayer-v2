@@ -120,6 +120,7 @@ class RecordingService : Service() {
 
                 // Broadcast completion
                 sendBroadcast(Intent(ACTION_RECORDING_COMPLETED).apply {
+                    `package` = packageName
                     putExtra("duration_ms", elapsedSeconds * 1_000L)
                     putExtra("file_size_bytes", writtenBytes)
                 })

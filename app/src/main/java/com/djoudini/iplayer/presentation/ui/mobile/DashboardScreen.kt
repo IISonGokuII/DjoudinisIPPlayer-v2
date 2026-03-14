@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.CheckCircle
@@ -80,6 +81,7 @@ fun DashboardScreen(
     onNavigateSearch: () -> Unit,
     onNavigateMultiView: () -> Unit = {},
     onNavigateFavorites: () -> Unit = {},
+    onNavigateRecordings: () -> Unit = {},
     onContinueWatchingClick: (contentType: String, contentId: Long) -> Unit = { _, _ -> },
     onChannelClick: (Long) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -279,6 +281,21 @@ fun DashboardScreen(
                     onClick = onNavigateEpg,
                     modifier = Modifier.weight(1f),
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                DashboardTile(
+                    title = stringResource(R.string.recordings),
+                    icon = Icons.Default.VideoLibrary,
+                    onClick = onNavigateRecordings,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
