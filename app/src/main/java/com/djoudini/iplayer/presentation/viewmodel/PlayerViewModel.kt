@@ -184,27 +184,19 @@ class PlayerViewModel @Inject constructor(
         // Start periodic EPG refresh every 60 seconds
         channel.tvgId?.let { startEpgRefresh(it) }
 
-        // Build fallback URLs for LiveTV streams
-        val fallbackUrls = buildStreamFallbacks(channel.streamUrl, channel.containerExtension)
-
         // Load recent channels (last 5 watched), excluding current
         val recentChannels = channelDao.getRecentlyWatchedIds(playlistId, excludeId = contentId, limit = 5)
 
         _uiState.update {
-            it.copy(
-                title = channel.name,
-                streamUrl = channel.streamUrl,
-                logoUrl = channel.logoUrl,
-                contentType = contentType,
-                contentId = contentId,
-                playlistId = playlistId,
-                categoryId = channel.categoryId,
-                isLoading = false,
+            PlayerContentStateFactory.channelPlaybackState(
+                currentState = it,
+                channel = channel.toPlaybackSnapshot(),
                 currentProgram = currentProgram,
                 nextProgram = nextProgram,
-                userAgent = channel.userAgent,
-                fallbackUrls = fallbackUrls,
-                currentFallbackIndex = 0,
+            ).copy(
+                contentType = contentType,
+                playlistId = playlistId,
+                categoryId = channel.categoryId,
                 isFavorite = channel.isFavorite,
                 recentChannels = recentChannels,
             )
@@ -216,47 +208,6 @@ class PlayerViewModel @Inject constructor(
      * Viele IPTV-Provider unterstützen mehrere Formate pro Kanal.
      * OPTIMIERUNG: String-Operationen statt Regex für bessere Performance.
      */
-    private fun buildStreamFallbacks(originalUrl: String, containerExtension: String?): List<String> {
-        val urls = mutableListOf(originalUrl)
-
-        // OPTIMIERUNG: String-Operationen statt Regex für Xtream-URLs
-        // Pattern: http://server/live/user/pass/12345.ts
-        val liveIndex = originalUrl.indexOf("/live/")
-        if (liveIndex != -1) {
-            val lastSlash = originalUrl.lastIndexOf('/')
-            if (lastSlash > liveIndex) {
-                val dotIndex = originalUrl.lastIndexOf('.')
-                if (dotIndex > lastSlash) {
-                    val base = originalUrl.substring(0, dotIndex)
-                    // Fallbacks in Prioritätsreihenfolge
-                    val extensions = listOf("ts", "m3u8", "mpegts")
-                    for (ext in extensions) {
-                        val alt = "$base.$ext"
-                        if (alt != originalUrl && alt !in urls) {
-                            urls.add(alt)
-                        }
-                    }
-                }
-            }
-        } else {
-            // Für generische URLs
-            val lastSlash = originalUrl.lastIndexOf('/')
-            val dotIndex = originalUrl.lastIndexOf('.')
-            if (dotIndex > lastSlash) {
-                val base = originalUrl.substring(0, dotIndex)
-                val extensions = listOf(".ts", ".m3u8", ".mpegts")
-                for (ext in extensions) {
-                    val alt = "$base$ext"
-                    if (alt != originalUrl && alt !in urls) {
-                        urls.add(alt)
-                    }
-                }
-            }
-        }
-
-        return urls
-    }
-
     /**
      * Called when playback fails. Tries the next fallback URL for LiveTV.
      * Returns the next URL to try, or null if all fallbacks exhausted.
@@ -294,7 +245,11 @@ class PlayerViewModel @Inject constructor(
             ?: throw IllegalStateException("VOD item not found")
 
         val progress = watchProgressRepository.getProgress(playlistId, contentType, contentId)
-        val hasProgress = (progress?.positionMs ?: 0L) > 10_000 && !(progress?.isCompleted ?: true)
+        val resumePositionMs = progress?.positionMs ?: 0L
+        val hasProgress = PlayerContentStateFactory.shouldOfferResume(
+            positionMs = resumePositionMs,
+            isCompleted = progress?.isCompleted ?: true,
+        )
 
         _uiState.update {
             it.copy(
@@ -305,7 +260,7 @@ class PlayerViewModel @Inject constructor(
                 contentId = contentId,
                 playlistId = playlistId,
                 isLoading = false,
-                resumePositionMs = progress?.positionMs ?: 0L,
+                resumePositionMs = resumePositionMs,
                 showResumeDialog = hasProgress,
                 description = vod.plot, // NEW: Load description
             )
@@ -317,7 +272,11 @@ class PlayerViewModel @Inject constructor(
             ?: throw IllegalStateException("Episode not found")
 
         val progress = watchProgressRepository.getProgress(playlistId, contentType, contentId)
-        val hasProgress = (progress?.positionMs ?: 0L) > 10_000 && !(progress?.isCompleted ?: true)
+        val resumePositionMs = progress?.positionMs ?: 0L
+        val hasProgress = PlayerContentStateFactory.shouldOfferResume(
+            positionMs = resumePositionMs,
+            isCompleted = progress?.isCompleted ?: true,
+        )
 
         // Check if there's a next episode
         val hasNext = episodeDao.hasNextEpisode(
@@ -327,20 +286,16 @@ class PlayerViewModel @Inject constructor(
         )
 
         _uiState.update {
-            it.copy(
-                title = episode.name,
-                streamUrl = episode.streamUrl,
-                logoUrl = episode.coverUrl,
-                contentType = contentType,
-                contentId = contentId,
-                playlistId = playlistId,
-                isLoading = false,
-                resumePositionMs = progress?.positionMs ?: 0L,
+            PlayerContentStateFactory.episodePlaybackState(
+                currentState = it,
+                episode = episode.toPlaybackSnapshot(),
+                resumePositionMs = resumePositionMs,
                 showResumeDialog = hasProgress,
-                seriesId = episode.seriesId,
-                seasonNumber = episode.seasonNumber,
-                episodeNumber = episode.episodeNumber,
                 hasNextEpisode = hasNext,
+            ).copy(
+                contentType = contentType,
+                playlistId = playlistId,
+                seriesId = episode.seriesId,
             )
         }
     }
@@ -496,13 +451,7 @@ class PlayerViewModel @Inject constructor(
         val current = _uiState.value.aspectRatio
         _uiState.update {
             it.copy(
-                aspectRatio = when (current) {
-                    AspectRatio.FIT_16_9 -> AspectRatio.FIT_4_3
-                    AspectRatio.FIT_4_3 -> AspectRatio.ZOOM
-                    AspectRatio.ZOOM -> AspectRatio.STRETCH
-                    AspectRatio.STRETCH -> AspectRatio.ORIGINAL
-                    AspectRatio.ORIGINAL -> AspectRatio.FIT_16_9
-                }
+                aspectRatio = PlayerPlaybackLogic.nextAspectRatio(current)
             )
         }
     }
@@ -518,7 +467,7 @@ class PlayerViewModel @Inject constructor(
      * Update video scale for pinch-to-zoom.
      */
     fun setVideoScale(scale: Float) {
-        _uiState.update { it.copy(videoScale = scale.coerceIn(0.5f, 3.0f)) }
+        _uiState.update { it.copy(videoScale = PlayerPlaybackLogic.clampVideoScale(scale)) }
     }
 
     /**
@@ -534,7 +483,7 @@ class PlayerViewModel @Inject constructor(
      * Set audio delay for sync (in milliseconds).
      */
     fun setAudioDelay(delayMs: Int) {
-        _uiState.update { it.copy(audioDelayMs = delayMs.coerceIn(-5000, 5000)) }
+        _uiState.update { it.copy(audioDelayMs = PlayerPlaybackLogic.clampAudioDelay(delayMs)) }
     }
 
     /**
@@ -542,7 +491,7 @@ class PlayerViewModel @Inject constructor(
      */
     fun adjustAudioDelay(deltaMs: Int) {
         val current = _uiState.value.audioDelayMs
-        _uiState.update { it.copy(audioDelayMs = (current + deltaMs).coerceIn(-5000, 5000)) }
+        _uiState.update { it.copy(audioDelayMs = PlayerPlaybackLogic.clampAudioDelay(current + deltaMs)) }
     }
 
     /**
@@ -627,51 +576,15 @@ class PlayerViewModel @Inject constructor(
                     // Update state with new channel info
                     channelRepository.updateLastWatched(previousChannel.id)
                     
-                    val currentProgram = previousChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
-                    val nextProgram = previousChannel.tvgId?.let { epgRepository.getNextProgram(it) }
-                    val fallbackUrls = buildStreamFallbacks(previousChannel.streamUrl, previousChannel.containerExtension)
-
-                    _uiState.update {
-                        it.copy(
-                            title = previousChannel.name,
-                            streamUrl = previousChannel.streamUrl,
-                            logoUrl = previousChannel.logoUrl,
-                            contentId = previousChannel.id,
-                            isLoading = false,
-                            currentProgram = currentProgram,
-                            nextProgram = nextProgram,
-                            userAgent = previousChannel.userAgent,
-                            fallbackUrls = fallbackUrls,
-                            currentFallbackIndex = 0,
-                            error = null,
-                        )
-                    }
+                    updateCurrentChannel(previousChannel)
                 } else {
                     // No previous channel - wrap around to the last channel in category
                     val channelsInCategory = channelDao.getByCategoryOrdered(state.categoryId)
                     if (channelsInCategory.isNotEmpty()) {
                         val lastChannel = channelsInCategory.last()
                         channelRepository.updateLastWatched(lastChannel.id)
-                        
-                        val currentProgram = lastChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
-                        val nextProgram = lastChannel.tvgId?.let { epgRepository.getNextProgram(it) }
-                        val fallbackUrls = buildStreamFallbacks(lastChannel.streamUrl, lastChannel.containerExtension)
 
-                        _uiState.update {
-                            it.copy(
-                                title = lastChannel.name,
-                                streamUrl = lastChannel.streamUrl,
-                                logoUrl = lastChannel.logoUrl,
-                                contentId = lastChannel.id,
-                                isLoading = false,
-                                currentProgram = currentProgram,
-                                nextProgram = nextProgram,
-                                userAgent = lastChannel.userAgent,
-                                fallbackUrls = fallbackUrls,
-                                currentFallbackIndex = 0,
-                                error = null,
-                            )
-                        }
+                        updateCurrentChannel(lastChannel)
                     } else {
                         _uiState.update { it.copy(isLoading = false) }
                     }
@@ -709,51 +622,15 @@ class PlayerViewModel @Inject constructor(
                     // Update state with new channel info
                     channelRepository.updateLastWatched(nextChannel.id)
                     
-                    val currentProgram = nextChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
-                    val nextEpgProgram = nextChannel.tvgId?.let { epgRepository.getNextProgram(it) }
-                    val fallbackUrls = buildStreamFallbacks(nextChannel.streamUrl, nextChannel.containerExtension)
-
-                    _uiState.update {
-                        it.copy(
-                            title = nextChannel.name,
-                            streamUrl = nextChannel.streamUrl,
-                            logoUrl = nextChannel.logoUrl,
-                            contentId = nextChannel.id,
-                            isLoading = false,
-                            currentProgram = currentProgram,
-                            nextProgram = nextEpgProgram,
-                            userAgent = nextChannel.userAgent,
-                            fallbackUrls = fallbackUrls,
-                            currentFallbackIndex = 0,
-                            error = null,
-                        )
-                    }
+                    updateCurrentChannel(nextChannel)
                 } else {
                     // No next channel - wrap around to the first channel in category
                     val channelsInCategory = channelDao.getByCategoryOrdered(state.categoryId)
                     if (channelsInCategory.isNotEmpty()) {
                         val firstChannel = channelsInCategory.first()
                         channelRepository.updateLastWatched(firstChannel.id)
-                        
-                        val currentProgram = firstChannel.tvgId?.let { epgRepository.getCurrentProgram(it) }
-                        val nextEpgProgram = firstChannel.tvgId?.let { epgRepository.getNextProgram(it) }
-                        val fallbackUrls = buildStreamFallbacks(firstChannel.streamUrl, firstChannel.containerExtension)
 
-                        _uiState.update {
-                            it.copy(
-                                title = firstChannel.name,
-                                streamUrl = firstChannel.streamUrl,
-                                logoUrl = firstChannel.logoUrl,
-                                contentId = firstChannel.id,
-                                isLoading = false,
-                                currentProgram = currentProgram,
-                                nextProgram = nextEpgProgram,
-                                userAgent = firstChannel.userAgent,
-                                fallbackUrls = fallbackUrls,
-                                currentFallbackIndex = 0,
-                                error = null,
-                            )
-                        }
+                        updateCurrentChannel(firstChannel)
                     } else {
                         _uiState.update { it.copy(isLoading = false) }
                     }
@@ -801,7 +678,11 @@ class PlayerViewModel @Inject constructor(
                         WatchContentType.EPISODE, 
                         nextEpisode.id
                     )
-                    val hasProgress = (progress?.positionMs ?: 0L) > 10_000 && !(progress?.isCompleted ?: true)
+                    val resumePositionMs = progress?.positionMs ?: 0L
+                    val hasProgress = PlayerContentStateFactory.shouldOfferResume(
+                        positionMs = resumePositionMs,
+                        isCompleted = progress?.isCompleted ?: true,
+                    )
 
                     // Check if there's another episode after this one
                     val hasNext = episodeDao.hasNextEpisode(
@@ -811,18 +692,12 @@ class PlayerViewModel @Inject constructor(
                     )
 
                     _uiState.update {
-                        it.copy(
-                            title = nextEpisode.name,
-                            streamUrl = nextEpisode.streamUrl,
-                            logoUrl = nextEpisode.coverUrl,
-                            contentId = nextEpisode.id,
-                            isLoading = false,
-                            resumePositionMs = progress?.positionMs ?: 0L,
+                        PlayerContentStateFactory.episodePlaybackState(
+                            currentState = it,
+                            episode = nextEpisode.toPlaybackSnapshot(),
+                            resumePositionMs = resumePositionMs,
                             showResumeDialog = hasProgress,
-                            seasonNumber = nextEpisode.seasonNumber,
-                            episodeNumber = nextEpisode.episodeNumber,
                             hasNextEpisode = hasNext,
-                            error = null,
                         )
                     }
                 } else {
@@ -902,7 +777,7 @@ class PlayerViewModel @Inject constructor(
     fun inputChannelNumber(digit: String) {
         val current = _uiState.value.channelNumberInput
         if (current.length < 4) {
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
                     channelNumberInput = current + digit,
                     showChannelNumberInput = true,
@@ -915,7 +790,7 @@ class PlayerViewModel @Inject constructor(
      * Clear the channel number input.
      */
     fun clearChannelNumber() {
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 channelNumberInput = "",
                 showChannelNumberInput = false,
@@ -929,40 +804,23 @@ class PlayerViewModel @Inject constructor(
     fun playChannelByNumber() {
         val number = _uiState.value.channelNumberInput.toIntOrNull() ?: return
         val state = _uiState.value
-        
+
         viewModelScope.launch {
             try {
-                // Find channel by sort order (assuming channel number = sort order)
-                val channels = state.categoryId?.let { 
+                val channels = state.categoryId?.let {
                     channelDao.getByCategoryOrdered(it)
                 } ?: emptyList()
-                
-                // Try to find channel by number (1-indexed)
-                val channel = channels.getOrNull(number - 1)
-                
-                if (channel != null && channel.id != state.contentId) {
-                    // Load the channel
-                    channelRepository.updateLastWatched(channel.id)
-                    
-                    val currentProgram = channel.tvgId?.let { epgRepository.getCurrentProgram(it) }
-                    val nextProgram = channel.tvgId?.let { epgRepository.getNextProgram(it) }
-                    val fallbackUrls = buildStreamFallbacks(channel.streamUrl, channel.containerExtension)
 
+                val channel = channels.getOrNull(number - 1)
+
+                if (channel != null && channel.id != state.contentId) {
+                    channelRepository.updateLastWatched(channel.id)
+                    updateCurrentChannel(channel)
                     _uiState.update {
                         it.copy(
-                            title = channel.name,
-                            streamUrl = channel.streamUrl,
-                            logoUrl = channel.logoUrl,
-                            contentId = channel.id,
-                            currentProgram = currentProgram,
-                            nextProgram = nextProgram,
-                            userAgent = channel.userAgent,
-                            fallbackUrls = fallbackUrls,
-                            currentFallbackIndex = 0,
                             channelNumberInput = "",
                             showChannelNumberInput = false,
                             isFavorite = channel.isFavorite,
-                            error = null,
                         )
                     }
                 } else {
@@ -973,5 +831,41 @@ class PlayerViewModel @Inject constructor(
                 clearChannelNumber()
             }
         }
+    }
+
+    private suspend fun updateCurrentChannel(
+        channel: com.djoudini.iplayer.data.local.entity.ChannelEntity,
+    ) {
+        val currentProgram = channel.tvgId?.let { epgRepository.getCurrentProgram(it) }
+        val nextProgram = channel.tvgId?.let { epgRepository.getNextProgram(it) }
+        _uiState.update {
+            PlayerContentStateFactory.channelPlaybackState(
+                currentState = it,
+                channel = channel.toPlaybackSnapshot(),
+                currentProgram = currentProgram,
+                nextProgram = nextProgram,
+            )
+        }
+    }
+
+    private fun com.djoudini.iplayer.data.local.entity.ChannelEntity.toPlaybackSnapshot(): ChannelPlaybackSnapshot {
+        return ChannelPlaybackSnapshot(
+            id = id,
+            name = name,
+            streamUrl = streamUrl,
+            logoUrl = logoUrl,
+            userAgent = userAgent,
+        )
+    }
+
+    private fun com.djoudini.iplayer.data.local.entity.EpisodeEntity.toPlaybackSnapshot(): EpisodePlaybackSnapshot {
+        return EpisodePlaybackSnapshot(
+            id = id,
+            name = name,
+            streamUrl = streamUrl,
+            coverUrl = coverUrl,
+            seasonNumber = seasonNumber,
+            episodeNumber = episodeNumber,
+        )
     }
 }

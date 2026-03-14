@@ -84,7 +84,6 @@ class PlayerFactory @Inject constructor(
             parameters = buildUponParameters()
                 .setTunnelingEnabled(config.enableTunneledPlayback)
                 .setPreferredVideoMimeType(null) // Accept any
-                .setDisabledTrackTypes(emptySet()) // Don't disable any track types by default
                 .build()
         }
 

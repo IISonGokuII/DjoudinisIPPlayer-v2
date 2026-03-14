@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircleFilled
@@ -110,7 +111,7 @@ fun TvOnboardingScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.List,
+                        imageVector = Icons.AutoMirrored.Filled.List,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.primary

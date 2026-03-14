@@ -346,15 +346,14 @@ fun PlayerScreen(
     // CRITICAL: Release player when leaving screen
     DisposableEffect(Unit) {
         onDispose {
-            exoPlayer?.stop()
-            exoPlayer?.clearMediaItems()
-            exoPlayer?.release()
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+            exoPlayer.release()
         }
     }
 
     // Track playback state
     LaunchedEffect(exoPlayer) {
-        if (exoPlayer == null) return@LaunchedEffect
         while (true) {
             viewModel.updatePlaybackState(
                 isPlaying = exoPlayer.isPlaying,
@@ -378,9 +377,9 @@ fun PlayerScreen(
     DisposableEffect(lifecycleOwner, exoPlayer) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> exoPlayer?.pause()
+                Lifecycle.Event.ON_PAUSE -> exoPlayer.pause()
                 Lifecycle.Event.ON_RESUME -> {
-                    if (exoPlayer?.mediaItemCount ?: 0 > 0) exoPlayer?.play()
+                    if (exoPlayer.mediaItemCount > 0) exoPlayer.play()
                 }
                 else -> {}
             }
@@ -389,7 +388,7 @@ fun PlayerScreen(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
             viewModel.stopProgressTracking()
-            exoPlayer?.release()
+            exoPlayer.release()
         }
     }
 
@@ -971,8 +970,7 @@ fun PlayerScreen(
             ),
     ) {
         // Video surface with Pinch-to-Zoom and Aspect Ratio
-        if (exoPlayer != null) {
-            val playerView = remember { mutableStateOf<PlayerView?>(null) }
+        val playerView = remember { mutableStateOf<PlayerView?>(null) }
             
             AndroidView(
                 factory = { ctx ->
@@ -1093,7 +1091,6 @@ fun PlayerScreen(
                         }
                     }
             )
-        }
 
         // Loading indicator
         if (uiState.isLoading) {

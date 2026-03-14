@@ -19,12 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Forward10
-import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
@@ -329,7 +329,7 @@ fun TvPlayerOverlay(
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
                             Icon(
-                                imageVector = Icons.Default.NavigateNext,
+                                imageVector = Icons.AutoMirrored.Filled.NavigateNext,
                                 contentDescription = "Previous Channel",
                                 tint = Color.White.copy(alpha = 0.5f),
                                 modifier = Modifier

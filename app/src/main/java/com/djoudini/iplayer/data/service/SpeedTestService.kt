@@ -90,8 +90,7 @@ class SpeedTestService @Inject constructor() {
      */
     private suspend fun measureDownloadSpeed(): Int = withContext(Dispatchers.IO) {
         try {
-            // Use a reliable speed test file
-            val testUrl = "https://speedtest.net/garbage.dat" // Placeholder
+            // Use public test files with stable availability.
             val testSizes = listOf(
                 "https://proof.ovh.net/files/1Mb.dat",
                 "https://proof.ovh.net/files/10Mb.dat",
@@ -135,9 +134,6 @@ class SpeedTestService @Inject constructor() {
      */
     private suspend fun measureUploadSpeed(): Int = withContext(Dispatchers.IO) {
         try {
-            // Simulate upload by posting data
-            // In production, use a real speed test API
-            
             val testData = ByteArray(1024 * 1024) // 1MB
             var bestSpeed = 0
             

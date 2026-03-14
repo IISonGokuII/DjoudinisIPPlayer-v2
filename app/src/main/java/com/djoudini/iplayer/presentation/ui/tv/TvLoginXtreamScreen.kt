@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
-import com.djoudini.iplayer.domain.model.Resource
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.components.FocusableTextField
 import com.djoudini.iplayer.presentation.components.ProgressRing
@@ -160,7 +159,7 @@ fun TvLoginXtreamScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Error message - more visible
-            if (loginState is Resource.Error) {
+            if (loginState.error != null) {
                 FocusableCard(
                     onClick = { },
                     modifier = Modifier
@@ -182,7 +181,7 @@ fun TvLoginXtreamScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = (loginState as Resource.Error).message ?: "Unbekannter Fehler",
+                            text = loginState.error ?: "Unbekannter Fehler",
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.fillMaxWidth()
@@ -224,7 +223,7 @@ fun TvLoginXtreamScreen(
                     }
                 }
             } else {
-                val isLoading = loginState is Resource.Loading
+                val isLoading = loginState.isLoading
                 val allFieldsFilled = name.isNotBlank() && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
 
                 FocusableCard(

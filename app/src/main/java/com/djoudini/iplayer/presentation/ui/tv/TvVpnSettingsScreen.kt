@@ -68,9 +68,9 @@ fun TvVpnSettingsSection(
         else -> stringResource(R.string.vpn_disconnected)
     }
     
-    val vpnServerSubtitle = currentServer?.displayName 
+    val vpnServerSubtitle = currentServer?.displayName
         ?: vpnConnectionState.server?.displayName 
-        ?: stringResource(R.string.vpn_select_server)
+        ?: "WireGuard-Konfiguration importieren"
 
     Column {
         // Header
@@ -135,31 +135,25 @@ fun TvVpnSettingsSection(
         
         Spacer(modifier = Modifier.height(16.dp))
 
-        // VPN Server Selection
+        // Imported WireGuard endpoint
         TvVpnItem(
             icon = Icons.Default.LocationOn,
             title = stringResource(R.string.vpn_server),
             subtitle = vpnServerSubtitle,
             onClick = {
-                // TODO: Open server selection dialog
+                onOpenSetupWizard()
             },
         )
         
         Spacer(modifier = Modifier.height(16.dp))
 
-        // VPN Protocol Selection
+        // WireGuard protocol is derived from the imported config
         TvVpnItem(
             icon = Icons.Default.Lock,
             title = stringResource(R.string.vpn_protocol),
-            subtitle = when (viewModel.vpnProtocol) {
-                "WIREGUARD" -> stringResource(R.string.vpn_wireguard)
-                "OPENVPN_UDP" -> stringResource(R.string.vpn_openvpn_udp)
-                "OPENVPN_TCP" -> stringResource(R.string.vpn_openvpn_tcp)
-                "IKEV2" -> stringResource(R.string.vpn_ikev2)
-                else -> stringResource(R.string.vpn_custom)
-            },
+            subtitle = stringResource(R.string.vpn_wireguard),
             onClick = {
-                // TODO: Open protocol selection dialog
+                onOpenSetupWizard()
             },
         )
         
@@ -216,7 +210,7 @@ fun TvVpnSettingsSection(
             TvVpnItem(
                 icon = Icons.Default.Speed,
                 title = stringResource(R.string.vpn_ping),
-                subtitle = "${vpnConnectionState.currentPing ?: currentServer?.ping ?: 0}ms",
+                subtitle = vpnConnectionState.currentPing?.let { "${it}ms" } ?: "Noch nicht gemessen",
                 onClick = {
                     viewModel.pingVpnServer(viewModel.vpnServerId)
                 },

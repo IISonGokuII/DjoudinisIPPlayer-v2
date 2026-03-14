@@ -117,33 +117,18 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        // Wait for previous sync to fully cancel before starting new one
-        syncJob?.cancelAndJoin()
-        syncJob = null
-
-        coroutineScope {
-            syncJob = launch {
-                try {
-                    _syncProgress.value = SyncProgress.indeterminate("Connecting...")
-
-                    when (PlaylistType.fromValue(playlist.type)) {
-                        PlaylistType.XTREAM -> syncXtream(playlist)
-                        PlaylistType.M3U -> syncM3u(playlist)
-                    }
-
-                    playlistDao.updateLastSynced(playlistId, System.currentTimeMillis())
-                    _syncProgress.value = SyncProgress.completed()
-                } catch (e: CancellationException) {
-                    _syncProgress.value = SyncProgress.Idle
-                    throw e
-                } catch (e: Exception) {
-                    Timber.e(e, "Sync failed for playlist $playlistId")
-                    _syncProgress.value = SyncProgress.failed(
-                        e.localizedMessage ?: "Sync failed"
-                    )
-                    // Don't re-throw - allow partial sync
-                }
+        runSyncJob(
+            initialPhase = "Connecting...",
+            onErrorMessage = "Sync failed",
+            logLabel = "Sync failed for playlist $playlistId",
+        ) {
+            when (PlaylistType.fromValue(playlist.type)) {
+                PlaylistType.XTREAM -> syncXtream(playlist)
+                PlaylistType.M3U -> syncM3u(playlist)
             }
+
+            playlistDao.updateLastSynced(playlistId, System.currentTimeMillis())
+            _syncProgress.value = SyncProgress.completed()
         }
     }
 
@@ -646,28 +631,15 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        // Wait for previous sync to fully cancel before starting new one
-        syncJob?.cancelAndJoin()
-        syncJob = null
-
-        coroutineScope {
-            syncJob = launch {
-                try {
-                    _syncProgress.value = SyncProgress.indeterminate("Connecting...")
-                    when (PlaylistType.fromValue(playlist.type)) {
-                        PlaylistType.XTREAM -> syncXtreamCategoriesOnly(playlist)
-                        PlaylistType.M3U -> syncM3u(playlist) // M3U needs full parse
-                    }
-                } catch (e: CancellationException) {
-                    _syncProgress.value = SyncProgress.Idle
-                    throw e
-                } catch (e: Exception) {
-                    Timber.e(e, "Category sync failed for playlist $playlistId")
-                    _syncProgress.value = SyncProgress.failed(
-                        e.localizedMessage ?: "Category sync failed"
-                    )
-                    throw e
-                }
+        runSyncJob(
+            initialPhase = "Connecting...",
+            onErrorMessage = "Category sync failed",
+            logLabel = "Category sync failed for playlist $playlistId",
+            rethrowOnError = true,
+        ) {
+            when (PlaylistType.fromValue(playlist.type)) {
+                PlaylistType.XTREAM -> syncXtreamCategoriesOnly(playlist)
+                PlaylistType.M3U -> syncM3u(playlist)
             }
         }
     }
@@ -676,38 +648,21 @@ class PlaylistRepositoryImpl @Inject constructor(
         val playlist = playlistDao.getById(playlistId)
             ?: throw IllegalArgumentException("Playlist $playlistId not found")
 
-        // Wait for previous sync to fully cancel before starting new one
-        syncJob?.cancelAndJoin()
-        syncJob = null
-
-        coroutineScope {
-            syncJob = launch {
-                try {
-                    Timber.d("[Sync] Starting stream sync for playlist $playlistId (type=${playlist.type})")
-                    _syncProgress.value = SyncProgress.indeterminate("Preparing sync...")
-                    when (PlaylistType.fromValue(playlist.type)) {
-                        PlaylistType.XTREAM -> syncXtreamSelectedStreams(playlist)
-                        PlaylistType.M3U -> {
-                            Timber.d("[Sync] M3U playlist - streams already synced during categories")
-                            // M3U streams are already synced during categoriesOnly phase
-                        }
-                    }
-                    playlistDao.updateLastSynced(playlistId, System.currentTimeMillis())
-                    _syncProgress.value = SyncProgress.completed()
-                    Timber.d("[Sync] Stream sync completed successfully for playlist $playlistId")
-                } catch (e: CancellationException) {
-                    Timber.d("[Sync] Stream sync cancelled for playlist $playlistId")
-                    _syncProgress.value = SyncProgress.Idle
-                    throw e
-                } catch (e: Exception) {
-                    Timber.e(e, "Stream sync failed for playlist $playlistId")
-                    _syncProgress.value = SyncProgress.failed(
-                        e.localizedMessage ?: "Stream sync failed"
-                    )
-                    // Don't re-throw - let sync continue partially if possible
-                    // This prevents total failure when one category has issues
+        runSyncJob(
+            initialPhase = "Preparing sync...",
+            onErrorMessage = "Stream sync failed",
+            logLabel = "Stream sync failed for playlist $playlistId",
+        ) {
+            Timber.d("[Sync] Starting stream sync for playlist $playlistId (type=${playlist.type})")
+            when (PlaylistType.fromValue(playlist.type)) {
+                PlaylistType.XTREAM -> syncXtreamSelectedStreams(playlist)
+                PlaylistType.M3U -> {
+                    Timber.d("[Sync] M3U playlist - streams already synced during categories")
                 }
             }
+            playlistDao.updateLastSynced(playlistId, System.currentTimeMillis())
+            _syncProgress.value = SyncProgress.completed()
+            Timber.d("[Sync] Stream sync completed successfully for playlist $playlistId")
         }
     }
 
@@ -715,6 +670,35 @@ class PlaylistRepositoryImpl @Inject constructor(
         syncJob?.cancel()
         syncJob = null
         _syncProgress.value = SyncProgress.Idle
+    }
+
+    private suspend fun runSyncJob(
+        initialPhase: String,
+        onErrorMessage: String,
+        logLabel: String,
+        rethrowOnError: Boolean = false,
+        block: suspend () -> Unit,
+    ) {
+        syncJob?.cancelAndJoin()
+        syncJob = null
+
+        coroutineScope {
+            syncJob = launch {
+                try {
+                    _syncProgress.value = SyncProgress.indeterminate(initialPhase)
+                    block()
+                } catch (e: CancellationException) {
+                    _syncProgress.value = SyncProgress.Idle
+                    throw e
+                } catch (e: Exception) {
+                    Timber.e(e, logLabel)
+                    _syncProgress.value = SyncProgress.failed(
+                        e.localizedMessage ?: onErrorMessage,
+                    )
+                    if (rethrowOnError) throw e
+                }
+            }
+        }
     }
 
     // --- Extension functions for DTO → Entity mapping ---

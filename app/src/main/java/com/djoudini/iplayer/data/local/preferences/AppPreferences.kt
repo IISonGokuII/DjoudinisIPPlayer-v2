@@ -209,7 +209,7 @@ class AppPreferences @Inject constructor(
     }
 
     val vpnServerId: Flow<String> = dataStore.data.map { prefs ->
-        prefs[VpnKeys.VPN_SERVER_ID] ?: "de-frankfurt"
+        prefs[VpnKeys.VPN_SERVER_ID] ?: ""
     }
 
     val vpnProtocol: Flow<String> = dataStore.data.map { prefs ->
@@ -225,7 +225,7 @@ class AppPreferences @Inject constructor(
     }
 
     val vpnProviderType: Flow<String> = dataStore.data.map { prefs ->
-        prefs[VpnKeys.VPN_PROVIDER_TYPE] ?: VpnProviderType.FREE_BUILTIN.name
+        prefs[VpnKeys.VPN_PROVIDER_TYPE] ?: VpnProviderType.MANUAL_CONFIG.name
     }
 
     val vpnReconnectDelay: Flow<Int> = dataStore.data.map { prefs ->

@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
@@ -30,8 +32,6 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -280,7 +280,7 @@ fun TvLiveCategoriesScreen(
                 IconButton(onClick = { viewModel.cycleSortMode() }) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = Icons.Default.Sort,
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
                             contentDescription = "Sort",
                             modifier = Modifier.size(20.dp),
                             tint = MaterialTheme.colorScheme.primary,
@@ -295,7 +295,7 @@ fun TvLiveCategoriesScreen(
                 // View mode button
                 IconButton(onClick = { viewModel.cycleViewMode() }) {
                     Icon(
-                        imageVector = if (viewMode == ViewMode.LIST) Icons.Default.ViewList else Icons.Default.GridView,
+                        imageVector = if (viewMode == ViewMode.LIST) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                         contentDescription = "View mode",
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.primary,

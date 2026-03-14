@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
+import com.djoudini.iplayer.data.local.entity.VpnState
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.components.ProgressRing
@@ -88,6 +89,8 @@ fun TvDashboardScreen(
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val continueWatching by viewModel.continueWatching.collectAsStateWithLifecycle()
     val favoriteChannels by viewModel.favoriteChannels.collectAsStateWithLifecycle()
+    val vpnEnabled by viewModel.vpnEnabled.collectAsStateWithLifecycle()
+    val vpnConnectionInfo by viewModel.vpnConnectionInfo.collectAsStateWithLifecycle()
 
     // Current time for display
     var currentTime by remember { mutableStateOf("") }
@@ -226,6 +229,14 @@ fun TvDashboardScreen(
         // Sync progress banner
         if (syncProgress.isActive) {
             SyncProgressBanner(syncProgress)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        TvVpnStatusBanner(
+            vpnEnabled = vpnEnabled,
+            vpnConnected = vpnConnectionInfo.state is VpnState.Connected,
+        )
+        if (vpnEnabled) {
             Spacer(modifier = Modifier.height(8.dp))
         }
 
@@ -499,13 +510,9 @@ private fun InfoRow(label: String, value: String) {
 
 @Composable
 private fun TvVpnStatusBanner(
-    viewModel: DashboardViewModel,
+    vpnEnabled: Boolean,
+    vpnConnected: Boolean,
 ) {
-    // Note: DashboardViewModel needs vpnConnectionState exposed
-    // For now, this is a placeholder that will be updated when ViewModel is connected
-    val vpnEnabled = false // TODO: Get from ViewModel
-    val vpnConnected = false // TODO: Get from ViewModel
-    
     if (!vpnEnabled) return // Don't show if VPN is not enabled
     
     Card(

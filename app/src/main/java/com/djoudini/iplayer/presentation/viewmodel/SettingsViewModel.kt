@@ -32,7 +32,7 @@ class SettingsViewModel @Inject constructor(
     var preferredSubtitleLanguage by mutableStateOf("")
         private set
 
-    var _vpnServerId by mutableStateOf("de-frankfurt")
+    var _vpnServerId by mutableStateOf("")
         private set
 
     var _vpnProtocol by mutableStateOf("WIREGUARD")
@@ -101,7 +101,10 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadVpnSettings() {
         viewModelScope.launch {
-            appPreferences.vpnServerId.collect { _vpnServerId = it }
+            appPreferences.vpnServerId.collect {
+                _vpnServerId = it
+                loadVpnServers()
+            }
         }
         viewModelScope.launch {
             appPreferences.vpnProtocol.collect { _vpnProtocol = it }
@@ -226,7 +229,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             appPreferences.setVpnEnabled(enabled)
             if (enabled) {
-                vpnRepository.connect(vpnServerId)
+                if (vpnServerId.isNotBlank()) {
+                    vpnRepository.connect(vpnServerId)
+                }
             } else {
                 vpnRepository.disconnect()
             }
@@ -329,7 +334,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val enabled = vpnEnabled.value
             val autoConnect = vpnAutoConnect.value
-            if (enabled && autoConnect) {
+            if (enabled && autoConnect && vpnServerId.isNotBlank()) {
                 vpnRepository.connect(vpnServerId)
             }
         }

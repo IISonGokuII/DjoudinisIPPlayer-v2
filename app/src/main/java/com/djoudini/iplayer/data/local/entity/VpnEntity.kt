@@ -1,7 +1,7 @@
 package com.djoudini.iplayer.data.local.entity
 
 /**
- * VPN Server entity representing a available VPN server.
+ * VPN Server entity representing an available VPN endpoint.
  */
 data class VpnServer(
     val id: String,
@@ -11,15 +11,24 @@ data class VpnServer(
     val hostname: String,
     val port: Int,
     val protocol: VpnProtocol = VpnProtocol.WIREGUARD,
-    val isFree: Boolean = true,
+    val isFree: Boolean = false,
     val isPremium: Boolean = false,
-    val speed: Int = 100, // 1-100
-    val ping: Int = 50,   // in ms
-    val load: Int = 50,   // 1-100 (server load percentage)
-    val configUrl: String? = null, // For custom config downloads
+    val speed: Int? = null,
+    val ping: Int? = null,
+    val load: Int? = null,
+    val configUrl: String? = null,
 ) {
     val displayName: String get() = "$country - $city"
-    val statusText: String get() = "${ping}ms • ${speed}Mbps • ${load}% Last"
+
+    val statusText: String
+        get() {
+            val parts = listOfNotNull(
+                ping?.let { "${it}ms" },
+                speed?.let { "${it}Mbps" },
+                load?.let { "${it}% Last" },
+            )
+            return parts.joinToString(" • ").ifEmpty { hostname }
+        }
 }
 
 /**
@@ -30,16 +39,16 @@ enum class VpnProtocol {
     OPENVPN_UDP,
     OPENVPN_TCP,
     IKEV2,
-    CUSTOM
+    CUSTOM,
 }
 
 /**
  * VPN Provider type.
  */
 enum class VpnProviderType {
-    FREE_BUILTIN,      // Built-in free servers
-    CUSTOM_PROVIDER,   // User's own VPN provider
-    MANUAL_CONFIG      // Manual WireGuard/OpenVPN config
+    FREE_BUILTIN,
+    CUSTOM_PROVIDER,
+    MANUAL_CONFIG,
 }
 
 /**
@@ -54,8 +63,8 @@ data class VpnProviderConfig(
     val configUrl: String? = null,
     val apiEndpoint: String? = null,
     val apiKey: String? = null,
-    val supportedProtocols: List<VpnProtocol> = listOf(VpnProtocol.WIREGUARD, VpnProtocol.OPENVPN_UDP),
-    val serversUrl: String? = null, // URL to fetch server list
+    val supportedProtocols: List<VpnProtocol> = listOf(VpnProtocol.WIREGUARD),
+    val serversUrl: String? = null,
 )
 
 /**
@@ -67,7 +76,7 @@ sealed class VpnState {
     object Connected : VpnState()
     object Disconnecting : VpnState()
     data class Error(val message: String) : VpnState()
-    
+
     val isConnected: Boolean get() = this is Connected
     val isConnecting: Boolean get() = this is Connecting || this is Disconnecting
 }
@@ -78,7 +87,7 @@ sealed class VpnState {
 data class VpnConnectionInfo(
     val server: VpnServer? = null,
     val state: VpnState = VpnState.Disconnected,
-    val connectedSince: Long? = null, // Timestamp when connected
+    val connectedSince: Long? = null,
     val bytesUploaded: Long = 0,
     val bytesDownloaded: Long = 0,
     val currentPing: Int? = null,
@@ -87,7 +96,7 @@ data class VpnConnectionInfo(
 ) {
     val connectionDuration: Long?
         get() = connectedSince?.let { (System.currentTimeMillis() - it) / 1000 }
-    
+
     val formattedDuration: String?
         get() = connectionDuration?.let {
             val hours = it / 3600

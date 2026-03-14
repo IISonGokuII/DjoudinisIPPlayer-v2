@@ -3,6 +3,7 @@ package com.djoudini.iplayer.presentation.ui
 import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -15,7 +16,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.djoudini.iplayer.R
-import com.djoudini.iplayer.util.PermissionHelper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -161,7 +161,16 @@ class SplashActivity : ComponentActivity() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         startActivity(intent)
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(
+                Activity.OVERRIDE_TRANSITION_OPEN,
+                android.R.anim.fade_in,
+                android.R.anim.fade_out,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
         finish()
     }
 

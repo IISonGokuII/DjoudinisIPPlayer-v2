@@ -33,7 +33,6 @@ import com.djoudini.iplayer.presentation.navigation.Route
 import com.djoudini.iplayer.presentation.ui.theme.DjoudinisTheme
 import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import com.djoudini.iplayer.util.CrashHandler
-import com.djoudini.iplayer.util.PermissionHelper
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import timber.log.Timber
@@ -97,17 +96,6 @@ class MainActivity : ComponentActivity() {
         CrashHandler.setCurrentActivity(null)
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        val handled = PermissionHelper.onRequestPermissionsResult(
-            requestCode, permissions, grantResults
-        )
-        Timber.d("[MainActivity] Permission result handled: $handled")
-    }
 }
 
 @Composable

@@ -22,13 +22,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -315,7 +315,7 @@ private fun MultiViewCell(
 
             // Audio indicator
             Icon(
-                imageVector = if (isActive) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                imageVector = if (isActive) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
                 contentDescription = null,
                 tint = if (isActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.6f),
                 modifier = Modifier

@@ -198,9 +198,9 @@
     <string name="vpn_connect_before_streaming">Vor Streaming verbinden</string>
     <string name="vpn_connect_before_streaming_desc">Stellt VPN-Verbindung vor Stream-Start sicher</string>
     <string name="vpn_server">VPN Server</string>
-    <string name="vpn_server_desc">Server-Standort auswählen</string>
+    <string name="vpn_server_desc">Endpunkt aus importierter WireGuard-Konfiguration</string>
     <string name="vpn_protocol">VPN Protokoll</string>
-    <string name="vpn_protocol_desc">Verschlüsselungs-Protokoll wählen</string>
+    <string name="vpn_protocol_desc">Wird aus der importierten WireGuard-Datei übernommen</string>
     <string name="vpn_kill_switch">Kill Switch</string>
     <string name="vpn_kill_switch_desc">Internet sperren wenn VPN getrennt wird</string>
     <string name="vpn_dns_leak_protection">DNS Leak Protection</string>
@@ -236,7 +236,7 @@
     <!-- VPN Setup Wizard -->
     <string name="vpn_setup_wizard">VPN Einrichtungsassistent</string>
     <string name="vpn_setup_title">VPN einrichten</string>
-    <string name="vpn_setup_subtitle">Wähle einen VPN-Anbieter oder verwende unsere kostenlosen Server</string>
+    <string name="vpn_setup_subtitle">Importiere eine echte WireGuard-Konfiguration deines VPN-Anbieters</string>
     <string name="vpn_step_indicator">Schritt %1$d von %2$d</string>
     <string name="vpn_select_provider">VPN-Anbieter auswählen</string>
     <string name="vpn_popular_providers">Beliebte Anbieter</string>
@@ -248,7 +248,7 @@
     <string name="vpn_account_number">Kontonummer</string>
     <string name="vpn_account_number_desc">Deine Mullvad Kontonummer (16-stellig)</string>
     <string name="vpn_import_config_file">Konfiguration importieren</string>
-    <string name="vpn_import_config_desc">WireGuard (.conf) oder OpenVPN (.ovpn) Datei wählen</string>
+    <string name="vpn_import_config_desc">WireGuard (.conf) Datei wählen</string>
     <string name="vpn_select_file">Datei auswählen</string>
     <string name="vpn_config_file_selected">Ausgewählt: %1$s</string>
     <string name="vpn_select_server">Server auswählen</string>
