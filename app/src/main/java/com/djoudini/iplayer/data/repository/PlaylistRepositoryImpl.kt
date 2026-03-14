@@ -22,6 +22,7 @@ import com.djoudini.iplayer.domain.model.ContentType
 import com.djoudini.iplayer.domain.model.PlaylistType
 import com.djoudini.iplayer.domain.model.SyncProgress
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
+import com.djoudini.iplayer.util.EpgChannelIdNormalizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -157,9 +158,9 @@ class PlaylistRepositoryImpl @Inject constructor(
             status = userInfo.status ?: "active"
         )
 
-        // Auto-set EPG URL for Xtream playlists
-        if (playlist.epgUrl == null) {
-            val epgUrl = "$serverUrl/xmltv.php?username=$username&password=$password"
+        // Always refresh the Xtream XMLTV endpoint so EPG follows current credentials.
+        val epgUrl = "$serverUrl/xmltv.php?username=$username&password=$password"
+        if (playlist.epgUrl != epgUrl) {
             playlistDao.updateEpgUrl(playlist.id, epgUrl)
         }
 
@@ -561,6 +562,12 @@ class PlaylistRepositoryImpl @Inject constructor(
             }
         )
 
+        result.epgUrl?.let { detectedEpgUrl ->
+            if (playlist.epgUrl != detectedEpgUrl) {
+                playlistDao.updateEpgUrl(playlist.id, detectedEpgUrl)
+            }
+        }
+
         _syncProgress.value = SyncProgress.active("Finalizing ($totalItems items)...", 0.95f)
     }
 
@@ -613,9 +620,18 @@ class PlaylistRepositoryImpl @Inject constructor(
                 }
             )
 
+            val insertedPrograms = epgProgramDao.countByPlaylist(playlistId)
+            if (insertedPrograms == 0) {
+                _syncProgress.value = SyncProgress.failed(
+                    "EPG geladen, aber keine passenden Programmdaten gefunden. Bitte tvg-id/EPG-Zuordnung pruefen.",
+                )
+                Timber.w("[EPG Sync] No programs inserted for playlist $playlistId")
+                return
+            }
+
             playlistDao.updateEpgLastSynced(playlistId, System.currentTimeMillis())
             _syncProgress.value = SyncProgress.completed()
-            Timber.i("[EPG Sync] Complete: $totalPrograms programs for playlist $playlistId")
+            Timber.i("[EPG Sync] Complete: $insertedPrograms programs for playlist $playlistId")
         } catch (e: CancellationException) {
             Timber.w("[EPG Sync] Cancelled by user")
             _syncProgress.value = SyncProgress.Idle
@@ -720,7 +736,7 @@ class PlaylistRepositoryImpl @Inject constructor(
             name = name ?: "Unknown",
             streamUrl = url,
             logoUrl = streamIcon,
-            tvgId = epgChannelId,
+            tvgId = EpgChannelIdNormalizer.normalize(epgChannelId),
             containerExtension = ext,
             catchupType = if (tvArchive == 1) "default" else null,
             catchupDays = tvArchiveDuration,

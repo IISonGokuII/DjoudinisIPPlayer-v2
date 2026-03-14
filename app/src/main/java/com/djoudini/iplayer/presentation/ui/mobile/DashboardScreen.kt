@@ -28,11 +28,14 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -61,6 +64,7 @@ import com.djoudini.iplayer.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
+import com.djoudini.iplayer.data.local.entity.RecordingEntity
 import com.djoudini.iplayer.data.local.entity.VpnState
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.domain.model.SyncProgress
@@ -82,6 +86,8 @@ fun DashboardScreen(
     onNavigateMultiView: () -> Unit = {},
     onNavigateFavorites: () -> Unit = {},
     onNavigateRecordings: () -> Unit = {},
+    onNavigateConference: () -> Unit = {},
+    onNavigateLiveTvManagement: () -> Unit = {},
     onContinueWatchingClick: (contentType: String, contentId: Long) -> Unit = { _, _ -> },
     onChannelClick: (Long) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -91,6 +97,8 @@ fun DashboardScreen(
     val continueWatching by viewModel.continueWatching.collectAsStateWithLifecycle()
     val favoriteChannels by viewModel.favoriteChannels.collectAsStateWithLifecycle()
     val recentlyWatched by viewModel.recentlyWatched.collectAsStateWithLifecycle()
+    val activeRecordings by viewModel.activeRecordings.collectAsStateWithLifecycle()
+    val latestRecording by viewModel.latestRecording.collectAsStateWithLifecycle()
 
     // Current time for display
     var currentTime by remember { mutableStateOf("") }
@@ -167,6 +175,15 @@ fun DashboardScreen(
             // VPN Status Banner
             VpnStatusBanner(viewModel = viewModel, onNavigateToSettings = onNavigateSettings)
             Spacer(modifier = Modifier.height(16.dp))
+
+            RecordingStatusBanner(
+                activeRecordings = activeRecordings,
+                latestRecording = latestRecording,
+                onOpenRecordings = onNavigateRecordings,
+            )
+            if (activeRecordings.isNotEmpty() || latestRecording != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Continue Watching section
             if (continueWatching.isNotEmpty()) {
@@ -295,6 +312,26 @@ fun DashboardScreen(
                     onClick = onNavigateRecordings,
                     modifier = Modifier.weight(1f),
                 )
+                DashboardTile(
+                    title = "Konferenz",
+                    icon = Icons.Default.SportsSoccer,
+                    onClick = onNavigateConference,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                DashboardTile(
+                    title = "Senderlisten",
+                    icon = Icons.Default.SwapVert,
+                    onClick = onNavigateLiveTvManagement,
+                    modifier = Modifier.weight(1f),
+                )
                 Spacer(modifier = Modifier.weight(1f))
             }
 
@@ -309,6 +346,83 @@ fun DashboardScreen(
                     lastSynced = p.lastSyncedAt,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RecordingStatusBanner(
+    activeRecordings: List<RecordingEntity>,
+    latestRecording: RecordingEntity?,
+    onOpenRecordings: () -> Unit,
+) {
+    val activeRecording = activeRecordings.firstOrNull()
+    val bannerText = when {
+        activeRecording != null -> "Aufnahme laeuft: ${activeRecording.channelName}"
+        latestRecording?.status == "failed" -> "Letzte Aufnahme fehlgeschlagen: ${latestRecording.channelName}"
+        latestRecording?.status == "completed" -> "Letzte Aufnahme bereit: ${latestRecording.channelName}"
+        else -> null
+    } ?: return
+
+    val bannerColor = when {
+        activeRecording != null -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f)
+        latestRecording?.status == "failed" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.65f)
+        else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+    }
+
+    val icon = when {
+        activeRecording != null -> Icons.Default.FiberManualRecord
+        latestRecording?.status == "failed" -> Icons.Default.Error
+        else -> Icons.Default.CheckCircle
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenRecordings),
+        colors = CardDefaults.cardColors(containerColor = bannerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (activeRecording != null || latestRecording?.status == "failed") {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                )
+                Column {
+                    Text(
+                        text = "Aufnahmen",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = bannerText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Text(
+                text = "Oeffnen",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }

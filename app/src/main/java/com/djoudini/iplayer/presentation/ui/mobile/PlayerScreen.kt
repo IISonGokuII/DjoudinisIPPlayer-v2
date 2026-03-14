@@ -857,6 +857,7 @@ fun PlayerScreen(
                                                     action = RecordingService.ACTION_START
                                                     putExtra(RecordingService.EXTRA_STREAM_URL, uiState.streamUrl)
                                                     putExtra(RecordingService.EXTRA_CHANNEL_NAME, uiState.title)
+                                                    putExtra(RecordingService.EXTRA_CHANNEL_ID, uiState.contentId)
                                                 }
                                             )
                                             isRecording = true
@@ -1200,6 +1201,7 @@ fun PlayerScreen(
                                             action = RecordingService.ACTION_START
                                             putExtra(RecordingService.EXTRA_STREAM_URL, uiState.streamUrl)
                                             putExtra(RecordingService.EXTRA_CHANNEL_NAME, uiState.title)
+                                            putExtra(RecordingService.EXTRA_CHANNEL_ID, uiState.contentId)
                                         }
                                     )
                                     isRecording = true
@@ -1556,6 +1558,7 @@ fun PlayerScreen(
     }
 }
 
+@OptIn(UnstableApi::class)
 private fun playerResizeMode(aspectRatio: AspectRatio): Int {
     return when (aspectRatio) {
         AspectRatio.FIT_16_9,

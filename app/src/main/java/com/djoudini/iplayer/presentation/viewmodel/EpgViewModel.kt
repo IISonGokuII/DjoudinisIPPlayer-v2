@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import androidx.compose.runtime.Immutable
 import javax.inject.Inject
+import com.djoudini.iplayer.util.EpgChannelIdNormalizer
 
 @Immutable
 data class ChannelEpgData(
@@ -33,6 +35,8 @@ class EpgViewModel @Inject constructor(
 
     private val _epgData = MutableStateFlow<List<ChannelEpgData>>(emptyList())
     val epgData: StateFlow<List<ChannelEpgData>> = _epgData.asStateFlow()
+    val syncProgress = playlistRepository.syncProgress
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Lazily, com.djoudini.iplayer.domain.model.SyncProgress.Idle)
 
     init {
         loadEpg()
@@ -40,6 +44,14 @@ class EpgViewModel @Inject constructor(
 
     fun reload() {
         loadEpg()
+    }
+
+    fun syncEpgNow() {
+        viewModelScope.launch {
+            val playlist = playlistRepository.getActive() ?: return@launch
+            playlistRepository.syncEpg(playlist.id)
+            loadEpg()
+        }
     }
 
     private fun loadEpg() {
@@ -63,7 +75,7 @@ class EpgViewModel @Inject constructor(
             // FIX: Batch query instead of N+1 queries
             // Old: 100+ individual queries (one per channel)
             // New: 1 query for all channels
-            val channelIds = channels.mapNotNull { it.tvgId }
+            val channelIds = channels.mapNotNull { EpgChannelIdNormalizer.normalize(it.tvgId) }.distinct()
             val programsByChannel = epgRepository.getProgramsForChannels(
                 channelIds = channelIds,
                 fromTime = now - 2 * 60 * 60 * 1000, // 2 hours back
@@ -71,11 +83,12 @@ class EpgViewModel @Inject constructor(
             )
 
             val epgList = channels.mapNotNull { channel ->
-                val programs = programsByChannel[channel.tvgId] ?: return@mapNotNull null
+                val normalizedTvgId = EpgChannelIdNormalizer.normalize(channel.tvgId) ?: return@mapNotNull null
+                val programs = programsByChannel[normalizedTvgId] ?: return@mapNotNull null
                 if (programs.isEmpty()) return@mapNotNull null
                 ChannelEpgData(
                     channelDbId = channel.id,
-                    channelId = channel.tvgId ?: "",
+                    channelId = normalizedTvgId,
                     channelName = channel.name,
                     programs = programs,
                 )

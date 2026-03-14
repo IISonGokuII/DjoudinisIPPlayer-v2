@@ -26,9 +26,12 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -49,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
+import com.djoudini.iplayer.data.local.entity.RecordingEntity
 import com.djoudini.iplayer.data.local.entity.VpnState
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
@@ -84,6 +88,8 @@ fun TvDashboardScreen(
     onNavigateMultiView: () -> Unit,
     onNavigateFavorites: () -> Unit,
     onNavigateRecordings: () -> Unit,
+    onNavigateConference: () -> Unit,
+    onNavigateLiveTvManagement: () -> Unit,
     onContinueWatchingClick: (contentType: String, contentId: Long) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
@@ -93,6 +99,8 @@ fun TvDashboardScreen(
     val favoriteChannels by viewModel.favoriteChannels.collectAsStateWithLifecycle()
     val vpnEnabled by viewModel.vpnEnabled.collectAsStateWithLifecycle()
     val vpnConnectionInfo by viewModel.vpnConnectionInfo.collectAsStateWithLifecycle()
+    val activeRecordings by viewModel.activeRecordings.collectAsStateWithLifecycle()
+    val latestRecording by viewModel.latestRecording.collectAsStateWithLifecycle()
 
     // Current time for display
     var currentTime by remember { mutableStateOf("") }
@@ -242,6 +250,15 @@ fun TvDashboardScreen(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
+        TvRecordingStatusBanner(
+            activeRecordings = activeRecordings,
+            latestRecording = latestRecording,
+            onOpenRecordings = onNavigateRecordings,
+        )
+        if (activeRecordings.isNotEmpty() || latestRecording != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         // Continue Watching section
         if (continueWatching.isNotEmpty()) {
             Text(
@@ -330,10 +347,87 @@ fun TvDashboardScreen(
                 onClick = onNavigateMultiView,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.weight(1f))
+            TvDashboardTile(
+                title = "Konferenz",
+                icon = Icons.Default.SportsSoccer,
+                onClick = onNavigateConference,
+                modifier = Modifier.weight(1f),
+            )
+            TvDashboardTile(
+                title = "Senderlisten",
+                icon = Icons.Default.SwapVert,
+                onClick = onNavigateLiveTvManagement,
+                modifier = Modifier.weight(1f),
+            )
         }
 
+    }
+}
+
+@Composable
+private fun TvRecordingStatusBanner(
+    activeRecordings: List<RecordingEntity>,
+    latestRecording: RecordingEntity?,
+    onOpenRecordings: () -> Unit,
+) {
+    val activeRecording = activeRecordings.firstOrNull()
+    val message = when {
+        activeRecording != null -> "Aufnahme laeuft: ${activeRecording.channelName}"
+        latestRecording?.status == "failed" -> "Letzte Aufnahme fehlgeschlagen: ${latestRecording.channelName}"
+        latestRecording?.status == "completed" -> "Letzte Aufnahme bereit: ${latestRecording.channelName}"
+        else -> null
+    } ?: return
+
+    FocusableCard(
+        onClick = onOpenRecordings,
+        modifier = Modifier.fillMaxWidth(),
+        focusScale = 1.02f,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = when {
+                        activeRecording != null -> Icons.Default.FiberManualRecord
+                        latestRecording?.status == "failed" -> Icons.Default.Error
+                        else -> Icons.Default.CheckCircle
+                    },
+                    contentDescription = null,
+                    tint = when {
+                        activeRecording != null || latestRecording?.status == "failed" -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                    modifier = Modifier.size(28.dp),
+                )
+                Column {
+                    Text(
+                        text = stringResource(R.string.recordings),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Text(
+                text = stringResource(R.string.open_recording),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
 

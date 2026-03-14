@@ -26,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Search
@@ -353,6 +354,23 @@ fun LiveCategoriesScreen(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
+                            if (channel.isFavorite) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = Color.Red,
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Favorit",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.9f),
+                                    )
+                                }
+                            }
                             // Current program
                             channels.find { it.channel.id == channel.id }?.currentProgram?.let { program ->
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -494,15 +512,27 @@ private fun ChannelItemMobile(
         Column(
             modifier = Modifier.weight(1f),
         ) {
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (channel.isFavorite) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.Red,
+                    )
+                }
+            }
             currentProgram?.let { program ->
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(

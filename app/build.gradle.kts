@@ -8,6 +8,17 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+val footballDataApiToken = localProperties.getProperty("footballDataApiToken", "")
+
 android {
     namespace = "com.djoudini.iplayer"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -20,6 +31,7 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "FOOTBALL_DATA_API_TOKEN", "\"$footballDataApiToken\"")
     }
 
     signingConfigs {

@@ -31,6 +31,7 @@ import kotlinx.coroutines.async
 import timber.log.Timber
 import javax.inject.Inject
 import androidx.compose.runtime.Immutable
+import com.djoudini.iplayer.util.EpgChannelIdNormalizer
 
 @Immutable
 data class SearchResult(
@@ -155,20 +156,21 @@ class ContentListViewModel @Inject constructor(
         }
 
         val now = System.currentTimeMillis()
-        val channelIds = channelList.mapNotNull { it.tvgId }
+        val channelIds = channelList.mapNotNull { EpgChannelIdNormalizer.normalize(it.tvgId) }.distinct()
 
         val programsByChannel = if (channelIds.isEmpty()) {
             emptyMap()
         } else {
             epgRepository.getProgramsForChannels(
                 channelIds = channelIds,
-                fromTime = now,
+                fromTime = now - 2 * 60 * 60 * 1000,
                 toTime = now + 4 * 60 * 60 * 1000, // Next 4 hours
             )
         }
 
         val channelsWithEpg = channelList.map { channel ->
-            val channelPrograms = channel.tvgId?.let { programsByChannel[it] } ?: emptyList()
+            val normalizedTvgId = EpgChannelIdNormalizer.normalize(channel.tvgId)
+            val channelPrograms = normalizedTvgId?.let { programsByChannel[it] } ?: emptyList()
             val currentProgram = channelPrograms.find { it.startTime <= now && it.stopTime > now }
             val nextProgram = channelPrograms.firstOrNull { it.startTime > now }
             ChannelWithEpg(channel, currentProgram, nextProgram)

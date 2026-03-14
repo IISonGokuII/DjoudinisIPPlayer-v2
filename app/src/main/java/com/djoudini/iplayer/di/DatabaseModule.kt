@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.djoudini.iplayer.data.local.dao.CategoryDao
 import com.djoudini.iplayer.data.local.dao.ChannelDao
+import com.djoudini.iplayer.data.local.dao.ConferenceMatchMappingDao
+import com.djoudini.iplayer.data.local.dao.ConferenceProfileDao
 import com.djoudini.iplayer.data.local.dao.EpgProgramDao
 import com.djoudini.iplayer.data.local.dao.EpisodeDao
 import com.djoudini.iplayer.data.local.dao.PlaylistDao
@@ -14,6 +16,7 @@ import com.djoudini.iplayer.data.local.dao.WatchProgressDao
 import com.djoudini.iplayer.data.local.database.AppDatabase
 import com.djoudini.iplayer.data.local.database.MIGRATION_2_3
 import com.djoudini.iplayer.data.local.database.MIGRATION_3_4
+import com.djoudini.iplayer.data.local.database.MIGRATION_4_5
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +36,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "djoudini_iplayer.db"
         )
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }
 
@@ -46,4 +49,6 @@ object DatabaseModule {
     @Provides fun provideEpgProgramDao(db: AppDatabase): EpgProgramDao = db.epgProgramDao()
     @Provides fun provideWatchProgressDao(db: AppDatabase): WatchProgressDao = db.watchProgressDao()
     @Provides fun provideRecordingDao(db: AppDatabase): RecordingDao = db.recordingDao()
+    @Provides fun provideConferenceProfileDao(db: AppDatabase): ConferenceProfileDao = db.conferenceProfileDao()
+    @Provides fun provideConferenceMatchMappingDao(db: AppDatabase): ConferenceMatchMappingDao = db.conferenceMatchMappingDao()
 }

@@ -11,11 +11,13 @@ import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.ui.mobile.CategoryFilterScreen
+import com.djoudini.iplayer.presentation.ui.mobile.ConferenceScreen
 import com.djoudini.iplayer.presentation.ui.mobile.DashboardScreen
 import com.djoudini.iplayer.presentation.ui.mobile.EpgGridScreen
 import com.djoudini.iplayer.presentation.ui.mobile.FavoritesScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LoginM3uScreen
 import com.djoudini.iplayer.presentation.ui.mobile.LoginXtreamScreen
+import com.djoudini.iplayer.presentation.ui.mobile.LiveTvManagementScreen
 import com.djoudini.iplayer.presentation.ui.mobile.OnboardingScreen
 import com.djoudini.iplayer.presentation.ui.mobile.PlayerScreen
 import com.djoudini.iplayer.presentation.ui.mobile.SearchScreen
@@ -163,11 +165,13 @@ fun AppNavGraph(
                     onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
                     onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
                     onNavigateRecordings = { navController.navigate(Route.Recordings.route) },
+                    onNavigateConference = { navController.navigate(Route.Conference.route) },
+                    onNavigateLiveTvManagement = { navController.navigate(Route.LiveTvManagement.route) },
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
-                            "vod" -> navController.navigate(Route.Player.create("vod", contentId, autoResume = true))
+                            "vod" -> navController.navigate(Route.Player.create("vod", contentId))
                             "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
-                            "episode" -> navController.navigate(Route.Player.create("episode", contentId, autoResume = true))
+                            "episode" -> navController.navigate(Route.Player.create("episode", contentId))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
                             else -> navController.navigate(Route.Player.create(contentType, contentId))
                         }
@@ -184,11 +188,13 @@ fun AppNavGraph(
                     onNavigateMultiView = { navController.navigate(Route.MultiView.route) },
                     onNavigateFavorites = { navController.navigate(Route.Favorites.route) },
                     onNavigateRecordings = { navController.navigate(Route.Recordings.route) },
+                    onNavigateConference = { navController.navigate(Route.Conference.route) },
+                    onNavigateLiveTvManagement = { navController.navigate(Route.LiveTvManagement.route) },
                     onContinueWatchingClick = { contentType, contentId ->
                         when (contentType) {
-                            "vod" -> navController.navigate(Route.Player.create("vod", contentId, autoResume = true))
+                            "vod" -> navController.navigate(Route.Player.create("vod", contentId))
                             "series" -> navController.navigate(Route.SeriesDetail.create(contentId))
-                            "episode" -> navController.navigate(Route.Player.create("episode", contentId, autoResume = true))
+                            "episode" -> navController.navigate(Route.Player.create("episode", contentId))
                             "channel" -> navController.navigate(Route.Player.create("channel", contentId))
                             else -> navController.navigate(Route.Player.create(contentType, contentId))
                         }
@@ -368,6 +374,21 @@ fun AppNavGraph(
             }
         }
 
+        composable(Route.Conference.route) {
+            ConferenceScreen(
+                onBack = { navController.popBackStack() },
+                onOpenChannel = { channelId ->
+                    navController.navigate(Route.Player.create("channel", channelId))
+                },
+            )
+        }
+
+        composable(Route.LiveTvManagement.route) {
+            LiveTvManagementScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
         // --- Search ---
         composable(Route.Search.route) {
             if (isTvDevice) {
@@ -402,6 +423,7 @@ fun AppNavGraph(
             if (isTvDevice) {
                 TvSettingsScreen(
                     onBack = { navController.popBackStack() },
+                    onNavigateToVpnSetup = { navController.navigate(Route.VpnSetup.route) },
                 )
             } else {
                 SettingsScreen(

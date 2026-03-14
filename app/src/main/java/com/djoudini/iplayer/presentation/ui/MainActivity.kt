@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
+import com.djoudini.iplayer.data.repository.ConferenceManager
 import com.djoudini.iplayer.data.service.VpnPermissionManager
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
@@ -51,6 +52,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var vpnPermissionManager: VpnPermissionManager
+
+    @Inject
+    lateinit var conferenceManager: ConferenceManager
 
     private val isTvDevice: Boolean by lazy {
         packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
@@ -79,6 +83,7 @@ class MainActivity : ComponentActivity() {
                         watchProgressRepository = watchProgressRepository,
                         isTvDevice = isTvDevice,
                         vpnPermissionManager = vpnPermissionManager,
+                        conferenceManager = conferenceManager,
                     )
                 }
             }
@@ -105,6 +110,7 @@ private fun AppContent(
     watchProgressRepository: WatchProgressRepository,
     isTvDevice: Boolean,
     vpnPermissionManager: VpnPermissionManager,
+    conferenceManager: ConferenceManager,
 ) {
     val navController = rememberNavController()
     val context = LocalContext.current
@@ -144,6 +150,13 @@ private fun AppContent(
                 // Already granted — notify immediately
                 vpnPermissionManager.onPermissionGranted()
             }
+        }
+    }
+
+    LaunchedEffect(conferenceManager) {
+        conferenceManager.zapEvents.collect { event ->
+            Timber.d("[Conference] Auto switch to channel ${event.channelId}: ${event.message}")
+            navController.navigate(Route.Player.create("channel", event.channelId))
         }
     }
 

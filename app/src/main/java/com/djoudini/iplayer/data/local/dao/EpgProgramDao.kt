@@ -20,7 +20,7 @@ interface EpgProgramDao {
     @Query("""
         SELECT * FROM epg_programs
         WHERE epg_channel_id = :channelId
-        AND start_time >= :fromTime
+        AND stop_time > :fromTime
         AND start_time < :toTime
         ORDER BY start_time ASC
     """)
@@ -47,7 +47,7 @@ interface EpgProgramDao {
     @Query("""
         SELECT * FROM epg_programs
         WHERE epg_channel_id = :channelId
-        AND start_time >= :fromTime
+        AND stop_time > :fromTime
         AND start_time < :toTime
         ORDER BY start_time ASC
     """)
@@ -60,7 +60,7 @@ interface EpgProgramDao {
     @Query("""
         SELECT * FROM epg_programs
         WHERE epg_channel_id IN (:channelIds)
-        AND start_time >= :fromTime
+        AND stop_time > :fromTime
         AND start_time < :toTime
         ORDER BY epg_channel_id ASC, start_time ASC
     """)

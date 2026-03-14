@@ -1,6 +1,7 @@
 package com.djoudini.iplayer.data.parser
 
 import com.djoudini.iplayer.domain.model.ContentType
+import com.djoudini.iplayer.util.EpgChannelIdNormalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -38,6 +39,7 @@ class M3uParser @Inject constructor() {
     data class M3uResult(
         val items: List<M3uItem>,
         val groups: Set<String>,
+        val epgUrl: String?,
     )
 
     /**
@@ -60,6 +62,7 @@ class M3uParser @Inject constructor() {
 
         var lineCount = 0
         var currentExtInf: String? = null
+        var epgUrl: String? = null
 
         BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8)).use { reader ->
             var line = reader.readLine()
@@ -71,7 +74,12 @@ class M3uParser @Inject constructor() {
 
                 when {
                     trimmed.startsWith("#EXTM3U") -> {
-                        // Header line, skip
+                        epgUrl = extractFirstNonBlankAttribute(
+                            trimmed,
+                            "x-tvg-url",
+                            "url-tvg",
+                            "tvg-url",
+                        ) ?: epgUrl
                     }
                     trimmed.startsWith("#EXTINF:") -> {
                         currentExtInf = trimmed
@@ -110,13 +118,13 @@ class M3uParser @Inject constructor() {
         }
         onProgress(lineCount)
 
-        M3uResult(items = allItems, groups = groups)
+        M3uResult(items = allItems, groups = groups, epgUrl = epgUrl)
     }
 
     private fun parseExtInfLine(extInf: String, url: String): M3uItem? {
         return try {
             // Extract attributes from #EXTINF:-1 tvg-id="..." tvg-name="..." ...  ,Channel Name
-            val tvgId = extractAttribute(extInf, "tvg-id")
+            val tvgId = EpgChannelIdNormalizer.normalize(extractAttribute(extInf, "tvg-id"))
             val tvgName = extractAttribute(extInf, "tvg-name")
             val tvgLogo = extractAttribute(extInf, "tvg-logo")
             val groupTitle = extractAttribute(extInf, "group-title") ?: "Uncategorized"
@@ -158,6 +166,12 @@ class M3uParser @Inject constructor() {
     private fun extractAttribute(line: String, attribute: String): String? {
         val pattern = """$attribute="([^"]*)"""".toRegex()
         return pattern.find(line)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
+    }
+
+    private fun extractFirstNonBlankAttribute(line: String, vararg attributes: String): String? {
+        return attributes.firstNotNullOfOrNull { attribute ->
+            extractAttribute(line, attribute)
+        }?.trim()?.takeIf { it.isNotBlank() }
     }
 
     private fun inferContentType(url: String, groupTitle: String): ContentType {

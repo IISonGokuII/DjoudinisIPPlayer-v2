@@ -2,6 +2,7 @@ package com.djoudini.iplayer.presentation.ui.mobile
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -99,6 +101,7 @@ fun RecordingsScreen(
                         recording = recording,
                         onClick = {
                             openRecording(
+                                context = context,
                                 filePath = recording.filePath,
                                 onOpen = { intent -> context.startActivity(intent) },
                             )
@@ -201,10 +204,11 @@ private fun RecordingCard(
 }
 
 internal fun openRecording(
+    context: Context,
     filePath: String,
     onOpen: (Intent) -> Unit,
 ) {
-    val uri = toPlaybackUri(filePath)
+    val uri = toPlaybackUri(context, filePath)
     val intent = Intent(Intent.ACTION_VIEW).apply {
         setDataAndType(uri, "video/*")
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -216,11 +220,15 @@ internal fun openRecording(
     }
 }
 
-private fun toPlaybackUri(filePath: String): Uri {
+private fun toPlaybackUri(context: Context, filePath: String): Uri {
     return if (filePath.startsWith("content://")) {
         filePath.toUri()
     } else {
-        Uri.fromFile(File(filePath))
+        FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            File(filePath),
+        )
     }
 }
 

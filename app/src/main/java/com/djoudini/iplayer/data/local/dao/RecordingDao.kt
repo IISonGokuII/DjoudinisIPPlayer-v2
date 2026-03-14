@@ -15,6 +15,12 @@ interface RecordingDao {
     @Query("SELECT * FROM recordings ORDER BY startTimeMs DESC")
     fun observeAll(): Flow<List<RecordingEntity>>
 
+    @Query("SELECT * FROM recordings WHERE status = 'recording' ORDER BY startTimeMs DESC")
+    fun observeActive(): Flow<List<RecordingEntity>>
+
+    @Query("SELECT * FROM recordings ORDER BY startTimeMs DESC LIMIT 1")
+    fun observeLatest(): Flow<RecordingEntity?>
+
     @Query("UPDATE recordings SET status = :status, durationMs = :durationMs, fileSizeBytes = :fileSizeBytes WHERE id = :id")
     suspend fun updateCompletion(id: Long, status: String, durationMs: Long, fileSizeBytes: Long)
 

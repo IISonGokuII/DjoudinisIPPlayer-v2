@@ -20,6 +20,9 @@ interface CategoryDao {
     @Update
     suspend fun update(category: CategoryEntity)
 
+    @Update
+    suspend fun updateAll(categories: List<CategoryEntity>)
+
     @Query("SELECT * FROM categories WHERE playlist_id = :playlistId AND category_type = :type AND is_selected = 1 ORDER BY sort_order ASC, name ASC")
     fun observeByType(playlistId: Long, type: String): Flow<List<CategoryEntity>>
 

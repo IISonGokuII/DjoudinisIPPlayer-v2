@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +58,9 @@ fun TvEpgGridScreen(
     viewModel: EpgViewModel = hiltViewModel(),
 ) {
     val epgData by viewModel.epgData.collectAsStateWithLifecycle()
+    val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val horizontalScrollState = rememberScrollState()
 
     val now = System.currentTimeMillis()
     val gridStartTime = run {
@@ -120,9 +124,27 @@ fun TvEpgGridScreen(
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                     )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = { viewModel.syncEpgNow() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.sync_epg),
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.White,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
+
+                if (syncProgress.isActive) {
+                    Text(
+                        text = syncProgress.phase,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 // Time header row
                 Row(
@@ -148,7 +170,7 @@ fun TvEpgGridScreen(
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
-                            .horizontalScroll(rememberScrollState()),
+                            .horizontalScroll(horizontalScrollState),
                     ) {
                         Row(
                             modifier = Modifier.width(totalGridWidth),
@@ -190,6 +212,7 @@ fun TvEpgGridScreen(
                             pixelsPerMinute = pixelsPerMinute,
                             timeFormat = timeFormat,
                             now = now,
+                            horizontalScrollState = horizontalScrollState,
                             onClick = { onChannelClick(channelEpg.channelDbId) },
                         )
                     }
@@ -207,6 +230,7 @@ private fun TvEpgRow(
     pixelsPerMinute: androidx.compose.ui.unit.Dp,
     timeFormat: SimpleDateFormat,
     now: Long,
+    horizontalScrollState: androidx.compose.foundation.ScrollState,
     onClick: () -> Unit,
 ) {
     Row(
@@ -239,12 +263,12 @@ private fun TvEpgRow(
             modifier = Modifier
                 .weight(1f)
                 .height(80.dp)
-                .horizontalScroll(rememberScrollState()),
+                .horizontalScroll(horizontalScrollState),
         ) {
-            Row(
-                modifier = Modifier.width(
-                    ((gridEndTime - gridStartTime) / 60_000 * pixelsPerMinute.value).dp
-                ),
+            Box(
+                modifier = Modifier
+                    .width(((gridEndTime - gridStartTime) / 60_000 * pixelsPerMinute.value).dp)
+                    .height(80.dp),
             ) {
                 channelEpg.programs.forEach { program ->
                     if (program.stopTime <= gridStartTime || program.startTime >= gridEndTime) return@forEach
@@ -254,12 +278,14 @@ private fun TvEpgRow(
                     val startMin = ((clampedStart - gridStartTime) / 60_000).toInt()
                     val durationMin = ((clampedEnd - clampedStart) / 60_000).toInt()
 
+                    val offset = (startMin * pixelsPerMinute.value).dp
                     val width = (durationMin * pixelsPerMinute.value).dp.coerceAtLeast(80.dp)
 
                     val isCurrent = program.startTime <= now && program.stopTime > now
 
                     TvEpgProgramBlock(
                         program = program,
+                        offset = offset,
                         width = width,
                         isCurrent = isCurrent,
                         timeFormat = timeFormat,
@@ -274,6 +300,7 @@ private fun TvEpgRow(
 @Composable
 private fun TvEpgProgramBlock(
     program: EpgProgramEntity,
+    offset: androidx.compose.ui.unit.Dp,
     width: androidx.compose.ui.unit.Dp,
     isCurrent: Boolean,
     timeFormat: SimpleDateFormat,
@@ -282,6 +309,7 @@ private fun TvEpgProgramBlock(
     FocusableCard(
         onClick = onClick,
         modifier = Modifier
+            .offset(x = offset)
             .width(width)
             .height(80.dp)
             .padding(horizontal = 2.dp),

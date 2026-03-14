@@ -17,6 +17,9 @@ interface ChannelDao {
     @Update
     suspend fun update(channel: ChannelEntity)
 
+    @Update
+    suspend fun updateAll(channels: List<ChannelEntity>)
+
     @Query("SELECT * FROM channels WHERE category_id = :categoryId ORDER BY sort_order ASC, name ASC")
     fun observeByCategory(categoryId: Long): Flow<List<ChannelEntity>>
 

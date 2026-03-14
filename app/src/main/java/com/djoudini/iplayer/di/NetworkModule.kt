@@ -2,7 +2,9 @@ package com.djoudini.iplayer.di
 
 import android.content.Context
 import android.net.ConnectivityManager
+import com.djoudini.iplayer.BuildConfig
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
+import com.djoudini.iplayer.data.remote.api.FootballDataApi
 import com.djoudini.iplayer.data.remote.api.XtreamApi
 import com.djoudini.iplayer.data.service.IpCheckService
 import com.djoudini.iplayer.data.service.SpeedTestService
@@ -72,6 +74,28 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi).asLenient())
             .build()
             .create(XtreamApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFootballDataApi(okHttpClient: OkHttpClient, moshi: Moshi): FootballDataApi {
+        val apiClient = okHttpClient.newBuilder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder().apply {
+                    if (BuildConfig.FOOTBALL_DATA_API_TOKEN.isNotBlank()) {
+                        header("X-Auth-Token", BuildConfig.FOOTBALL_DATA_API_TOKEN)
+                    }
+                }.build()
+                chain.proceed(request)
+            }
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl("https://api.football-data.org/")
+            .client(apiClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi).asLenient())
+            .build()
+            .create(FootballDataApi::class.java)
     }
 
     @Provides

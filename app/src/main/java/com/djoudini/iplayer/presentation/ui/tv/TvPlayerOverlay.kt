@@ -255,7 +255,7 @@ fun TvPlayerOverlay(
                                     else 
                                         Icons.Default.FavoriteBorder,
                                     contentDescription = "Favorite",
-                                    tint = if (uiState.isFavorite) Color.White else Color.White.copy(alpha = 0.7f),
+                                    tint = if (uiState.isFavorite) Color.Red else Color.White.copy(alpha = 0.8f),
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))

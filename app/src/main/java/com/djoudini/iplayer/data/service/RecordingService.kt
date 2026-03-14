@@ -11,6 +11,10 @@ import android.os.IBinder
 import android.provider.MediaStore
 import androidx.core.app.NotificationCompat
 import com.djoudini.iplayer.R
+import com.djoudini.iplayer.data.local.dao.RecordingDao
+import com.djoudini.iplayer.data.local.entity.RecordingEntity
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,11 +41,15 @@ import android.os.Environment
  * Stop:   sendIntent(ACTION_STOP)
  * Result: Broadcasts ACTION_RECORDING_COMPLETED when done
  */
+@AndroidEntryPoint
 class RecordingService : Service() {
+
+    @Inject lateinit var recordingDao: RecordingDao
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var recordingJob: Job? = null
     private var startTimeMs = 0L
+    private var activeRecordingId: Long? = null
 
     companion object {
         const val ACTION_START = "com.djoudini.iplayer.RECORDING_START"
@@ -49,6 +57,7 @@ class RecordingService : Service() {
         const val ACTION_RECORDING_COMPLETED = "com.djoudini.iplayer.RECORDING_COMPLETED"
         const val EXTRA_STREAM_URL = "stream_url"
         const val EXTRA_CHANNEL_NAME = "channel_name"
+        const val EXTRA_CHANNEL_ID = "channel_id"
         const val NOTIFICATION_ID = 2001
         const val CHANNEL_ID = "recording_channel"
     }
@@ -65,7 +74,8 @@ class RecordingService : Service() {
             ACTION_START -> {
                 val url = intent.getStringExtra(EXTRA_STREAM_URL)
                 val name = intent.getStringExtra(EXTRA_CHANNEL_NAME) ?: "Channel"
-                if (url != null) startRecording(url, name)
+                val channelId = intent.getLongExtra(EXTRA_CHANNEL_ID, 0L)
+                if (url != null) startRecording(url, name, channelId)
                 START_NOT_STICKY
             }
             ACTION_STOP -> {
@@ -76,15 +86,19 @@ class RecordingService : Service() {
         }
     }
 
-    private fun startRecording(streamUrl: String, channelName: String) {
+    private fun startRecording(streamUrl: String, channelName: String, channelId: Long) {
+        if (recordingJob?.isActive == true) return
         startTimeMs = System.currentTimeMillis()
         startForeground(NOTIFICATION_ID, buildNotification(channelName, 0L))
 
         recordingJob = serviceScope.launch {
+            var recordingId: Long? = null
             var outputStream: OutputStream? = null
             var connection: HttpURLConnection? = null
             var elapsedSeconds = 0L
             var writtenBytes = 0L
+            var outputLocation: String? = null
+            var finalStatus = "completed"
 
             // Timer coroutine
             val timerJob = launch {
@@ -96,7 +110,19 @@ class RecordingService : Service() {
             }
 
             try {
-                outputStream = createOutputStream(channelName, startTimeMs)
+                val outputTarget = createOutputTarget(channelName, startTimeMs)
+                outputLocation = outputTarget.location
+                outputStream = outputTarget.outputStream
+                recordingId = recordingDao.insert(
+                    RecordingEntity(
+                        channelName = channelName,
+                        channelId = channelId,
+                        filePath = outputTarget.location,
+                        startTimeMs = startTimeMs,
+                        status = "recording",
+                    ),
+                )
+                activeRecordingId = recordingId
                 connection = (URL(streamUrl).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 15_000
                     readTimeout = 120_000
@@ -112,19 +138,27 @@ class RecordingService : Service() {
                     writtenBytes += bytesRead
                 }
             } catch (e: Exception) {
+                finalStatus = "failed"
                 Timber.e(e, "[Recording] Error recording stream")
             } finally {
                 timerJob.cancel()
                 try { outputStream?.flush(); outputStream?.close() } catch (_: Exception) {}
                 try { connection?.disconnect() } catch (_: Exception) {}
+                val durationMs = elapsedSeconds * 1_000L
+                recordingId?.let { id ->
+                    recordingDao.updateCompletion(id, finalStatus, durationMs, writtenBytes)
+                }
+                activeRecordingId = null
 
                 // Broadcast completion
                 sendBroadcast(Intent(ACTION_RECORDING_COMPLETED).apply {
                     `package` = packageName
-                    putExtra("duration_ms", elapsedSeconds * 1_000L)
+                    putExtra("duration_ms", durationMs)
                     putExtra("file_size_bytes", writtenBytes)
+                    putExtra("status", finalStatus)
+                    putExtra("file_path", outputLocation)
                 })
-                Timber.d("[Recording] Completed: ${elapsedSeconds}s, ${writtenBytes / 1024}KB")
+                Timber.d("[Recording] Finished: status=$finalStatus, ${elapsedSeconds}s, ${writtenBytes / 1024}KB")
                 stopSelf()
             }
         }
@@ -134,7 +168,12 @@ class RecordingService : Service() {
         recordingJob?.cancel()
     }
 
-    private fun createOutputStream(channelName: String, startTime: Long): OutputStream {
+    private data class OutputTarget(
+        val location: String,
+        val outputStream: OutputStream,
+    )
+
+    private fun createOutputTarget(channelName: String, startTime: Long): OutputTarget {
         val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date(startTime))
         val safeName = channelName.take(20).replace(Regex("[^a-zA-Z0-9]"), "_")
         val fileName = "REC_${safeName}_$ts.ts"
@@ -147,16 +186,23 @@ class RecordingService : Service() {
             }
             val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                 ?: throw IOException("MediaStore insert failed")
-            contentResolver.openOutputStream(uri)
+            val outputStream = contentResolver.openOutputStream(uri)
                 ?: throw IOException("Could not open output stream")
+            OutputTarget(
+                location = uri.toString(),
+                outputStream = outputStream,
+            )
         } else {
-            @Suppress("DEPRECATION")
             val dir = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                "DjoudinisIPPlayer"
+                getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: filesDir,
+                "recordings",
             )
             dir.mkdirs()
-            FileOutputStream(File(dir, fileName))
+            val file = File(dir, fileName)
+            OutputTarget(
+                location = file.absolutePath,
+                outputStream = FileOutputStream(file),
+            )
         }
     }
 

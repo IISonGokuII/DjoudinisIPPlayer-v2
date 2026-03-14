@@ -1,6 +1,7 @@
 package com.djoudini.iplayer.data.parser
 
 import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
+import com.djoudini.iplayer.util.EpgChannelIdNormalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -8,7 +9,9 @@ import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import timber.log.Timber
 import java.io.InputStream
+import java.io.PushbackInputStream
 import java.text.SimpleDateFormat
+import java.util.zip.GZIPInputStream
 import java.util.Locale
 import java.util.TimeZone
 import javax.inject.Inject
@@ -54,7 +57,8 @@ class XmltvParser @Inject constructor() {
         val factory = XmlPullParserFactory.newInstance()
         factory.isNamespaceAware = false
         val parser = factory.newPullParser()
-        parser.setInput(inputStream, "UTF-8")
+        val normalizedInput = decompressIfNeeded(inputStream)
+        parser.setInput(normalizedInput, "UTF-8")
 
         var eventType = parser.eventType
         var inProgramme = false
@@ -75,7 +79,9 @@ class XmltvParser @Inject constructor() {
                     when (parser.name) {
                         "programme" -> {
                             inProgramme = true
-                            channelId = parser.getAttributeValue(null, "channel") ?: ""
+                            channelId = EpgChannelIdNormalizer.normalize(
+                                parser.getAttributeValue(null, "channel"),
+                            ) ?: ""
                             startTime = parseXmltvDate(parser.getAttributeValue(null, "start"))
                             stopTime = parseXmltvDate(parser.getAttributeValue(null, "stop"))
                             title = ""
@@ -160,5 +166,20 @@ class XmltvParser @Inject constructor() {
             Timber.w(e, "Failed to parse XMLTV date: $dateStr")
             0L
         }
+    }
+
+    private fun decompressIfNeeded(inputStream: InputStream): InputStream {
+        val pushbackStream = PushbackInputStream(inputStream, 2)
+        val signature = ByteArray(2)
+        val bytesRead = pushbackStream.read(signature)
+        if (bytesRead > 0) {
+            pushbackStream.unread(signature, 0, bytesRead)
+        }
+
+        val isGzip = bytesRead == 2 &&
+            signature[0] == 0x1f.toByte() &&
+            signature[1] == 0x8b.toByte()
+
+        return if (isGzip) GZIPInputStream(pushbackStream) else pushbackStream
     }
 }

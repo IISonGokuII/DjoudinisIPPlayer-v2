@@ -99,7 +99,7 @@ fun TvRecordingsScreen(
                     recording = recording,
                     onClick = {
                         if (recording.status == "completed") {
-                            openRecording(recording.filePath) { intent: Intent ->
+                            openRecording(context, recording.filePath) { intent: Intent ->
                                 context.startActivity(intent)
                             }
                         }

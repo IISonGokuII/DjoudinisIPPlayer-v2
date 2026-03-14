@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.dao.ChannelDao
 import com.djoudini.iplayer.data.local.dao.EpisodeDao
+import com.djoudini.iplayer.data.local.dao.RecordingDao
 import com.djoudini.iplayer.data.local.dao.SeriesDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.data.local.entity.PlaylistEntity
+import com.djoudini.iplayer.data.local.entity.RecordingEntity
 import com.djoudini.iplayer.data.local.entity.SeriesEntity
 import com.djoudini.iplayer.data.local.entity.VodEntity
 import com.djoudini.iplayer.data.local.entity.WatchProgressEntity
@@ -34,6 +36,7 @@ class DashboardViewModel @Inject constructor(
     private val vodDao: VodDao,
     private val seriesDao: SeriesDao,
     private val episodeDao: EpisodeDao,
+    private val recordingDao: RecordingDao,
     private val appPreferences: AppPreferences,
     private val vpnRepository: VpnRepository,
 ) : ViewModel() {
@@ -72,6 +75,12 @@ class DashboardViewModel @Inject constructor(
             playlist?.let { seriesDao.observeFavorites(it.id) }
                 ?: flowOf(emptyList())
         }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val activeRecordings: StateFlow<List<RecordingEntity>> = recordingDao.observeActive()
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    val latestRecording: StateFlow<RecordingEntity?> = recordingDao.observeLatest()
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     val syncProgress: StateFlow<SyncProgress> = playlistRepository.syncProgress
 

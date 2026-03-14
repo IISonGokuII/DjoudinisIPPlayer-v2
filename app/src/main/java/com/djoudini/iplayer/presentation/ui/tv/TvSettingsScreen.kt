@@ -55,6 +55,7 @@ import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 @Composable
 fun TvSettingsScreen(
     onBack: () -> Unit,
+    onNavigateToVpnSetup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val playerConfig by viewModel.playerConfig.collectAsStateWithLifecycle()
@@ -247,7 +248,7 @@ fun TvSettingsScreen(
             // VPN Settings
             TvVpnSettingsSection(
                 viewModel = viewModel,
-                onOpenSetupWizard = { },
+                onOpenSetupWizard = onNavigateToVpnSetup,
             )
 
             Spacer(modifier = Modifier.height(32.dp))

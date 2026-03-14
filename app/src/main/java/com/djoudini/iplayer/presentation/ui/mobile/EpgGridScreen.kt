@@ -68,6 +68,7 @@ fun EpgGridScreen(
     viewModel: EpgViewModel = hiltViewModel(),
 ) {
     val epgData by viewModel.epgData.collectAsStateWithLifecycle()
+    val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val horizontalScrollState = rememberScrollState()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
@@ -104,6 +105,11 @@ fun EpgGridScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 },
+                actions = {
+                    IconButton(onClick = { viewModel.syncEpgNow() }) {
+                        Icon(Icons.Default.Refresh, stringResource(R.string.sync_epg))
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
@@ -129,6 +135,14 @@ fun EpgGridScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (syncProgress.isActive) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = syncProgress.phase,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
         } else {

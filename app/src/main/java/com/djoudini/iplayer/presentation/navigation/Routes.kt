@@ -55,6 +55,8 @@ sealed class Route(val route: String) {
     // --- Favorites ---
     data object Favorites : Route("favorites")
     data object Recordings : Route("recordings")
+    data object Conference : Route("conference")
+    data object LiveTvManagement : Route("live_tv_management")
 }
 
 /** Navigation argument keys */
