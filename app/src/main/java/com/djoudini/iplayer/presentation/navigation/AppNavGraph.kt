@@ -48,6 +48,7 @@ import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvCategoryFilterScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvCloudRecordingSettingsScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvConferenceScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvFavoritesScreen
 import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import timber.log.Timber
@@ -383,12 +384,21 @@ fun AppNavGraph(
         }
 
         composable(Route.Conference.route) {
-            ConferenceScreen(
-                onBack = { navController.popBackStack() },
-                onOpenChannel = { channelId ->
-                    navController.navigate(Route.Player.create("channel", channelId))
-                },
-            )
+            if (isTvDevice) {
+                TvConferenceScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenChannel = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                )
+            } else {
+                ConferenceScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenChannel = { channelId ->
+                        navController.navigate(Route.Player.create("channel", channelId))
+                    },
+                )
+            }
         }
 
         composable(Route.LiveTvManagement.route) {

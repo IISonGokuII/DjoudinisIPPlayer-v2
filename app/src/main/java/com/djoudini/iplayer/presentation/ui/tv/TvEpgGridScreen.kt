@@ -25,6 +25,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -58,6 +60,7 @@ fun TvEpgGridScreen(
     viewModel: EpgViewModel = hiltViewModel(),
 ) {
     val epgData by viewModel.epgData.collectAsStateWithLifecycle()
+    val diagnostics by viewModel.diagnostics.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val horizontalScrollState = rememberScrollState()
@@ -145,6 +148,34 @@ fun TvEpgGridScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "EPG-Diagnostik",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                        Text(
+                            text = diagnostics.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White,
+                        )
+                        Text(
+                            text = "Sender mit tvg-id: ${diagnostics.channelsWithTvgId} • Mit Programmen: ${diagnostics.channelsWithPrograms} • Programme: ${diagnostics.totalPrograms}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Time header row
                 Row(

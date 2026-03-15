@@ -85,6 +85,18 @@ class VpnSetupViewModel @Inject constructor(
         }
     }
 
+    fun importConfigText(
+        content: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            vpnSetupRepository.importVpnConfigContent(content)
+                .onSuccess { onSuccess() }
+                .onFailure { onError(it.message ?: "Import fehlgeschlagen") }
+        }
+    }
+
     /**
      * Select a VPN server.
      */

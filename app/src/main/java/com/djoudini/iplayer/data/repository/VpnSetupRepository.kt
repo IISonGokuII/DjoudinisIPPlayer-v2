@@ -188,41 +188,50 @@ class VpnSetupRepository @Inject constructor(
                 val content = context.contentResolver.openInputStream(uri)?.use {
                     it.bufferedReader().readText()
                 } ?: return@withContext Result.failure(Exception("Cannot read config file"))
-
-                if (!WireGuardConfigParser.looksLikeWireGuard(content)) {
-                    return@withContext Result.failure(
-                        IllegalArgumentException("Aktuell werden nur echte WireGuard-.conf-Dateien unterstuetzt.")
-                    )
-                }
-
-                val parsed = WireGuardConfigParser.parse(content)
-                if (!parsed.isValid) {
-                    return@withContext Result.failure(
-                        IllegalArgumentException("WireGuard-Konfiguration unvollstaendig: PrivateKey, Peer oder Endpoint fehlen.")
-                    )
-                }
-
-                val host = parsed.serverHost.ifBlank { "wireguard-endpoint" }.lowercase(Locale.ROOT)
-                appPreferences.setVpnCustomConfig(content)
-                appPreferences.setVpnProviderType(VpnProviderType.MANUAL_CONFIG.name)
-                appPreferences.setVpnServerId(host)
-                appPreferences.setVpnProtocol("WIREGUARD")
-
-                _setupState.update {
-                    it.copy(
-                        currentStep = VpnSetupStep.ConnectionTest,
-                        selectedServerId = host,
-                        connectionTestResult = null,
-                        errorMessage = null,
-                    )
-                }
-
-                Result.success(Unit)
+                importVpnConfigContentInternal(content)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to import VPN config from URI")
                 Result.failure(e)
             }
         }
+    }
+
+    suspend fun importVpnConfigContent(content: String): Result<Unit> {
+        return withContext(kotlinx.coroutines.Dispatchers.IO) {
+            importVpnConfigContentInternal(content)
+        }
+    }
+
+    private suspend fun importVpnConfigContentInternal(content: String): Result<Unit> {
+        if (!WireGuardConfigParser.looksLikeWireGuard(content)) {
+            return Result.failure(
+                IllegalArgumentException("Aktuell werden nur echte WireGuard-.conf-Dateien unterstuetzt.")
+            )
+        }
+
+        val parsed = WireGuardConfigParser.parse(content)
+        if (!parsed.isValid) {
+            return Result.failure(
+                IllegalArgumentException("WireGuard-Konfiguration unvollstaendig: PrivateKey, Peer oder Endpoint fehlen.")
+            )
+        }
+
+        val host = parsed.serverHost.ifBlank { "wireguard-endpoint" }.lowercase(Locale.ROOT)
+        appPreferences.setVpnCustomConfig(content)
+        appPreferences.setVpnProviderType(VpnProviderType.MANUAL_CONFIG.name)
+        appPreferences.setVpnServerId(host)
+        appPreferences.setVpnProtocol("WIREGUARD")
+
+        _setupState.update {
+            it.copy(
+                currentStep = VpnSetupStep.ConnectionTest,
+                selectedServerId = host,
+                connectionTestResult = null,
+                errorMessage = null,
+            )
+        }
+
+        return Result.success(Unit)
     }
 
     suspend fun authenticateWithProvider(): Result<Unit> {

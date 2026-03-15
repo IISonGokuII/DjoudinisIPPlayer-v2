@@ -291,7 +291,7 @@ private fun ConferenceProfileCard(
 }
 
 @Composable
-private fun ConferenceWizardDialog(
+fun ConferenceWizardDialog(
     channels: List<ChannelEntity>,
     matches: List<ConferenceSelectableMatch>,
     loadChannelCandidates: suspend (ConferenceSelectableMatch?) -> List<ConferenceChannelCandidate>,
@@ -640,7 +640,7 @@ private sealed class SelectionMode {
 }
 
 @Composable
-private fun ApiTokenDialog(
+fun ApiTokenDialog(
     initialToken: String,
     onDismiss: () -> Unit,
     onSave: (String) -> Unit,

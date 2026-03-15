@@ -34,11 +34,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -75,6 +78,8 @@ fun VpnSetupWizardScreen(
 ) {
     val setupState by viewModel.setupState.collectAsStateWithLifecycle()
     var importErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showPasteDialog by remember { mutableStateOf(false) }
+    var pastedConfig by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -179,6 +184,7 @@ fun VpnSetupWizardScreen(
                     onOpenWebsite = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                     onOpenGuide = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                     onFileSelected = { filePickerLauncher.launch("*/*") },
+                    onPasteConfig = { showPasteDialog = true },
                 )
                 is VpnSetupStep.ConnectionTest -> VpnConnectionTestStep(
                     onTestComplete = { viewModel.testConnection({}, {}) },
@@ -209,6 +215,44 @@ fun VpnSetupWizardScreen(
                 }
             }
         }
+    }
+
+    if (showPasteDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasteDialog = false },
+            title = { Text("WireGuard-Text einfuegen") },
+            text = {
+                OutlinedTextField(
+                    value = pastedConfig,
+                    onValueChange = { pastedConfig = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("WireGuard .conf Inhalt") },
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.importConfigText(
+                            content = pastedConfig,
+                            onSuccess = {
+                                importErrorMessage = null
+                                pastedConfig = ""
+                                showPasteDialog = false
+                            },
+                            onError = { msg -> importErrorMessage = msg },
+                        )
+                    },
+                    enabled = pastedConfig.isNotBlank(),
+                ) {
+                    Text("Importieren")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showPasteDialog = false }) {
+                    Text("Abbrechen")
+                }
+            },
+        )
     }
 }
 
@@ -329,6 +373,7 @@ private fun VpnConfigImportStep(
     onOpenWebsite: (String) -> Unit,
     onOpenGuide: (String) -> Unit,
     onFileSelected: () -> Unit,
+    onPasteConfig: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -424,6 +469,9 @@ private fun VpnConfigImportStep(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        OutlinedButton(onClick = onPasteConfig) {
+            Text("WireGuard-Text einfuegen")
+        }
         errorMessage?.let {
             Text(
                 text = it,

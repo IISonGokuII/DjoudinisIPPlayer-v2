@@ -13,17 +13,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +43,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.RecordingEntity
+import com.djoudini.iplayer.presentation.viewmodel.RecordingFilter
+import com.djoudini.iplayer.presentation.viewmodel.RecordingSort
 import com.djoudini.iplayer.presentation.viewmodel.RecordingsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,6 +57,9 @@ fun RecordingsScreen(
     viewModel: RecordingsViewModel = hiltViewModel(),
 ) {
     val recordings = viewModel.recordings.collectAsStateWithLifecycle().value
+    val filter by viewModel.filter.collectAsStateWithLifecycle()
+    val sort by viewModel.sort.collectAsStateWithLifecycle()
+    var deleteCandidate by remember { mutableStateOf<RecordingEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -81,22 +95,82 @@ fun RecordingsScreen(
                 )
             }
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(recordings, key = { it.id }) { recording ->
-                    RecordingCard(
-                        recording = recording,
-                        onClick = {
-                            onRecordingClick(recording.id)
-                        },
-                    )
+                FilterSortRow(
+                    filter = filter,
+                    sort = sort,
+                    onFilterSelected = viewModel::setFilter,
+                    onSortSelected = viewModel::setSort,
+                )
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(recordings, key = { it.id }) { recording ->
+                        RecordingCard(
+                            recording = recording,
+                            onClick = {
+                                onRecordingClick(recording.id)
+                            },
+                            onDelete = { deleteCandidate = recording },
+                        )
+                    }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+            }
+        }
+    }
+
+    deleteCandidate?.let { recording ->
+        AlertDialog(
+            onDismissRequest = { deleteCandidate = null },
+            title = { Text("Aufnahme loeschen") },
+            text = { Text("Soll '${recording.channelName}' wirklich aus der Aufnahmen-Liste entfernt werden?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteRecording(recording.id)
+                        deleteCandidate = null
+                    },
+                ) {
+                    Text("Loeschen")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteCandidate = null }) {
+                    Text("Abbrechen")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun FilterSortRow(
+    filter: RecordingFilter,
+    sort: RecordingSort,
+    onFilterSelected: (RecordingFilter) -> Unit,
+    onSortSelected: (RecordingSort) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RecordingFilter.entries.forEach { entry ->
+                OutlinedButton(onClick = { onFilterSelected(entry) }) {
+                    Text(if (entry == filter) "• ${entry.label}" else entry.label)
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RecordingSort.entries.forEach { entry ->
+                OutlinedButton(onClick = { onSortSelected(entry) }) {
+                    Text(if (entry == sort) "• ${entry.label}" else entry.label)
+                }
             }
         }
     }
@@ -106,6 +180,7 @@ fun RecordingsScreen(
 private fun RecordingCard(
     recording: RecordingEntity,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -153,11 +228,22 @@ private fun RecordingCard(
                         )
                     }
                 } else {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = stringResource(R.string.open_recording),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (recording.status == "completed") {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = stringResource(R.string.open_recording),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Loeschen",
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                 }
             }
 

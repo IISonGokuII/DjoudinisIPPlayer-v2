@@ -26,6 +26,14 @@ data class ChannelEpgData(
     val programs: List<EpgProgramEntity>,
 )
 
+@Immutable
+data class EpgDiagnostics(
+    val channelsWithTvgId: Int = 0,
+    val channelsWithPrograms: Int = 0,
+    val totalPrograms: Int = 0,
+    val message: String = "EPG noch nicht geladen.",
+)
+
 @HiltViewModel
 class EpgViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
@@ -35,6 +43,8 @@ class EpgViewModel @Inject constructor(
 
     private val _epgData = MutableStateFlow<List<ChannelEpgData>>(emptyList())
     val epgData: StateFlow<List<ChannelEpgData>> = _epgData.asStateFlow()
+    private val _diagnostics = MutableStateFlow(EpgDiagnostics())
+    val diagnostics: StateFlow<EpgDiagnostics> = _diagnostics.asStateFlow()
     val syncProgress = playlistRepository.syncProgress
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Lazily, com.djoudini.iplayer.domain.model.SyncProgress.Idle)
 
@@ -66,6 +76,12 @@ class EpgViewModel @Inject constructor(
 
             if (channels.isEmpty()) {
                 _epgData.value = emptyList()
+                _diagnostics.value = EpgDiagnostics(
+                    channelsWithTvgId = 0,
+                    channelsWithPrograms = 0,
+                    totalPrograms = 0,
+                    message = "Keine Sender mit tvg-id gefunden.",
+                )
                 return@launch
             }
 
@@ -95,6 +111,12 @@ class EpgViewModel @Inject constructor(
             }
 
             _epgData.value = epgList
+            _diagnostics.value = EpgDiagnostics(
+                channelsWithTvgId = channels.size,
+                channelsWithPrograms = epgList.size,
+                totalPrograms = epgList.sumOf { it.programs.size },
+                message = "EPG geladen fuer ${epgList.size} von ${channels.size} Sendern.",
+            )
             
             val duration = System.currentTimeMillis() - startTime
             Timber.d("[EPG] Loaded ${epgList.size} channels with EPG data in ${duration}ms (batch query)")

@@ -36,6 +36,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,6 +71,8 @@ fun TvVpnSetupWizardScreen(
 ) {
     val setupState by viewModel.setupState.collectAsStateWithLifecycle()
     var importErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showPasteDialog by remember { mutableStateOf(false) }
+    var pastedConfig by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -147,6 +151,7 @@ fun TvVpnSetupWizardScreen(
                     onOpenWebsite = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                     onOpenGuide = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                     onFileSelected = { filePickerLauncher.launch("*/*") },
+                    onPasteConfig = { showPasteDialog = true },
                 )
                 is VpnSetupStep.ConnectionTest -> TvVpnConnectionTestStep(
                     onTestComplete = { viewModel.testConnection({}, {}) },
@@ -192,6 +197,44 @@ fun TvVpnSetupWizardScreen(
                 }
             }
         }
+    }
+
+    if (showPasteDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasteDialog = false },
+            title = { Text("WireGuard-Text einfuegen") },
+            text = {
+                OutlinedTextField(
+                    value = pastedConfig,
+                    onValueChange = { pastedConfig = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("WireGuard .conf Inhalt") },
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.importConfigText(
+                            content = pastedConfig,
+                            onSuccess = {
+                                importErrorMessage = null
+                                pastedConfig = ""
+                                showPasteDialog = false
+                            },
+                            onError = { msg -> importErrorMessage = msg },
+                        )
+                    },
+                    enabled = pastedConfig.isNotBlank(),
+                ) {
+                    Text("Importieren")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showPasteDialog = false }) {
+                    Text("Abbrechen")
+                }
+            },
+        )
     }
 }
 
@@ -312,6 +355,7 @@ private fun TvVpnConfigImportStep(
     onOpenWebsite: (String) -> Unit,
     onOpenGuide: (String) -> Unit,
     onFileSelected: () -> Unit,
+    onPasteConfig: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -421,6 +465,11 @@ private fun TvVpnConfigImportStep(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+        FocusableCard(onClick = onPasteConfig) {
+            Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
+                Text("WireGuard-Text einfuegen")
+            }
         }
     }
 }

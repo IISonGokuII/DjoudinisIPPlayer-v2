@@ -68,6 +68,7 @@ fun EpgGridScreen(
     viewModel: EpgViewModel = hiltViewModel(),
 ) {
     val epgData by viewModel.epgData.collectAsStateWithLifecycle()
+    val diagnostics by viewModel.diagnostics.collectAsStateWithLifecycle()
     val syncProgress by viewModel.syncProgress.collectAsStateWithLifecycle()
     val horizontalScrollState = rememberScrollState()
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -151,6 +152,34 @@ fun EpgGridScreen(
                     .fillMaxSize()
                     .padding(padding),
             ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "EPG-Diagnostik",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        Text(
+                            text = diagnostics.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Sender mit tvg-id: ${diagnostics.channelsWithTvgId} • Mit Programmen: ${diagnostics.channelsWithPrograms} • Programme: ${diagnostics.totalPrograms}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 // Time header row
                 Row {
                     // Empty corner for channel name column
