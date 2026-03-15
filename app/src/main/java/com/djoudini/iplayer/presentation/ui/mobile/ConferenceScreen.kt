@@ -1,7 +1,9 @@
 package com.djoudini.iplayer.presentation.ui.mobile
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -34,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -300,94 +306,131 @@ private fun ConferenceWizardDialog(
         mutableStateOf(List(desiredSlots) { ConferenceDraftSlot() })
     }
     var selectionMode by remember { mutableStateOf<SelectionMode?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Konferenz-Assistent") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Wie viele Spiele moechtest du koppeln?")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(1, 2, 3, 4).forEach { count ->
-                        OutlinedButton(onClick = {
-                            desiredSlots = count
-                            draftSlots = List(count) { index -> draftSlots.getOrNull(index) ?: ConferenceDraftSlot() }
-                        }) {
-                            Text(count.toString())
-                        }
-                    }
-                }
-                Text("Konferenzname")
-                OutlinedButton(onClick = {
-                    conferenceName = when (conferenceName) {
-                        "Samstags-Konferenz" -> "Champions Konferenz"
-                        "Champions Konferenz" -> "Meine Konferenz"
-                        else -> "Samstags-Konferenz"
-                    }
-                }) {
-                    Text(conferenceName)
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Cooldown aktivieren")
-                    Switch(checked = cooldownEnabled, onCheckedChange = { cooldownEnabled = it })
-                }
-                if (cooldownEnabled) {
-                    SelectionRow(
-                        title = "Cooldown",
-                        values = listOf(10, 20, 30, 45, 60),
-                        selected = cooldownSeconds,
-                        suffix = "s",
-                        onSelected = { cooldownSeconds = it },
-                    )
-                }
-                SelectionRow(
-                    title = "Wie lange auf Tor-Sender bleiben",
-                    values = listOf(10, 20, 30, 45, 60),
-                    selected = holdSeconds,
-                    suffix = "s",
-                    onSelected = { holdSeconds = it },
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 640.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = "Konferenz-Assistent",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
                 )
 
-                draftSlots.forEachIndexed { index, slot ->
-                    Card {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = if (index == 0) "Spiel ${index + 1} (Hauptspiel)" else "Spiel ${index + 1}",
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedButton(onClick = { selectionMode = SelectionMode.Match(index) }) {
-                                Text(slot.match?.title ?: "Spiel waehlen")
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .heightIn(max = 560.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text("Wie viele Spiele moechtest du koppeln?")
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        listOf(1, 2, 3, 4).forEach { count ->
+                            Button(
+                                onClick = {
+                                    desiredSlots = count
+                                    draftSlots = List(count) { index ->
+                                        draftSlots.getOrNull(index) ?: ConferenceDraftSlot()
+                                    }
+                                },
+                            ) {
+                                Text(count.toString())
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedButton(onClick = { selectionMode = SelectionMode.Channel(index) }) {
-                                Text(slot.channel?.name ?: "Sender waehlen")
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = conferenceName,
+                        onValueChange = { conferenceName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Konferenzname") },
+                        singleLine = true,
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text("Cooldown aktivieren")
+                        Switch(checked = cooldownEnabled, onCheckedChange = { cooldownEnabled = it })
+                    }
+
+                    if (cooldownEnabled) {
+                        SelectionRow(
+                            title = "Cooldown",
+                            values = listOf(10, 20, 30, 45, 60),
+                            selected = cooldownSeconds,
+                            suffix = "s",
+                            onSelected = { cooldownSeconds = it },
+                        )
+                    }
+
+                    SelectionRow(
+                        title = "Wie lange auf Tor-Sender bleiben",
+                        values = listOf(10, 20, 30, 45, 60),
+                        selected = holdSeconds,
+                        suffix = "s",
+                        onSelected = { holdSeconds = it },
+                    )
+
+                    draftSlots.forEachIndexed { index, slot ->
+                        Card {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    text = if (index == 0) "Spiel ${index + 1} (Hauptspiel)" else "Spiel ${index + 1}",
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                OutlinedButton(
+                                    onClick = { selectionMode = SelectionMode.Match(index) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(slot.match?.title ?: "Spiel waehlen")
+                                }
+                                OutlinedButton(
+                                    onClick = { selectionMode = SelectionMode.Channel(index) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(slot.channel?.name ?: "Sender waehlen")
+                                }
                             }
                         }
                     }
                 }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Abbrechen")
+                    }
+                    Button(
+                        onClick = {
+                            onSave(conferenceName, cooldownEnabled, cooldownSeconds, holdSeconds, draftSlots)
+                        },
+                        enabled = draftSlots.all { it.match != null && it.channel != null },
+                    ) {
+                        Text("Speichern")
+                    }
+                }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onSave(conferenceName, cooldownEnabled, cooldownSeconds, holdSeconds, draftSlots)
-                },
-                enabled = draftSlots.all { it.match != null && it.channel != null },
-            ) {
-                Text("Speichern")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Abbrechen")
-            }
-        },
-    )
+        }
+    }
 
     when (val currentSelection = selectionMode) {
         is SelectionMode.Match -> {
