@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,8 @@ fun CloudRecordingSettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val currentSettings by viewModel.cloudRecordingSettings.collectAsStateWithLifecycle()
+    val authStatusMessage by viewModel.cloudAuthStatusMessage.collectAsStateWithLifecycle()
+    val authStatusIsError by viewModel.cloudAuthStatusIsError.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var draft by remember(currentSettings) { mutableStateOf(currentSettings) }
@@ -73,6 +76,21 @@ fun CloudRecordingSettingsScreen(
                 style = MaterialTheme.typography.bodyMedium,
             )
 
+            if (authStatusMessage.isNotBlank()) {
+                Button(
+                    onClick = { viewModel.clearCloudAuthStatus() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (authStatusIsError) MaterialTheme.colorScheme.errorContainer
+                        else MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = if (authStatusIsError) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
+                    ),
+                ) {
+                    Text(authStatusMessage)
+                }
+            }
+
             ToggleRow(
                 title = "Auto-Upload",
                 checked = draft.autoUploadEnabled,
@@ -93,15 +111,17 @@ fun CloudRecordingSettingsScreen(
                 }
                 CloudRecordingProvider.GOOGLE_DRIVE -> {
                     Text(
-                        text = "Google Drive nutzt hier einen vorhandenen Access-Token. Fuer einen echten OAuth-Flow brauchen wir spaeter eine registrierte Client-ID.",
+                        text = "Google Drive kann direkt verbunden werden, braucht aber eine hinterlegte Client-ID in der App-Konfiguration.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Button(
                         onClick = {
                             scope.launch {
-                                val url = viewModel.buildGoogleDriveAuthorizationUrl()
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                val url = viewModel.prepareGoogleDriveAuthorizationUrl()
+                                if (url != null) {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -113,7 +133,7 @@ fun CloudRecordingSettingsScreen(
                 }
                 CloudRecordingProvider.ONEDRIVE -> {
                     Text(
-                        text = "OneDrive nutzt hier einen vorhandenen Access-Token. Device-Code/OAuth koennen wir spaeter direkt in die App holen.",
+                        text = "OneDrive nutzt den Device-Code-Flow und braucht eine hinterlegte Client-ID in der App-Konfiguration.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

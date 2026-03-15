@@ -1,5 +1,6 @@
 package com.djoudini.iplayer.data.repository
 
+import com.djoudini.iplayer.BuildConfig
 import com.djoudini.iplayer.data.local.dao.ConferenceMatchMappingDao
 import com.djoudini.iplayer.data.local.dao.ConferenceProfileDao
 import com.djoudini.iplayer.data.local.entity.ConferenceMatchMappingEntity
@@ -36,12 +37,32 @@ data class ConferenceSessionState(
     val lastMessage: String? = null,
 )
 
+data class ConferenceApiTestResult(
+    val success: Boolean,
+    val message: String,
+)
+
 @Singleton
 class ConferenceManager @Inject constructor(
     private val conferenceProfileDao: ConferenceProfileDao,
     private val conferenceMatchMappingDao: ConferenceMatchMappingDao,
     private val footballDataApi: FootballDataApi,
 ) {
+    private val defaultCompetitionCodes = listOf(
+        "BL1",  // Bundesliga
+        "DED",  // Eredivisie
+        "ELC",  // Championship
+        "FL1",  // Ligue 1
+        "PD",   // La Liga
+        "PPL",  // Primeira Liga
+        "SA",   // Serie A
+        "PL",   // Premier League
+        "CL",   // Champions League
+        "EL",   // Europa League
+        "EC",   // European Championship
+        "WC",   // World Cup
+    ).joinToString(",")
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _sessionState = MutableStateFlow(ConferenceSessionState())
     val sessionState: StateFlow<ConferenceSessionState> = _sessionState.asStateFlow()
@@ -50,7 +71,9 @@ class ConferenceManager @Inject constructor(
     val zapEvents: SharedFlow<ConferenceZapEvent> = _zapEvents.asSharedFlow()
 
     private var pollingJob: Job? = null
+    private var returnJob: Job? = null
     private var lastZapAt: Long = 0L
+    private var holdUntilAt: Long = 0L
     private val knownScores = mutableMapOf<Int, Pair<Int, Int>>()
 
     suspend fun startConference(conferenceId: Long) {
@@ -65,12 +88,21 @@ class ConferenceManager @Inject constructor(
             lastMessage = "Konferenz aktiv",
         )
         lastZapAt = 0L
+        holdUntilAt = 0L
         knownScores.clear()
 
         pollingJob = scope.launch {
             while (true) {
-                pollConference(profile.id, profile.name, profile.cooldownEnabled, profile.cooldownSeconds, mappings)
-                delay(15_000)
+                pollConference(
+                    conferenceId = profile.id,
+                    conferenceName = profile.name,
+                    cooldownEnabled = profile.cooldownEnabled,
+                    cooldownSeconds = profile.cooldownSeconds,
+                    holdSeconds = profile.holdSeconds,
+                    mainChannelId = mappings.minByOrNull { it.priority }?.channelId,
+                    mappings = mappings,
+                )
+                delay(10_000)
             }
         }
     }
@@ -78,7 +110,10 @@ class ConferenceManager @Inject constructor(
     fun stopConference() {
         pollingJob?.cancel()
         pollingJob = null
+        returnJob?.cancel()
+        returnJob = null
         knownScores.clear()
+        holdUntilAt = 0L
         _sessionState.value = ConferenceSessionState()
     }
 
@@ -87,24 +122,31 @@ class ConferenceManager @Inject constructor(
         conferenceName: String,
         cooldownEnabled: Boolean,
         cooldownSeconds: Int,
+        holdSeconds: Int,
+        mainChannelId: Long?,
         mappings: List<ConferenceMatchMappingEntity>,
     ) {
         try {
-            val liveMatches = footballDataApi.getMatches(status = "LIVE").matches.associateBy { it.id }
+            val matchesById = fetchRelevantMatches().associateBy { it.id }
             mappings.forEach { mapping ->
-                val match = liveMatches[mapping.matchId] ?: return@forEach
+                val match = matchesById[mapping.matchId] ?: return@forEach
                 val score = extractScore(match) ?: return@forEach
                 val previousScore = knownScores[mapping.matchId]
                 knownScores[mapping.matchId] = score
 
                 if (previousScore != null && (score.first > previousScore.first || score.second > previousScore.second)) {
                     val now = System.currentTimeMillis()
+                    if (now < holdUntilAt) {
+                        return@forEach
+                    }
+
                     val cooldownMs = cooldownSeconds * 1000L
                     if (cooldownEnabled && now - lastZapAt < cooldownMs) {
                         return@forEach
                     }
 
                     lastZapAt = now
+                    holdUntilAt = now + holdSeconds.coerceAtLeast(0) * 1000L
                     val message = "Tor bei ${mapping.matchLabel} - Wechsel zu ${mapping.channelName}"
                     _sessionState.value = ConferenceSessionState(
                         activeConferenceId = conferenceId,
@@ -117,6 +159,13 @@ class ConferenceManager @Inject constructor(
                             message = message,
                         ),
                     )
+                    scheduleReturnToMain(
+                        conferenceId = conferenceId,
+                        conferenceName = conferenceName,
+                        mainChannelId = mainChannelId,
+                        currentChannelId = mapping.channelId,
+                        holdSeconds = holdSeconds,
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -125,36 +174,88 @@ class ConferenceManager @Inject constructor(
         }
     }
 
-    suspend fun fetchSelectableMatches(): List<ConferenceSelectableMatch> {
-        return try {
-            val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("UTC")
-            }.format(Date())
-            footballDataApi.getMatches(dateFrom = today, dateTo = today).matches
-                .filter { it.homeTeam?.name != null && it.awayTeam?.name != null }
-                .sortedWith(compareBy<FootballDataMatchDto> { matchStatusPriority(it.status) }.thenBy { it.utcDate ?: "" })
-                .map { match ->
-                    ConferenceSelectableMatch(
-                        matchId = match.id,
-                        title = "${match.homeTeam?.name} vs ${match.awayTeam?.name}",
-                        subtitle = buildString {
-                            append(match.competition?.name ?: "Unbekannter Wettbewerb")
-                            match.status?.takeIf { it.isNotBlank() }?.let {
-                                append("  •  ")
-                                append(it)
-                            }
-                        },
-                    )
-                }
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to fetch selectable matches")
-            emptyList()
+    private fun scheduleReturnToMain(
+        conferenceId: Long,
+        conferenceName: String,
+        mainChannelId: Long?,
+        currentChannelId: Long,
+        holdSeconds: Int,
+    ) {
+        returnJob?.cancel()
+        if (mainChannelId == null || mainChannelId == currentChannelId || holdSeconds <= 0) {
+            return
         }
+        returnJob = scope.launch {
+            delay(holdSeconds * 1000L)
+            _sessionState.value = ConferenceSessionState(
+                activeConferenceId = conferenceId,
+                activeConferenceName = conferenceName,
+                lastMessage = "Zurueck zum Hauptspiel",
+            )
+            _zapEvents.emit(
+                ConferenceZapEvent(
+                    channelId = mainChannelId,
+                    message = "Zurueck zum Hauptspiel",
+                ),
+            )
+        }
+    }
+
+    suspend fun fetchSelectableMatches(): List<ConferenceSelectableMatch> {
+        return fetchRelevantMatches()
+            .filter { it.homeTeam?.name != null && it.awayTeam?.name != null }
+            .sortedWith(compareBy<FootballDataMatchDto> { matchStatusPriority(it.status) }.thenBy { it.utcDate ?: "" })
+            .map { match ->
+                ConferenceSelectableMatch(
+                    matchId = match.id,
+                    title = "${match.homeTeam?.name} vs ${match.awayTeam?.name}",
+                    subtitle = buildString {
+                        append(match.competition?.name ?: "Unbekannter Wettbewerb")
+                        match.status?.takeIf { it.isNotBlank() }?.let {
+                            append("  •  ")
+                            append(it)
+                        }
+                    },
+                )
+            }
+    }
+
+    suspend fun testApi(): ConferenceApiTestResult {
+        return runCatching {
+            val matches = fetchRelevantMatches()
+            val liveCount = matches.count { it.status == "LIVE" || it.status == "IN_PLAY" || it.status == "PAUSED" }
+            ConferenceApiTestResult(
+                success = true,
+                message = "API erreichbar. ${matches.size} Spiele geladen, davon $liveCount live/relevant.",
+            )
+        }.getOrElse { error ->
+            ConferenceApiTestResult(
+                success = false,
+                message = error.message ?: "API-Test fehlgeschlagen.",
+            )
+        }
+    }
+
+    private suspend fun fetchRelevantMatches(): List<FootballDataMatchDto> {
+        require(BuildConfig.FOOTBALL_DATA_API_TOKEN.isNotBlank()) {
+            "football-data.org ist noch nicht konfiguriert. Bitte zuerst einen API-Token in local.properties hinterlegen."
+        }
+        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        val now = System.currentTimeMillis()
+        val dateFrom = formatter.format(Date(now - 24L * 60L * 60L * 1000L))
+        val dateTo = formatter.format(Date(now + 24L * 60L * 60L * 1000L))
+        return footballDataApi.getMatches(
+            dateFrom = dateFrom,
+            dateTo = dateTo,
+            competitions = defaultCompetitionCodes,
+        ).matches
     }
 
     private fun extractScore(match: FootballDataMatchDto): Pair<Int, Int>? {
         val score = match.score ?: return null
-        val timeScore = score.fullTime ?: score.regularTime ?: score.halfTime ?: return null
+        val timeScore = score.regularTime ?: score.fullTime ?: score.halfTime ?: return null
         return Pair(timeScore.home ?: 0, timeScore.away ?: 0)
     }
 

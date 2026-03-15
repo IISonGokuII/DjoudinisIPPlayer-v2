@@ -1,5 +1,7 @@
 package com.djoudini.iplayer.presentation.ui.mobile
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -54,12 +56,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.VpnProviderInfo
 import com.djoudini.iplayer.data.local.entity.VpnSetupState
 import com.djoudini.iplayer.data.local.entity.VpnSetupStep
+import com.djoudini.iplayer.presentation.components.QrCodeCard
 import com.djoudini.iplayer.presentation.viewmodel.VpnSetupViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +75,7 @@ fun VpnSetupWizardScreen(
 ) {
     val setupState by viewModel.setupState.collectAsStateWithLifecycle()
     var importErrorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -165,10 +170,14 @@ fun VpnSetupWizardScreen(
             when (setupState.currentStep) {
                 is VpnSetupStep.ProviderSelection -> VpnProviderSelectionStep(
                     providers = viewModel.getAvailableProviders(),
+                    popularProviders = viewModel.getPopularProviders(),
                     onProviderSelected = { viewModel.selectProvider(it) },
                 )
                 is VpnSetupStep.ConfigImport -> VpnConfigImportStep(
+                    provider = setupState.selectedProvider,
                     errorMessage = importErrorMessage ?: setupState.errorMessage,
+                    onOpenWebsite = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                    onOpenGuide = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                     onFileSelected = { filePickerLauncher.launch("*/*") },
                 )
                 is VpnSetupStep.ConnectionTest -> VpnConnectionTestStep(
@@ -180,6 +189,7 @@ fun VpnSetupWizardScreen(
                 is VpnSetupStep.Complete -> VpnSetupCompleteStep(state = setupState)
                 else -> VpnProviderSelectionStep(
                     providers = viewModel.getAvailableProviders(),
+                    popularProviders = viewModel.getPopularProviders(),
                     onProviderSelected = { viewModel.selectProvider(it) },
                 )
             }
@@ -205,8 +215,17 @@ fun VpnSetupWizardScreen(
 @Composable
 private fun VpnProviderSelectionStep(
     providers: List<VpnProviderInfo>,
+    popularProviders: List<VpnProviderInfo>,
     onProviderSelected: (VpnProviderInfo) -> Unit,
 ) {
+    val popularIds = remember(popularProviders) { popularProviders.map { it.id }.toSet() }
+    val displayedProviders = remember(providers, popularIds) {
+        providers.sortedWith(
+            compareByDescending<VpnProviderInfo> { it.id in popularIds }
+                .thenBy { it.displayName.lowercase() }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -225,9 +244,17 @@ private fun VpnProviderSelectionStep(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (popularProviders.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${popularProviders.size} beliebte Anbieter stehen oben in der Liste.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
-        items(providers) { provider ->
+        items(displayedProviders, key = { it.id }) { provider ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -270,6 +297,16 @@ private fun VpnProviderSelectionStep(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (provider.id == "manual") {
+                                "Direkt in der App importieren"
+                            } else {
+                                "Fuehrt dich zum Import deiner eigenen WireGuard-Datei"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                         if (provider.features.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -287,7 +324,10 @@ private fun VpnProviderSelectionStep(
 
 @Composable
 private fun VpnConfigImportStep(
+    provider: VpnProviderInfo?,
     errorMessage: String?,
+    onOpenWebsite: (String) -> Unit,
+    onOpenGuide: (String) -> Unit,
     onFileSelected: () -> Unit,
 ) {
     Column(
@@ -303,10 +343,56 @@ private fun VpnConfigImportStep(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = stringResource(R.string.vpn_import_config_desc),
+            text = provider?.let {
+                "Scanne den QR-Code mit deinem Handy, melde dich beim Anbieter an und erstelle dort deine WireGuard-Datei. Danach importierst du sie hier auf dem TV."
+            } ?: stringResource(R.string.vpn_import_config_desc),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        provider?.setupGuideUrl?.takeIf { it.isNotBlank() }?.let { guideUrl ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "${provider.displayName} auf dem Handy vorbereiten",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    QrCodeCard(
+                        value = guideUrl,
+                        label = "Mit dem Handy scannen und die offizielle Anleitung oeffnen",
+                        sizeDp = 180,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        provider.websiteUrl.takeIf { it.isNotBlank() }?.let { websiteUrl ->
+                            Button(onClick = { onOpenWebsite(websiteUrl) }) {
+                                Text("Website")
+                            }
+                        }
+                        Button(onClick = { onOpenGuide(guideUrl) }) {
+                            Text("Anleitung oeffnen")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = if (provider.isPremium) {
+                            "Hinweis: Fuer viele Anbieter brauchst du ein aktives Konto, bevor du eine WireGuard-Datei erzeugen kannst."
+                        } else {
+                            "Hinweis: Manche Anbieter haben kostenlose Tarife, aber WireGuard-Dateien sind je nach Plan eingeschraenkt."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(24.dp))
         Card(
             modifier = Modifier

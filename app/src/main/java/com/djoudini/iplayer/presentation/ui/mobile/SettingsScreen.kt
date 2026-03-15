@@ -47,10 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -85,9 +82,6 @@ fun SettingsScreen(
     val gestureControlsEnabled by appPreferences.gestureControlsEnabled.collectAsStateWithLifecycle(initialValue = true)
     val reconnectMaxAttempts by appPreferences.reconnectMaxAttempts.collectAsStateWithLifecycle(initialValue = 3)
     val reconnectDelayMs by appPreferences.reconnectDelayMs.collectAsStateWithLifecycle(initialValue = 3_000)
-
-    var preferredAudioLanguage by remember { mutableStateOf("") }
-    var preferredSubtitleLanguage by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -233,9 +227,9 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Language,
                     title = stringResource(R.string.preferred_audio_language),
-                    subtitle = preferredAudioLanguage.ifBlank { stringResource(R.string.auto_system_default) },
+                    subtitle = viewModel.preferredAudioLanguage.ifBlank { stringResource(R.string.auto_system_default) },
                     onClick = {
-                        preferredAudioLanguage = when (preferredAudioLanguage) {
+                        val next = when (viewModel.preferredAudioLanguage) {
                             "" -> "de"
                             "de" -> "en"
                             "en" -> "tr"
@@ -243,14 +237,15 @@ fun SettingsScreen(
                             "fr" -> "es"
                             else -> ""
                         }
+                        viewModel.updatePreferredAudioLanguage(next)
                     },
                 )
                 SettingsItem(
                     icon = Icons.Default.Subtitles,
                     title = stringResource(R.string.preferred_subtitle_language),
-                    subtitle = preferredSubtitleLanguage.ifBlank { stringResource(R.string.off) },
+                    subtitle = viewModel.preferredSubtitleLanguage.ifBlank { stringResource(R.string.off) },
                     onClick = {
-                        preferredSubtitleLanguage = when (preferredSubtitleLanguage) {
+                        val next = when (viewModel.preferredSubtitleLanguage) {
                             "" -> "de"
                             "de" -> "en"
                             "en" -> "tr"
@@ -258,6 +253,7 @@ fun SettingsScreen(
                             "fr" -> ""
                             else -> ""
                         }
+                        viewModel.updatePreferredSubtitleLanguage(next)
                     },
                 )
             }
@@ -397,6 +393,8 @@ fun SettingsScreen(
                             appPreferences.updatePlayerConfig(PlayerConfig())
                             appPreferences.setTheme("dark")
                             appPreferences.setAutoSyncEnabled(true)
+                            appPreferences.setPreferredAudioLanguage("")
+                            appPreferences.setPreferredSubtitleLanguage("")
                         }
                     },
                 )

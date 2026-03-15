@@ -47,6 +47,7 @@ import com.djoudini.iplayer.presentation.ui.tv.TvLoginM3uScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvDashboardScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvVodDetailScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvCategoryFilterScreen
+import com.djoudini.iplayer.presentation.ui.tv.TvCloudRecordingSettingsScreen
 import com.djoudini.iplayer.presentation.ui.tv.TvFavoritesScreen
 import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import timber.log.Timber
@@ -447,10 +448,17 @@ fun AppNavGraph(
         }
 
         composable(Route.CloudRecordingSettings.route) {
-            CloudRecordingSettingsScreen(
-                onBack = { navController.popBackStack() },
-                viewModel = settingsViewModel,
-            )
+            if (isTvDevice) {
+                TvCloudRecordingSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    viewModel = settingsViewModel,
+                )
+            } else {
+                CloudRecordingSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    viewModel = settingsViewModel,
+                )
+            }
         }
 
         // --- VPN Setup Wizard ---

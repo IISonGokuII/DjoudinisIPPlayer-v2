@@ -18,6 +18,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -90,6 +91,12 @@ class SettingsViewModel @Inject constructor(
     val cloudRecordingSettings: StateFlow<CloudRecordingSettings> = appPreferences.cloudRecordingSettings
         .stateIn(viewModelScope, SharingStarted.Lazily, CloudRecordingSettings())
 
+    val cloudAuthStatusMessage: StateFlow<String> = appPreferences.cloudAuthStatusMessage
+        .stateIn(viewModelScope, SharingStarted.Lazily, "")
+
+    val cloudAuthStatusIsError: StateFlow<Boolean> = appPreferences.cloudAuthStatusIsError
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
     val vpnConnectionState = vpnRepository.connectionInfo
         .stateIn(viewModelScope, SharingStarted.Lazily, com.djoudini.iplayer.data.local.entity.VpnConnectionInfo())
 
@@ -99,6 +106,7 @@ class SettingsViewModel @Inject constructor(
     init {
         loadVpnServers()
         loadVpnSettings()
+        loadPlayerLanguageSettings()
     }
 
     private fun loadVpnServers() {
@@ -133,6 +141,15 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             appPreferences.vpnReconnectDelay.collect { _vpnReconnectDelay = it }
+        }
+    }
+
+    private fun loadPlayerLanguageSettings() {
+        viewModelScope.launch {
+            appPreferences.preferredAudioLanguage.collectLatest { preferredAudioLanguage = it }
+        }
+        viewModelScope.launch {
+            appPreferences.preferredSubtitleLanguage.collectLatest { preferredSubtitleLanguage = it }
         }
     }
 
@@ -205,11 +222,17 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updatePreferredAudioLanguage(lang: String) {
-        preferredAudioLanguage = lang
+        viewModelScope.launch {
+            preferredAudioLanguage = lang
+            appPreferences.setPreferredAudioLanguage(lang)
+        }
     }
 
     fun updatePreferredSubtitleLanguage(lang: String) {
-        preferredSubtitleLanguage = lang
+        viewModelScope.launch {
+            preferredSubtitleLanguage = lang
+            appPreferences.setPreferredSubtitleLanguage(lang)
+        }
     }
 
     fun clearWatchHistory() {
@@ -228,6 +251,8 @@ class SettingsViewModel @Inject constructor(
             appPreferences.updatePlayerConfig(PlayerConfig())
             appPreferences.setTheme("dark")
             appPreferences.setAutoSyncEnabled(true)
+            appPreferences.setPreferredAudioLanguage("")
+            appPreferences.setPreferredSubtitleLanguage("")
             preferredAudioLanguage = ""
             preferredSubtitleLanguage = ""
         }
@@ -243,15 +268,45 @@ class SettingsViewModel @Inject constructor(
 
     fun startOneDriveDeviceCode() {
         viewModelScope.launch {
-            oneDriveDeviceCodeSession = cloudAuthRepository.startOneDriveDeviceCode()
+            runCatching {
+                appPreferences.clearCloudAuthStatus()
+                cloudAuthRepository.startOneDriveDeviceCode()
+            }.onSuccess { session ->
+                oneDriveDeviceCodeSession = session
+                appPreferences.setCloudAuthStatus("OneDrive-Code erstellt. Bitte die Anmeldung abschliessen.", false)
+            }.onFailure { error ->
+                oneDriveDeviceCodeSession = null
+                appPreferences.setCloudAuthStatus(error.message ?: "OneDrive konnte nicht gestartet werden.", true)
+            }
         }
     }
 
     fun completeOneDriveDeviceCodeLogin() {
         val session = oneDriveDeviceCodeSession ?: return
         viewModelScope.launch {
-            cloudAuthRepository.pollOneDriveDeviceCode(session)
-            oneDriveDeviceCodeSession = null
+            runCatching {
+                cloudAuthRepository.pollOneDriveDeviceCode(session)
+            }.onSuccess {
+                oneDriveDeviceCodeSession = null
+                appPreferences.setCloudAuthStatus("OneDrive erfolgreich verbunden.", false)
+            }.onFailure { error ->
+                appPreferences.setCloudAuthStatus(error.message ?: "OneDrive-Anmeldung fehlgeschlagen.", true)
+            }
+        }
+    }
+
+    suspend fun prepareGoogleDriveAuthorizationUrl(): String? {
+        return runCatching {
+            appPreferences.clearCloudAuthStatus()
+            cloudAuthRepository.buildGoogleAuthorizationUrl()
+        }.onFailure { error ->
+            appPreferences.setCloudAuthStatus(error.message ?: "Google Drive konnte nicht gestartet werden.", true)
+        }.getOrNull()
+    }
+
+    fun clearCloudAuthStatus() {
+        viewModelScope.launch {
+            appPreferences.clearCloudAuthStatus()
         }
     }
 

@@ -94,7 +94,6 @@ import android.app.Activity
 import android.view.KeyEvent
 import android.view.WindowInsetsController
 import android.os.PowerManager
-import android.os.PowerManager.WakeLock
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -120,6 +119,7 @@ import com.djoudini.iplayer.presentation.viewmodel.AudioTrackInfo
 import com.djoudini.iplayer.presentation.viewmodel.PlayerViewModel
 import com.djoudini.iplayer.presentation.viewmodel.SleepTimerPreset
 import com.djoudini.iplayer.presentation.viewmodel.SubtitleTrackInfo
+import com.djoudini.iplayer.util.AutoFrameRateManager
 import com.djoudini.iplayer.util.startCompatService
 import androidx.media3.common.Player
 import kotlinx.coroutines.delay
@@ -137,6 +137,8 @@ fun PlayerScreen(
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val preferredAudioLanguage by viewModel.preferredAudioLanguage.collectAsStateWithLifecycle()
+    val preferredSubtitleLanguage by viewModel.preferredSubtitleLanguage.collectAsStateWithLifecycle()
     val activity = LocalContext.current as? Activity
     val context = LocalContext.current
     var isFullscreen by remember { mutableStateOf(false) }
@@ -192,6 +194,15 @@ fun PlayerScreen(
     var showAudioDelayDialog by remember { mutableStateOf(false) }
     var currentPlaybackSpeed by remember { mutableStateOf(1f) }
     var showSubtitleTrackDialog by remember { mutableStateOf(false) }
+    val autoFrameRateManager = remember { AutoFrameRateManager() }
+    var appliedContentFrameRate by remember { mutableStateOf<Float?>(null) }
+    var frameRateStatusMessage by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(frameRateStatusMessage) {
+        if (frameRateStatusMessage != null) {
+            delay(2_500)
+            frameRateStatusMessage = null
+        }
+    }
     // TV Options Panel (long press center on Fire TV)
     val scope = rememberCoroutineScope()
     var showTvOptionsPanel by remember { mutableStateOf(false) }
@@ -309,6 +320,15 @@ fun PlayerScreen(
         onDispose { exoPlayer.removeListener(errorListener) }
     }
 
+    LaunchedEffect(exoPlayer, preferredAudioLanguage, preferredSubtitleLanguage) {
+        exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+            .buildUpon()
+            .setPreferredAudioLanguage(preferredAudioLanguage.ifBlank { null })
+            .setPreferredTextLanguage(preferredSubtitleLanguage.ifBlank { null })
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, preferredSubtitleLanguage.isBlank())
+            .build()
+    }
+
     // Set media item and play on streamUrl change
     LaunchedEffect(uiState.streamUrl, exoPlayer, uiState.showResumeDialog, resumeChoice) {
         if (uiState.streamUrl.isBlank()) return@LaunchedEffect
@@ -339,6 +359,9 @@ fun PlayerScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.stopProgressTracking()
+            activity?.let { currentActivity ->
+                autoFrameRateManager.restoreOriginalFrameRate(currentActivity)
+            }
             exoPlayer.stop()
             exoPlayer.clearMediaItems()
             exoPlayer.release()
@@ -387,6 +410,25 @@ fun PlayerScreen(
     // Also auto-selects a compatible audio track if the default one can't be decoded.
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
+            private fun applyAutoFrameRateIfPossible() {
+                val currentActivity = activity ?: return
+                val videoFormat = exoPlayer.videoFormat ?: return
+                val frameRate = videoFormat.frameRate
+                if (frameRate <= 0f) return
+
+                val currentApplied = appliedContentFrameRate
+                if (currentApplied != null && kotlin.math.abs(currentApplied - frameRate) < 0.5f) {
+                    return
+                }
+
+                autoFrameRateManager.matchFrameRate(
+                    activity = currentActivity,
+                    contentFrameRate = frameRate,
+                )
+                appliedContentFrameRate = frameRate
+                frameRateStatusMessage = "Auto Frame Rate: ${String.format(Locale.US, "%.2f", frameRate)} fps"
+            }
+
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
                 val audioTracks = mutableListOf<AudioTrackInfo>()
                 val subtitleTracks = mutableListOf<SubtitleTrackInfo>()
@@ -456,6 +498,14 @@ fun PlayerScreen(
                                 .build()
                         } catch (_: Exception) {}
                     }
+                }
+
+                applyAutoFrameRateIfPossible()
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    applyAutoFrameRateIfPossible()
                 }
             }
         }
@@ -1111,6 +1161,30 @@ fun PlayerScreen(
                 modifier = Modifier.align(Alignment.Center),
                 color = Color.White,
             )
+        }
+
+        AnimatedVisibility(
+            visible = frameRateStatusMessage != null,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+            exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(16.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = frameRateStatusMessage ?: "",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
 
         // Error display with retry button

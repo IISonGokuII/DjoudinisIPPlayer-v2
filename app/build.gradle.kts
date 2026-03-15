@@ -175,6 +175,9 @@ dependencies {
     // Coil
     implementation(libs.coil.compose)
 
+    // QR Code generation for TV/mobile companion flows
+    implementation("com.google.zxing:core:3.5.3")
+
     // WireGuard embeds GoBackend inside the published tunnel artifact.
     implementation("com.wireguard.android:tunnel:1.0.20260102")
 

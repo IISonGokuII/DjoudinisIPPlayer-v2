@@ -64,6 +64,8 @@ fun ConferenceScreen(
     val availableMatches by viewModel.availableMatches.collectAsStateWithLifecycle()
     val isLoadingMatches by viewModel.isLoadingMatches.collectAsStateWithLifecycle()
     val matchError by viewModel.matchError.collectAsStateWithLifecycle()
+    val apiTestMessage by viewModel.apiTestMessage.collectAsStateWithLifecycle()
+    val apiTestIsError by viewModel.apiTestIsError.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
     var showWizard by remember { mutableStateOf(false) }
@@ -80,6 +82,9 @@ fun ConferenceScreen(
                 actions = {
                     IconButton(onClick = { viewModel.refreshMatches() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Spiele aktualisieren")
+                    }
+                    IconButton(onClick = { viewModel.testApi() }) {
+                        Icon(Icons.Default.SportsSoccer, contentDescription = "API testen")
                     }
                     IconButton(onClick = { showWizard = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Neue Konferenz")
@@ -108,7 +113,7 @@ fun ConferenceScreen(
                     Text(
                         text = sessionState.activeConferenceName?.let {
                             "Aktiv: $it${sessionState.lastMessage?.let { message -> "\n$message" } ?: ""}"
-                        } ?: "Lege Spiele und Sender an. Bei Toren kann die App automatisch umschalten.",
+                        } ?: "Lege Spiele und Sender an. Das erste Spiel ist dein Hauptspiel, bei Toren kann die App automatisch umschalten.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -122,6 +127,22 @@ fun ConferenceScreen(
                             }
                         }
                     }
+                }
+            }
+
+            apiTestMessage?.let { message ->
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (apiTestIsError) MaterialTheme.colorScheme.errorContainer
+                        else MaterialTheme.colorScheme.secondaryContainer,
+                    ),
+                ) {
+                    Text(
+                        text = message,
+                        modifier = Modifier.padding(16.dp),
+                        color = if (apiTestIsError) MaterialTheme.colorScheme.onErrorContainer
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
                 }
             }
 
@@ -215,7 +236,12 @@ private fun ConferenceProfileCard(
             Spacer(modifier = Modifier.height(8.dp))
             profile.mappings.forEach { mapping ->
                 Text(
-                    text = "${mapping.matchLabel}  ->  ${mapping.channelName}",
+                    text = buildString {
+                        if (mapping.priority == 0) {
+                            append("Hauptspiel: ")
+                        }
+                        append("${mapping.matchLabel}  ->  ${mapping.channelName}")
+                    },
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -312,7 +338,10 @@ private fun ConferenceWizardDialog(
                 draftSlots.forEachIndexed { index, slot ->
                     Card {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Spiel ${index + 1}", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (index == 0) "Spiel ${index + 1} (Hauptspiel)" else "Spiel ${index + 1}",
+                                fontWeight = FontWeight.Bold,
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
                             OutlinedButton(onClick = { selectionMode = SelectionMode.Match(index) }) {
                                 Text(slot.match?.title ?: "Spiel waehlen")

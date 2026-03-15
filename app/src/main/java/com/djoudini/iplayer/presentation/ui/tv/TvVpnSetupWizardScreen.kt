@@ -1,5 +1,7 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -45,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,6 +58,7 @@ import com.djoudini.iplayer.data.local.entity.VpnProviderInfo
 import com.djoudini.iplayer.data.local.entity.VpnSetupState
 import com.djoudini.iplayer.data.local.entity.VpnSetupStep
 import com.djoudini.iplayer.presentation.components.FocusableCard
+import com.djoudini.iplayer.presentation.components.QrCodeCard
 import com.djoudini.iplayer.presentation.viewmodel.VpnSetupViewModel
 
 @Composable
@@ -65,6 +69,7 @@ fun TvVpnSetupWizardScreen(
 ) {
     val setupState by viewModel.setupState.collectAsStateWithLifecycle()
     var importErrorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -133,10 +138,14 @@ fun TvVpnSetupWizardScreen(
             when (setupState.currentStep) {
                 is VpnSetupStep.ProviderSelection -> TvVpnProviderSelectionStep(
                     providers = viewModel.getAvailableProviders(),
+                    popularProviders = viewModel.getPopularProviders(),
                     onProviderSelected = { viewModel.selectProvider(it) },
                 )
                 is VpnSetupStep.ConfigImport -> TvVpnConfigImportStep(
+                    provider = setupState.selectedProvider,
                     errorMessage = importErrorMessage ?: setupState.errorMessage,
+                    onOpenWebsite = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                    onOpenGuide = { url -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
                     onFileSelected = { filePickerLauncher.launch("*/*") },
                 )
                 is VpnSetupStep.ConnectionTest -> TvVpnConnectionTestStep(
@@ -157,6 +166,7 @@ fun TvVpnSetupWizardScreen(
                 )
                 else -> TvVpnProviderSelectionStep(
                     providers = viewModel.getAvailableProviders(),
+                    popularProviders = viewModel.getPopularProviders(),
                     onProviderSelected = { viewModel.selectProvider(it) },
                 )
             }
@@ -188,8 +198,17 @@ fun TvVpnSetupWizardScreen(
 @Composable
 private fun TvVpnProviderSelectionStep(
     providers: List<VpnProviderInfo>,
+    popularProviders: List<VpnProviderInfo>,
     onProviderSelected: (VpnProviderInfo) -> Unit,
 ) {
+    val popularIds = remember(popularProviders) { popularProviders.map { it.id }.toSet() }
+    val displayedProviders = remember(providers, popularIds) {
+        providers.sortedWith(
+            compareByDescending<VpnProviderInfo> { it.id in popularIds }
+                .thenBy { it.displayName.lowercase() }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -206,9 +225,17 @@ private fun TvVpnProviderSelectionStep(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (popularProviders.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${popularProviders.size} beliebte Anbieter stehen zuerst.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
-        items(providers) { provider ->
+        items(displayedProviders, key = { it.id }) { provider ->
             FocusableCard(
                 onClick = { onProviderSelected(provider) },
                 modifier = Modifier
@@ -253,6 +280,16 @@ private fun TvVpnProviderSelectionStep(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = if (provider.id == "manual") {
+                                "Direkt in der App importieren"
+                            } else {
+                                "Eigene WireGuard-Datei importieren"
+                            },
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                         if (provider.features.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
@@ -270,7 +307,10 @@ private fun TvVpnProviderSelectionStep(
 
 @Composable
 private fun TvVpnConfigImportStep(
+    provider: VpnProviderInfo?,
     errorMessage: String?,
+    onOpenWebsite: (String) -> Unit,
+    onOpenGuide: (String) -> Unit,
     onFileSelected: () -> Unit,
 ) {
     Column(
@@ -286,10 +326,58 @@ private fun TvVpnConfigImportStep(
         )
 
         Text(
-            text = "Waehle eine echte WireGuard-.conf-Datei deines Anbieters.",
+            text = if (provider != null) {
+                "Scanne den QR-Code mit dem Handy, melde dich beim Anbieter an und erzeuge dort deine echte WireGuard-Datei."
+            } else {
+                "Waehle eine echte WireGuard-.conf-Datei deines Anbieters."
+            },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        provider?.setupGuideUrl?.takeIf { it.isNotBlank() }?.let { guideUrl ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = "${provider.displayName} mit dem Handy vorbereiten",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    QrCodeCard(
+                        value = guideUrl,
+                        label = "Mit dem Handy scannen, dort anmelden und die offizielle Anleitung oeffnen",
+                        sizeDp = 220,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        provider.websiteUrl.takeIf { it.isNotBlank() }?.let { websiteUrl ->
+                            Button(onClick = { onOpenWebsite(websiteUrl) }) {
+                                Text("Website")
+                            }
+                        }
+                        Button(onClick = { onOpenGuide(guideUrl) }) {
+                            Text("Anleitung")
+                        }
+                    }
+                    Text(
+                        text = "Sobald du die WireGuard-Datei auf dem TV oder im Dateispeicher hast, importierst du sie hier in einem Schritt.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
 
         FocusableCard(
             onClick = onFileSelected,

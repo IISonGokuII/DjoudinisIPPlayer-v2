@@ -63,6 +63,12 @@ class ConferenceViewModel @Inject constructor(
     private val _matchError = MutableStateFlow<String?>(null)
     val matchError: StateFlow<String?> = _matchError.asStateFlow()
 
+    private val _apiTestMessage = MutableStateFlow<String?>(null)
+    val apiTestMessage: StateFlow<String?> = _apiTestMessage.asStateFlow()
+
+    private val _apiTestIsError = MutableStateFlow(false)
+    val apiTestIsError: StateFlow<Boolean> = _apiTestIsError.asStateFlow()
+
     val sessionState = conferenceManager.sessionState
 
     val channels: StateFlow<List<ChannelEntity>> = playlistRepository.observeActive()
@@ -98,12 +104,26 @@ class ConferenceViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoadingMatches.value = true
             _matchError.value = null
-            val matches = conferenceManager.fetchSelectableMatches()
-            _availableMatches.value = matches
-            _isLoadingMatches.value = false
-            if (matches.isEmpty()) {
-                _matchError.value = "Keine Spiele gefunden oder API-Antwort leer."
+            runCatching {
+                conferenceManager.fetchSelectableMatches()
+            }.onSuccess { matches ->
+                _availableMatches.value = matches
+                if (matches.isEmpty()) {
+                    _matchError.value = "Keine Spiele gefunden. Pruefe API-Token, Wettbewerb und Datum."
+                }
+            }.onFailure { error ->
+                _availableMatches.value = emptyList()
+                _matchError.value = error.message ?: "Konferenzdaten konnten nicht geladen werden."
             }
+            _isLoadingMatches.value = false
+        }
+    }
+
+    fun testApi() {
+        viewModelScope.launch {
+            val result = conferenceManager.testApi()
+            _apiTestMessage.value = result.message
+            _apiTestIsError.value = !result.success
         }
     }
 

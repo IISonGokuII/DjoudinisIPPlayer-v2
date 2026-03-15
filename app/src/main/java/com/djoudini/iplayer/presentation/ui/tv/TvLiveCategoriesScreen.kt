@@ -1,5 +1,6 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
+import android.app.Activity
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
@@ -82,6 +83,8 @@ import com.djoudini.iplayer.presentation.components.FocusableCard
 import com.djoudini.iplayer.presentation.viewmodel.ContentListViewModel
 import com.djoudini.iplayer.presentation.viewmodel.ChannelWithEpg
 import com.djoudini.iplayer.presentation.viewmodel.ViewMode
+import com.djoudini.iplayer.util.AutoFrameRateManager
+import androidx.media3.common.Player
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -113,6 +116,8 @@ fun TvLiveCategoriesScreen(
     var selectedChannel by remember { mutableStateOf<ChannelEntity?>(null) }
     var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
     val context = LocalContext.current
+    val activity = context as? Activity
+    val autoFrameRateManager = remember { AutoFrameRateManager() }
     val firstCategoryFocusRequester = remember { FocusRequester() }
 
     // Initialize player once
@@ -138,8 +143,32 @@ fun TvLiveCategoriesScreen(
     // Cleanup
     DisposableEffect(Unit) {
         onDispose {
+            activity?.let { autoFrameRateManager.restoreOriginalFrameRate(it) }
             exoPlayer?.release()
             exoPlayer = null
+        }
+    }
+
+    DisposableEffect(exoPlayer, activity) {
+        val player = exoPlayer
+        val currentActivity = activity
+        if (player == null || currentActivity == null) {
+            onDispose { }
+        } else {
+            val listener = object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    if (playbackState != Player.STATE_READY) return
+                    val frameRate = player.videoFormat?.frameRate ?: return
+                    if (frameRate > 0f) {
+                        autoFrameRateManager.matchFrameRate(currentActivity, frameRate)
+                    }
+                }
+            }
+            player.addListener(listener)
+            onDispose {
+                player.removeListener(listener)
+                autoFrameRateManager.restoreOriginalFrameRate(currentActivity)
+            }
         }
     }
 

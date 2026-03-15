@@ -10,5 +10,6 @@ interface FootballDataApi {
         @Query("status") status: String? = null,
         @Query("dateFrom") dateFrom: String? = null,
         @Query("dateTo") dateTo: String? = null,
+        @Query("competitions") competitions: String? = null,
     ): FootballDataMatchesResponse
 }

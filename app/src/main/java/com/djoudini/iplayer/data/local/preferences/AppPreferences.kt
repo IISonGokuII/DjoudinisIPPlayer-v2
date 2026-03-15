@@ -43,6 +43,8 @@ class AppPreferences @Inject constructor(
         val BUFFER_REBUFFER_MS = intPreferencesKey("player_buffer_rebuffer_ms")
         val PREFER_SOFTWARE_DECODING = booleanPreferencesKey("player_prefer_sw_decoding")
         val ENABLE_TUNNELED_PLAYBACK = booleanPreferencesKey("player_tunneled_playback")
+        val PREFERRED_AUDIO_LANGUAGE = stringPreferencesKey("player_preferred_audio_language")
+        val PREFERRED_SUBTITLE_LANGUAGE = stringPreferencesKey("player_preferred_subtitle_language")
     }
 
     val playerConfig: Flow<PlayerConfig> = dataStore.data.map { prefs ->
@@ -71,6 +73,22 @@ class AppPreferences @Inject constructor(
 
     suspend fun setUserAgent(userAgent: String) {
         dataStore.edit { it[PlayerKeys.USER_AGENT] = userAgent }
+    }
+
+    val preferredAudioLanguage: Flow<String> = dataStore.data.map { prefs ->
+        prefs[PlayerKeys.PREFERRED_AUDIO_LANGUAGE] ?: ""
+    }
+
+    val preferredSubtitleLanguage: Flow<String> = dataStore.data.map { prefs ->
+        prefs[PlayerKeys.PREFERRED_SUBTITLE_LANGUAGE] ?: ""
+    }
+
+    suspend fun setPreferredAudioLanguage(language: String) {
+        dataStore.edit { it[PlayerKeys.PREFERRED_AUDIO_LANGUAGE] = language }
+    }
+
+    suspend fun setPreferredSubtitleLanguage(language: String) {
+        dataStore.edit { it[PlayerKeys.PREFERRED_SUBTITLE_LANGUAGE] = language }
     }
 
     // --- Sync Settings ---
@@ -299,6 +317,8 @@ class AppPreferences @Inject constructor(
         val ONEDRIVE_FOLDER_PATH = stringPreferencesKey("cloud_recording_onedrive_folder_path")
         val PENDING_GOOGLE_STATE = stringPreferencesKey("cloud_recording_pending_google_state")
         val PENDING_GOOGLE_VERIFIER = stringPreferencesKey("cloud_recording_pending_google_verifier")
+        val AUTH_STATUS_MESSAGE = stringPreferencesKey("cloud_recording_auth_status_message")
+        val AUTH_STATUS_IS_ERROR = booleanPreferencesKey("cloud_recording_auth_status_is_error")
     }
 
     val cloudRecordingSettings: Flow<CloudRecordingSettings> = dataStore.data.map { prefs ->
@@ -320,6 +340,14 @@ class AppPreferences @Inject constructor(
             oneDriveAccessTokenExpiryMs = prefs[CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN_EXPIRY] ?: 0L,
             oneDriveFolderPath = prefs[CloudRecordingKeys.ONEDRIVE_FOLDER_PATH] ?: "DjoudinisIPPlayer",
         )
+    }
+
+    val cloudAuthStatusMessage: Flow<String> = dataStore.data.map { prefs ->
+        prefs[CloudRecordingKeys.AUTH_STATUS_MESSAGE] ?: ""
+    }
+
+    val cloudAuthStatusIsError: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[CloudRecordingKeys.AUTH_STATUS_IS_ERROR] ?: false
     }
 
     suspend fun updateCloudRecordingSettings(settings: CloudRecordingSettings) {
@@ -357,5 +385,19 @@ class AppPreferences @Inject constructor(
             edited.remove(CloudRecordingKeys.PENDING_GOOGLE_VERIFIER)
         }
         return state to verifier
+    }
+
+    suspend fun setCloudAuthStatus(message: String, isError: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[CloudRecordingKeys.AUTH_STATUS_MESSAGE] = message
+            prefs[CloudRecordingKeys.AUTH_STATUS_IS_ERROR] = isError
+        }
+    }
+
+    suspend fun clearCloudAuthStatus() {
+        dataStore.edit { prefs ->
+            prefs.remove(CloudRecordingKeys.AUTH_STATUS_MESSAGE)
+            prefs.remove(CloudRecordingKeys.AUTH_STATUS_IS_ERROR)
+        }
     }
 }

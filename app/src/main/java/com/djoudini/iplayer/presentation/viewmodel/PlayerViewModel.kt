@@ -8,6 +8,7 @@ import com.djoudini.iplayer.data.local.dao.EpisodeDao
 import com.djoudini.iplayer.data.local.dao.RecordingDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.domain.model.WatchContentType
 import com.djoudini.iplayer.domain.repository.ChannelRepository
 import com.djoudini.iplayer.domain.repository.EpgRepository
@@ -20,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -137,6 +139,7 @@ class PlayerViewModel @Inject constructor(
     private val recordingDao: RecordingDao,
     private val epgRepository: EpgRepository,
     private val watchProgressRepository: WatchProgressRepository,
+    appPreferences: AppPreferences,
     val playerFactory: PlayerFactory,
 ) : ViewModel() {
 
@@ -146,6 +149,12 @@ class PlayerViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
+
+    val preferredAudioLanguage = appPreferences.preferredAudioLanguage
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Lazily, "")
+
+    val preferredSubtitleLanguage = appPreferences.preferredSubtitleLanguage
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Lazily, "")
 
     private var progressSaveJob: Job? = null
     private var sleepTimerJob: Job? = null
