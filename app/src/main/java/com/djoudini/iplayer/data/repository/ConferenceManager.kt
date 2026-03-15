@@ -4,6 +4,7 @@ import com.djoudini.iplayer.BuildConfig
 import com.djoudini.iplayer.data.local.dao.ConferenceMatchMappingDao
 import com.djoudini.iplayer.data.local.dao.ConferenceProfileDao
 import com.djoudini.iplayer.data.local.entity.ConferenceMatchMappingEntity
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.data.remote.api.FootballDataApi
 import com.djoudini.iplayer.data.remote.dto.FootballDataMatchDto
 import java.text.SimpleDateFormat
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -47,6 +49,7 @@ class ConferenceManager @Inject constructor(
     private val conferenceProfileDao: ConferenceProfileDao,
     private val conferenceMatchMappingDao: ConferenceMatchMappingDao,
     private val footballDataApi: FootballDataApi,
+    private val appPreferences: AppPreferences,
 ) {
     private val defaultCompetitionCodes = listOf(
         "BL1",  // Bundesliga
@@ -237,8 +240,9 @@ class ConferenceManager @Inject constructor(
     }
 
     private suspend fun fetchRelevantMatches(): List<FootballDataMatchDto> {
-        require(BuildConfig.FOOTBALL_DATA_API_TOKEN.isNotBlank()) {
-            "football-data.org ist noch nicht konfiguriert. Bitte zuerst einen API-Token in local.properties hinterlegen."
+        val apiToken = resolveApiToken()
+        require(apiToken.isNotBlank()) {
+            "football-data.org ist noch nicht konfiguriert. Hinterlege einen API-Token im Build oder direkt in der Konferenz."
         }
         val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
@@ -247,10 +251,18 @@ class ConferenceManager @Inject constructor(
         val dateFrom = formatter.format(Date(now - 24L * 60L * 60L * 1000L))
         val dateTo = formatter.format(Date(now + 24L * 60L * 60L * 1000L))
         return footballDataApi.getMatches(
+            authToken = apiToken,
             dateFrom = dateFrom,
             dateTo = dateTo,
             competitions = defaultCompetitionCodes,
         ).matches
+    }
+
+    private suspend fun resolveApiToken(): String {
+        if (BuildConfig.FOOTBALL_DATA_API_TOKEN.isNotBlank()) {
+            return BuildConfig.FOOTBALL_DATA_API_TOKEN
+        }
+        return appPreferences.conferenceFootballDataApiToken.first().trim()
     }
 
     private fun extractScore(match: FootballDataMatchDto): Pair<Int, Int>? {

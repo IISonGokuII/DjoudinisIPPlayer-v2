@@ -99,6 +99,10 @@ class AppPreferences @Inject constructor(
         val AUTO_SYNC_EPG = booleanPreferencesKey("sync_auto_epg")
     }
 
+    private object ConferenceKeys {
+        val FOOTBALL_DATA_API_TOKEN = stringPreferencesKey("conference_football_data_api_token")
+    }
+
     val playlistSyncIntervalHours: Flow<Long> = dataStore.data.map { prefs ->
         prefs[SyncKeys.PLAYLIST_SYNC_INTERVAL_HOURS] ?: 6L
     }
@@ -195,6 +199,16 @@ class AppPreferences @Inject constructor(
 
     suspend fun setAutoSyncEpg(enabled: Boolean) {
         dataStore.edit { it[SyncKeys.AUTO_SYNC_EPG] = enabled }
+    }
+
+    val conferenceFootballDataApiToken: Flow<String> = dataStore.data.map { prefs ->
+        prefs[ConferenceKeys.FOOTBALL_DATA_API_TOKEN] ?: ""
+    }
+
+    suspend fun setConferenceFootballDataApiToken(token: String) {
+        dataStore.edit { prefs ->
+            prefs[ConferenceKeys.FOOTBALL_DATA_API_TOKEN] = token.trim()
+        }
     }
 
     // --- VPN Settings ---

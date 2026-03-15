@@ -9,6 +9,7 @@ import com.djoudini.iplayer.data.local.entity.ChannelEntity
 import com.djoudini.iplayer.data.local.entity.ConferenceMatchMappingEntity
 import com.djoudini.iplayer.data.local.entity.ConferenceProfileEntity
 import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.data.repository.ConferenceManager
 import com.djoudini.iplayer.data.repository.ConferenceSelectableMatch
 import com.djoudini.iplayer.domain.repository.EpgRepository
@@ -52,6 +53,7 @@ class ConferenceViewModel @Inject constructor(
     private val conferenceMatchMappingDao: ConferenceMatchMappingDao,
     private val conferenceManager: ConferenceManager,
     private val epgRepository: EpgRepository,
+    private val appPreferences: AppPreferences,
 ) : ViewModel() {
 
     private val _availableMatches = MutableStateFlow<List<ConferenceSelectableMatch>>(emptyList())
@@ -68,6 +70,9 @@ class ConferenceViewModel @Inject constructor(
 
     private val _apiTestIsError = MutableStateFlow(false)
     val apiTestIsError: StateFlow<Boolean> = _apiTestIsError.asStateFlow()
+
+    val conferenceApiToken: StateFlow<String> = appPreferences.conferenceFootballDataApiToken
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
     val sessionState = conferenceManager.sessionState
 
@@ -124,6 +129,14 @@ class ConferenceViewModel @Inject constructor(
             val result = conferenceManager.testApi()
             _apiTestMessage.value = result.message
             _apiTestIsError.value = !result.success
+        }
+    }
+
+    fun saveApiToken(token: String) {
+        viewModelScope.launch {
+            appPreferences.setConferenceFootballDataApiToken(token)
+            refreshMatches()
+            testApi()
         }
     }
 

@@ -26,6 +26,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -67,8 +68,10 @@ fun ConferenceScreen(
     val apiTestMessage by viewModel.apiTestMessage.collectAsStateWithLifecycle()
     val apiTestIsError by viewModel.apiTestIsError.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+    val conferenceApiToken by viewModel.conferenceApiToken.collectAsStateWithLifecycle()
 
     var showWizard by remember { mutableStateOf(false) }
+    var showApiTokenDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -120,6 +123,9 @@ fun ConferenceScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { showWizard = true }) {
                             Text("Konferenz anlegen")
+                        }
+                        OutlinedButton(onClick = { showApiTokenDialog = true }) {
+                            Text(if (conferenceApiToken.isBlank()) "API-Token setzen" else "API-Token aendern")
                         }
                         if (sessionState.activeConferenceId != null) {
                             OutlinedButton(onClick = { viewModel.stopConference() }) {
@@ -185,6 +191,17 @@ fun ConferenceScreen(
             onSave = { name, cooldownEnabled, cooldownSeconds, holdSeconds, slots ->
                 viewModel.saveConference(name, cooldownEnabled, cooldownSeconds, holdSeconds, slots)
                 showWizard = false
+            },
+        )
+    }
+
+    if (showApiTokenDialog) {
+        ApiTokenDialog(
+            initialToken = conferenceApiToken,
+            onDismiss = { showApiTokenDialog = false },
+            onSave = { token ->
+                viewModel.saveApiToken(token)
+                showApiTokenDialog = false
             },
         )
     }
@@ -457,22 +474,29 @@ private fun SelectionDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            LazyColumn(
-                modifier = Modifier.heightIn(max = 360.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(items.indices.toList()) { index ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(index) }
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = false, onClick = { onSelect(index) })
-                        Column {
-                            Text(items[index].title, fontWeight = FontWeight.Medium)
-                            Text(items[index].subtitle, style = MaterialTheme.typography.bodySmall)
+            if (items.isEmpty()) {
+                Text(
+                    text = "Keine Eintraege verfuegbar. Bitte API pruefen oder die Spiele zuerst aktualisieren.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(items.indices.toList()) { index ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(index) }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = false, onClick = { onSelect(index) })
+                            Column {
+                                Text(items[index].title, fontWeight = FontWeight.Medium)
+                                Text(items[index].subtitle, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
@@ -495,4 +519,43 @@ private data class SelectionItem(
 private sealed class SelectionMode {
     data class Match(val slotIndex: Int) : SelectionMode()
     data class Channel(val slotIndex: Int) : SelectionMode()
+}
+
+@Composable
+private fun ApiTokenDialog(
+    initialToken: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var token by remember(initialToken) { mutableStateOf(initialToken) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("football-data API-Token") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Falls der Build-Token auf dem Geraet fehlt, kannst du ihn hier direkt in der App hinterlegen.")
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it },
+                    label = { Text("API-Token") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(token) },
+                enabled = token.isNotBlank(),
+            ) {
+                Text("Speichern")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Abbrechen")
+            }
+        },
+    )
 }
