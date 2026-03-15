@@ -11,6 +11,7 @@ import com.djoudini.iplayer.data.local.preferences.AppPreferences
 import com.djoudini.iplayer.domain.repository.PlaylistRepository
 import com.djoudini.iplayer.domain.repository.WatchProgressRepository
 import com.djoudini.iplayer.presentation.ui.mobile.CategoryFilterScreen
+import com.djoudini.iplayer.presentation.ui.mobile.CloudRecordingSettingsScreen
 import com.djoudini.iplayer.presentation.ui.mobile.ConferenceScreen
 import com.djoudini.iplayer.presentation.ui.mobile.DashboardScreen
 import com.djoudini.iplayer.presentation.ui.mobile.EpgGridScreen
@@ -366,10 +367,16 @@ fun AppNavGraph(
             if (isTvDevice) {
                 TvRecordingsScreen(
                     onBack = { navController.popBackStack() },
+                    onRecordingClick = { recordingId ->
+                        navController.navigate(Route.Player.create("recording", recordingId))
+                    },
                 )
             } else {
                 RecordingsScreen(
                     onBack = { navController.popBackStack() },
+                    onRecordingClick = { recordingId ->
+                        navController.navigate(Route.Player.create("recording", recordingId))
+                    },
                 )
             }
         }
@@ -424,6 +431,7 @@ fun AppNavGraph(
                 TvSettingsScreen(
                     onBack = { navController.popBackStack() },
                     onNavigateToVpnSetup = { navController.navigate(Route.VpnSetup.route) },
+                    onNavigateToCloudRecordingSettings = { navController.navigate(Route.CloudRecordingSettings.route) },
                 )
             } else {
                 SettingsScreen(
@@ -433,8 +441,16 @@ fun AppNavGraph(
                     watchProgressRepository = watchProgressRepository,
                     viewModel = settingsViewModel,
                     onNavigateToVpnSetup = { navController.navigate(Route.VpnSetup.route) },
+                    onNavigateToCloudRecordingSettings = { navController.navigate(Route.CloudRecordingSettings.route) },
                 )
             }
+        }
+
+        composable(Route.CloudRecordingSettings.route) {
+            CloudRecordingSettingsScreen(
+                onBack = { navController.popBackStack() },
+                viewModel = settingsViewModel,
+            )
         }
 
         // --- VPN Setup Wizard ---

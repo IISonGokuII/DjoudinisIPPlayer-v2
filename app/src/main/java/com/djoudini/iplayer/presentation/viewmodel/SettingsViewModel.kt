@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.djoudini.iplayer.data.cloud.CloudAuthRepository
+import com.djoudini.iplayer.data.cloud.OneDriveDeviceCodeSession
+import com.djoudini.iplayer.data.local.entity.CloudRecordingSettings
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import com.djoudini.iplayer.data.local.entity.VpnServer
 import com.djoudini.iplayer.data.local.preferences.AppPreferences
@@ -24,6 +27,7 @@ class SettingsViewModel @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val watchProgressRepository: WatchProgressRepository,
     private val vpnRepository: VpnRepository,
+    private val cloudAuthRepository: CloudAuthRepository,
 ) : ViewModel() {
 
     var preferredAudioLanguage by mutableStateOf("")
@@ -83,8 +87,14 @@ class SettingsViewModel @Inject constructor(
     val vpnAutoConnect: StateFlow<Boolean> = appPreferences.vpnAutoConnect
         .stateIn(viewModelScope, SharingStarted.Lazily, true)
 
+    val cloudRecordingSettings: StateFlow<CloudRecordingSettings> = appPreferences.cloudRecordingSettings
+        .stateIn(viewModelScope, SharingStarted.Lazily, CloudRecordingSettings())
+
     val vpnConnectionState = vpnRepository.connectionInfo
         .stateIn(viewModelScope, SharingStarted.Lazily, com.djoudini.iplayer.data.local.entity.VpnConnectionInfo())
+
+    var oneDriveDeviceCodeSession by mutableStateOf<OneDriveDeviceCodeSession?>(null)
+        private set
 
     init {
         loadVpnServers()
@@ -220,6 +230,28 @@ class SettingsViewModel @Inject constructor(
             appPreferences.setAutoSyncEnabled(true)
             preferredAudioLanguage = ""
             preferredSubtitleLanguage = ""
+        }
+    }
+
+    fun updateCloudRecordingSettings(settings: CloudRecordingSettings) {
+        viewModelScope.launch {
+            appPreferences.updateCloudRecordingSettings(settings)
+        }
+    }
+
+    suspend fun buildGoogleDriveAuthorizationUrl(): String = cloudAuthRepository.buildGoogleAuthorizationUrl()
+
+    fun startOneDriveDeviceCode() {
+        viewModelScope.launch {
+            oneDriveDeviceCodeSession = cloudAuthRepository.startOneDriveDeviceCode()
+        }
+    }
+
+    fun completeOneDriveDeviceCodeLogin() {
+        val session = oneDriveDeviceCodeSession ?: return
+        viewModelScope.launch {
+            cloudAuthRepository.pollOneDriveDeviceCode(session)
+            oneDriveDeviceCodeSession = null
         }
     }
 

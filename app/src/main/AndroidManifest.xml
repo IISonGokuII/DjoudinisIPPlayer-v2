@@ -80,6 +80,21 @@
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".presentation.ui.CloudAuthCallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="djoudini"
+                    android:host="oauth"
+                    android:path="/google" />
+            </intent-filter>
+        </activity>
+
         <!-- Recording ForegroundService -->
         <service
             android:name=".data.service.RecordingService"

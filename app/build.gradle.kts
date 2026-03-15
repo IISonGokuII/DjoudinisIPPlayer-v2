@@ -18,6 +18,9 @@ val localProperties = Properties().apply {
 }
 
 val footballDataApiToken = localProperties.getProperty("footballDataApiToken", "")
+val googleDriveClientId = localProperties.getProperty("googleDriveClientId", "")
+val googleDriveRedirectUri = localProperties.getProperty("googleDriveRedirectUri", "djoudini://oauth/google")
+val oneDriveClientId = localProperties.getProperty("oneDriveClientId", "")
 
 android {
     namespace = "com.djoudini.iplayer"
@@ -32,6 +35,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "FOOTBALL_DATA_API_TOKEN", "\"$footballDataApiToken\"")
+        buildConfigField("String", "GOOGLE_DRIVE_CLIENT_ID", "\"$googleDriveClientId\"")
+        buildConfigField("String", "GOOGLE_DRIVE_REDIRECT_URI", "\"$googleDriveRedirectUri\"")
+        buildConfigField("String", "ONEDRIVE_CLIENT_ID", "\"$oneDriveClientId\"")
     }
 
     signingConfigs {

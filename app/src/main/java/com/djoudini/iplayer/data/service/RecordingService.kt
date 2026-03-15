@@ -13,6 +13,8 @@ import androidx.core.app.NotificationCompat
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.dao.RecordingDao
 import com.djoudini.iplayer.data.local.entity.RecordingEntity
+import com.djoudini.iplayer.data.local.preferences.AppPreferences
+import com.djoudini.iplayer.data.worker.CloudUploadWorker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
@@ -45,6 +48,7 @@ import android.os.Environment
 class RecordingService : Service() {
 
     @Inject lateinit var recordingDao: RecordingDao
+    @Inject lateinit var appPreferences: AppPreferences
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var recordingJob: Job? = null
@@ -147,6 +151,11 @@ class RecordingService : Service() {
                 val durationMs = elapsedSeconds * 1_000L
                 recordingId?.let { id ->
                     recordingDao.updateCompletion(id, finalStatus, durationMs, writtenBytes)
+                    val cloudSettings = appPreferences.cloudRecordingSettings.first()
+                    if (finalStatus == "completed" && cloudSettings.autoUploadEnabled && cloudSettings.provider != com.djoudini.iplayer.data.local.entity.CloudRecordingProvider.NONE) {
+                        recordingDao.updateCloudState(id, cloudSettings.provider.name, "queued", null, null, null)
+                        CloudUploadWorker.enqueue(applicationContext, id)
+                    }
                 }
                 activeRecordingId = null
 

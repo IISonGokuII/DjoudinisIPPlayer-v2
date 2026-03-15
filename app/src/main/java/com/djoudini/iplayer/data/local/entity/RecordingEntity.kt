@@ -15,4 +15,10 @@ data class RecordingEntity(
     val fileSizeBytes: Long = 0L,
     /** "recording" | "completed" | "failed" */
     val status: String = "recording",
+    val cloudProvider: String = "",
+    /** "local" | "queued" | "uploading" | "uploaded" | "failed" */
+    val cloudStatus: String = "local",
+    val cloudRemotePath: String? = null,
+    val cloudError: String? = null,
+    val cloudUploadedAt: Long? = null,
 )

@@ -1,6 +1,5 @@
 package com.djoudini.iplayer.presentation.ui.tv
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,16 +23,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.RecordingEntity
 import com.djoudini.iplayer.presentation.components.FocusableCard
-import com.djoudini.iplayer.presentation.ui.mobile.openRecording
 import com.djoudini.iplayer.presentation.viewmodel.RecordingsViewModel
 
 @Composable
 fun TvRecordingsScreen(
     onBack: () -> Unit,
+    onRecordingClick: (Long) -> Unit = {},
     viewModel: RecordingsViewModel = hiltViewModel(),
 ) {
     val recordings = viewModel.recordings.collectAsStateWithLifecycle().value
-    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -99,9 +96,7 @@ fun TvRecordingsScreen(
                     recording = recording,
                     onClick = {
                         if (recording.status == "completed") {
-                            openRecording(context, recording.filePath) { intent: Intent ->
-                                context.startActivity(intent)
-                            }
+                            onRecordingClick(recording.id)
                         }
                     },
                 )
@@ -149,6 +144,30 @@ private fun TvRecordingCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (recording.cloudStatus != "local" || recording.cloudProvider.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = buildString {
+                        append("Cloud: ")
+                        append(
+                            when (recording.cloudStatus) {
+                                "queued" -> "Warteschlange"
+                                "uploading" -> "Wird hochgeladen"
+                                "uploaded" -> "Hochgeladen"
+                                "failed" -> "Fehlgeschlagen"
+                                else -> "Lokal"
+                            },
+                        )
+                        if (recording.cloudProvider.isNotBlank()) {
+                            append("  |  ")
+                            append(recording.cloudProvider)
+                        }
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (recording.cloudStatus == "failed") MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

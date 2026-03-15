@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.TouchApp
@@ -73,6 +74,7 @@ fun SettingsScreen(
     watchProgressRepository: WatchProgressRepository,
     viewModel: SettingsViewModel,
     onNavigateToVpnSetup: (() -> Unit)? = null,
+    onNavigateToCloudRecordingSettings: (() -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     val playerConfig by appPreferences.playerConfig.collectAsStateWithLifecycle(initialValue = PlayerConfig())
@@ -342,6 +344,15 @@ fun SettingsScreen(
 
             // === VPN Settings ===
             VpnSettingsSection(viewModel = viewModel, onNavigateToVpnSetup = onNavigateToVpnSetup)
+
+            SettingsSection(title = "Cloud-Aufnahmen") {
+                SettingsItem(
+                    icon = Icons.Default.CloudUpload,
+                    title = "Cloud-Verbindung",
+                    subtitle = "WebDAV, Google Drive oder OneDrive fuer Aufnahmen",
+                    onClick = { onNavigateToCloudRecordingSettings?.invoke() },
+                )
+            }
 
             SettingsSection(title = stringResource(R.string.appearance)) {
                 SettingsItem(

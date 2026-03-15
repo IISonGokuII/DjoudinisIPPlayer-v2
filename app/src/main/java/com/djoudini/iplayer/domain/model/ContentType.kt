@@ -14,7 +14,8 @@ enum class ContentType(val value: String) {
 enum class WatchContentType(val value: String) {
     CHANNEL("channel"),
     VOD("vod"),
-    EPISODE("episode");
+    EPISODE("episode"),
+    RECORDING("recording");
 
     companion object {
         fun fromValue(value: String): WatchContentType =

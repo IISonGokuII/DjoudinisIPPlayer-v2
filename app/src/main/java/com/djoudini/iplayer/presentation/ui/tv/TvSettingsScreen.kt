@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Language
@@ -56,6 +57,7 @@ import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 fun TvSettingsScreen(
     onBack: () -> Unit,
     onNavigateToVpnSetup: () -> Unit = {},
+    onNavigateToCloudRecordingSettings: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val playerConfig by viewModel.playerConfig.collectAsStateWithLifecycle()
@@ -250,6 +252,17 @@ fun TvSettingsScreen(
                 viewModel = viewModel,
                 onOpenSetupWizard = onNavigateToVpnSetup,
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            TvSettingsSection(title = "Cloud-Aufnahmen") {
+                TvSettingsItem(
+                    icon = Icons.Default.CloudUpload,
+                    title = "Cloud-Verbindung",
+                    subtitle = "WebDAV, Google Drive oder OneDrive fuer Aufnahmen",
+                    onClick = onNavigateToCloudRecordingSettings,
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 

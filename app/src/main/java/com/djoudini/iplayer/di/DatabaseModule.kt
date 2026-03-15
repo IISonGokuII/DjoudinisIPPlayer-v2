@@ -17,6 +17,7 @@ import com.djoudini.iplayer.data.local.database.AppDatabase
 import com.djoudini.iplayer.data.local.database.MIGRATION_2_3
 import com.djoudini.iplayer.data.local.database.MIGRATION_3_4
 import com.djoudini.iplayer.data.local.database.MIGRATION_4_5
+import com.djoudini.iplayer.data.local.database.MIGRATION_5_6
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,7 +37,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "djoudini_iplayer.db"
         )
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .build()
     }
 

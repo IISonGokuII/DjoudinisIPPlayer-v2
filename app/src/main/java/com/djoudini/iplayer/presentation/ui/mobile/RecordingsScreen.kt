@@ -1,9 +1,5 @@
 package com.djoudini.iplayer.presentation.ui.mobile
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.content.Context
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -31,18 +27,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.R
 import com.djoudini.iplayer.data.local.entity.RecordingEntity
 import com.djoudini.iplayer.presentation.viewmodel.RecordingsViewModel
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -50,10 +42,10 @@ import java.util.Locale
 @Composable
 fun RecordingsScreen(
     onBack: () -> Unit,
+    onRecordingClick: (Long) -> Unit = {},
     viewModel: RecordingsViewModel = hiltViewModel(),
 ) {
     val recordings = viewModel.recordings.collectAsStateWithLifecycle().value
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -100,11 +92,7 @@ fun RecordingsScreen(
                     RecordingCard(
                         recording = recording,
                         onClick = {
-                            openRecording(
-                                context = context,
-                                filePath = recording.filePath,
-                                onOpen = { intent -> context.startActivity(intent) },
-                            )
+                            onRecordingClick(recording.id)
                         },
                     )
                 }
@@ -199,36 +187,35 @@ private fun RecordingCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+
+            if (recording.cloudStatus != "local" || !recording.cloudProvider.isBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = buildString {
+                        append("Cloud: ")
+                        append(
+                            when (recording.cloudStatus) {
+                                "queued" -> "Warteschlange"
+                                "uploading" -> "Wird hochgeladen"
+                                "uploaded" -> "Hochgeladen"
+                                "failed" -> "Fehlgeschlagen"
+                                else -> "Lokal"
+                            },
+                        )
+                        if (recording.cloudProvider.isNotBlank()) {
+                            append("  |  ")
+                            append(recording.cloudProvider)
+                        }
+                        recording.cloudError?.takeIf { it.isNotBlank() }?.let {
+                            append("\n")
+                            append(it)
+                        }
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (recording.cloudStatus == "failed") Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-    }
-}
-
-internal fun openRecording(
-    context: Context,
-    filePath: String,
-    onOpen: (Intent) -> Unit,
-) {
-    val uri = toPlaybackUri(context, filePath)
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "video/*")
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    try {
-        onOpen(intent)
-    } catch (_: ActivityNotFoundException) {
-        // Ignore silently for now; the list remains accessible even without an external player.
-    }
-}
-
-private fun toPlaybackUri(context: Context, filePath: String): Uri {
-    return if (filePath.startsWith("content://")) {
-        filePath.toUri()
-    } else {
-        FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            File(filePath),
-        )
     }
 }
 

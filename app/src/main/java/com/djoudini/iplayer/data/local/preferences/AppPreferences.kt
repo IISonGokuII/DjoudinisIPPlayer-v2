@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.djoudini.iplayer.data.local.entity.CloudRecordingProvider
+import com.djoudini.iplayer.data.local.entity.CloudRecordingSettings
 import com.djoudini.iplayer.data.local.entity.PlayerConfig
 import com.djoudini.iplayer.data.local.entity.VpnProtocol
 import com.djoudini.iplayer.data.local.entity.VpnProviderType
@@ -278,5 +280,82 @@ class AppPreferences @Inject constructor(
 
     suspend fun getVpnCustomConfig(): String {
         return dataStore.data.first()[VpnKeys.VPN_CUSTOM_CONFIG] ?: ""
+    }
+
+    private object CloudRecordingKeys {
+        val AUTO_UPLOAD = booleanPreferencesKey("cloud_recording_auto_upload")
+        val PROVIDER = stringPreferencesKey("cloud_recording_provider")
+        val WEBDAV_BASE_URL = stringPreferencesKey("cloud_recording_webdav_base_url")
+        val WEBDAV_USERNAME = stringPreferencesKey("cloud_recording_webdav_username")
+        val WEBDAV_PASSWORD = stringPreferencesKey("cloud_recording_webdav_password")
+        val WEBDAV_DIRECTORY = stringPreferencesKey("cloud_recording_webdav_directory")
+        val GOOGLE_ACCESS_TOKEN = stringPreferencesKey("cloud_recording_google_access_token")
+        val GOOGLE_REFRESH_TOKEN = stringPreferencesKey("cloud_recording_google_refresh_token")
+        val GOOGLE_ACCESS_TOKEN_EXPIRY = longPreferencesKey("cloud_recording_google_access_token_expiry")
+        val GOOGLE_FOLDER_ID = stringPreferencesKey("cloud_recording_google_folder_id")
+        val ONEDRIVE_ACCESS_TOKEN = stringPreferencesKey("cloud_recording_onedrive_access_token")
+        val ONEDRIVE_REFRESH_TOKEN = stringPreferencesKey("cloud_recording_onedrive_refresh_token")
+        val ONEDRIVE_ACCESS_TOKEN_EXPIRY = longPreferencesKey("cloud_recording_onedrive_access_token_expiry")
+        val ONEDRIVE_FOLDER_PATH = stringPreferencesKey("cloud_recording_onedrive_folder_path")
+        val PENDING_GOOGLE_STATE = stringPreferencesKey("cloud_recording_pending_google_state")
+        val PENDING_GOOGLE_VERIFIER = stringPreferencesKey("cloud_recording_pending_google_verifier")
+    }
+
+    val cloudRecordingSettings: Flow<CloudRecordingSettings> = dataStore.data.map { prefs ->
+        CloudRecordingSettings(
+            autoUploadEnabled = prefs[CloudRecordingKeys.AUTO_UPLOAD] ?: false,
+            provider = prefs[CloudRecordingKeys.PROVIDER]
+                ?.let { runCatching { CloudRecordingProvider.valueOf(it) }.getOrNull() }
+                ?: CloudRecordingProvider.NONE,
+            webDavBaseUrl = prefs[CloudRecordingKeys.WEBDAV_BASE_URL] ?: "",
+            webDavUsername = prefs[CloudRecordingKeys.WEBDAV_USERNAME] ?: "",
+            webDavPassword = prefs[CloudRecordingKeys.WEBDAV_PASSWORD] ?: "",
+            webDavDirectory = prefs[CloudRecordingKeys.WEBDAV_DIRECTORY] ?: "DjoudinisIPPlayer",
+            googleDriveAccessToken = prefs[CloudRecordingKeys.GOOGLE_ACCESS_TOKEN] ?: "",
+            googleDriveRefreshToken = prefs[CloudRecordingKeys.GOOGLE_REFRESH_TOKEN] ?: "",
+            googleDriveAccessTokenExpiryMs = prefs[CloudRecordingKeys.GOOGLE_ACCESS_TOKEN_EXPIRY] ?: 0L,
+            googleDriveFolderId = prefs[CloudRecordingKeys.GOOGLE_FOLDER_ID] ?: "",
+            oneDriveAccessToken = prefs[CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN] ?: "",
+            oneDriveRefreshToken = prefs[CloudRecordingKeys.ONEDRIVE_REFRESH_TOKEN] ?: "",
+            oneDriveAccessTokenExpiryMs = prefs[CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN_EXPIRY] ?: 0L,
+            oneDriveFolderPath = prefs[CloudRecordingKeys.ONEDRIVE_FOLDER_PATH] ?: "DjoudinisIPPlayer",
+        )
+    }
+
+    suspend fun updateCloudRecordingSettings(settings: CloudRecordingSettings) {
+        dataStore.edit { prefs ->
+            prefs[CloudRecordingKeys.AUTO_UPLOAD] = settings.autoUploadEnabled
+            prefs[CloudRecordingKeys.PROVIDER] = settings.provider.name
+            prefs[CloudRecordingKeys.WEBDAV_BASE_URL] = settings.webDavBaseUrl
+            prefs[CloudRecordingKeys.WEBDAV_USERNAME] = settings.webDavUsername
+            prefs[CloudRecordingKeys.WEBDAV_PASSWORD] = settings.webDavPassword
+            prefs[CloudRecordingKeys.WEBDAV_DIRECTORY] = settings.webDavDirectory
+            prefs[CloudRecordingKeys.GOOGLE_ACCESS_TOKEN] = settings.googleDriveAccessToken
+            prefs[CloudRecordingKeys.GOOGLE_REFRESH_TOKEN] = settings.googleDriveRefreshToken
+            prefs[CloudRecordingKeys.GOOGLE_ACCESS_TOKEN_EXPIRY] = settings.googleDriveAccessTokenExpiryMs
+            prefs[CloudRecordingKeys.GOOGLE_FOLDER_ID] = settings.googleDriveFolderId
+            prefs[CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN] = settings.oneDriveAccessToken
+            prefs[CloudRecordingKeys.ONEDRIVE_REFRESH_TOKEN] = settings.oneDriveRefreshToken
+            prefs[CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN_EXPIRY] = settings.oneDriveAccessTokenExpiryMs
+            prefs[CloudRecordingKeys.ONEDRIVE_FOLDER_PATH] = settings.oneDriveFolderPath
+        }
+    }
+
+    suspend fun storePendingGoogleAuth(state: String, verifier: String) {
+        dataStore.edit { prefs ->
+            prefs[CloudRecordingKeys.PENDING_GOOGLE_STATE] = state
+            prefs[CloudRecordingKeys.PENDING_GOOGLE_VERIFIER] = verifier
+        }
+    }
+
+    suspend fun consumePendingGoogleAuth(): Pair<String, String> {
+        val prefs = dataStore.data.first()
+        val state = prefs[CloudRecordingKeys.PENDING_GOOGLE_STATE] ?: ""
+        val verifier = prefs[CloudRecordingKeys.PENDING_GOOGLE_VERIFIER] ?: ""
+        dataStore.edit { edited ->
+            edited.remove(CloudRecordingKeys.PENDING_GOOGLE_STATE)
+            edited.remove(CloudRecordingKeys.PENDING_GOOGLE_VERIFIER)
+        }
+        return state to verifier
     }
 }

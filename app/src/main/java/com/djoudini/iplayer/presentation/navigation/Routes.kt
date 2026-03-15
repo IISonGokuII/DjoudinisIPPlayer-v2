@@ -45,6 +45,7 @@ sealed class Route(val route: String) {
 
     // --- Settings ---
     data object Settings : Route("settings")
+    data object CloudRecordingSettings : Route("cloud_recording_settings")
     data object PlayerSettings : Route("player_settings")
     data object AccountInfo : Route("account_info")
     data object VpnSetup : Route("vpn_setup")

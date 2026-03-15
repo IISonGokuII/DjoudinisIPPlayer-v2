@@ -21,8 +21,31 @@ interface RecordingDao {
     @Query("SELECT * FROM recordings ORDER BY startTimeMs DESC LIMIT 1")
     fun observeLatest(): Flow<RecordingEntity?>
 
+    @Query("SELECT * FROM recordings WHERE id = :id")
+    suspend fun getById(id: Long): RecordingEntity?
+
     @Query("UPDATE recordings SET status = :status, durationMs = :durationMs, fileSizeBytes = :fileSizeBytes WHERE id = :id")
     suspend fun updateCompletion(id: Long, status: String, durationMs: Long, fileSizeBytes: Long)
+
+    @Query(
+        """
+        UPDATE recordings
+        SET cloudProvider = :provider,
+            cloudStatus = :cloudStatus,
+            cloudRemotePath = :remotePath,
+            cloudError = :cloudError,
+            cloudUploadedAt = :uploadedAt
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateCloudState(
+        id: Long,
+        provider: String,
+        cloudStatus: String,
+        remotePath: String?,
+        cloudError: String?,
+        uploadedAt: Long?,
+    )
 
     @Query("DELETE FROM recordings WHERE id = :id")
     suspend fun deleteById(id: Long)

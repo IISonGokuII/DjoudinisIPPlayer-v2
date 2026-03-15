@@ -19,6 +19,12 @@ internal data class EpisodePlaybackSnapshot(
     val episodeNumber: Int,
 )
 
+internal data class RecordingPlaybackSnapshot(
+    val id: Long,
+    val name: String,
+    val filePath: String,
+)
+
 internal object PlayerContentStateFactory {
     private const val RESUME_THRESHOLD_MS = 10_000L
 
@@ -65,6 +71,19 @@ internal object PlayerContentStateFactory {
             seasonNumber = episode.seasonNumber,
             episodeNumber = episode.episodeNumber,
             hasNextEpisode = hasNextEpisode,
+            error = null,
+        )
+    }
+
+    fun recordingPlaybackState(
+        currentState: PlayerUiState,
+        recording: RecordingPlaybackSnapshot,
+    ): PlayerUiState {
+        return currentState.copy(
+            title = recording.name,
+            streamUrl = recording.filePath,
+            contentId = recording.id,
+            isLoading = false,
             error = null,
         )
     }

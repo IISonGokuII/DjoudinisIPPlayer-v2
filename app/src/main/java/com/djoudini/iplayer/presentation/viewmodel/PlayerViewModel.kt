@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djoudini.iplayer.data.local.dao.ChannelDao
 import com.djoudini.iplayer.data.local.dao.EpisodeDao
+import com.djoudini.iplayer.data.local.dao.RecordingDao
 import com.djoudini.iplayer.data.local.dao.VodDao
 import com.djoudini.iplayer.data.local.entity.EpgProgramEntity
 import com.djoudini.iplayer.domain.model.WatchContentType
@@ -133,6 +134,7 @@ class PlayerViewModel @Inject constructor(
     private val channelDao: ChannelDao,
     private val vodDao: VodDao,
     private val episodeDao: EpisodeDao,
+    private val recordingDao: RecordingDao,
     private val epgRepository: EpgRepository,
     private val watchProgressRepository: WatchProgressRepository,
     val playerFactory: PlayerFactory,
@@ -166,6 +168,7 @@ class PlayerViewModel @Inject constructor(
                     WatchContentType.CHANNEL -> loadChannel(playlistId, contentType)
                     WatchContentType.VOD -> loadVod(playlistId, contentType)
                     WatchContentType.EPISODE -> loadEpisode(playlistId, contentType)
+                    WatchContentType.RECORDING -> loadRecording(contentType)
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.localizedMessage ?: "Failed to load content") }
@@ -304,6 +307,26 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadRecording(contentType: WatchContentType) {
+        val recording = recordingDao.getById(contentId)
+            ?: throw IllegalStateException("Recording not found")
+
+        _uiState.update {
+            PlayerContentStateFactory.recordingPlaybackState(
+                currentState = it,
+                recording = RecordingPlaybackSnapshot(
+                    id = recording.id,
+                    name = recording.channelName,
+                    filePath = recording.filePath,
+                ),
+            ).copy(
+                contentType = contentType,
+                playlistId = 0L,
+                autoResume = false,
+            )
+        }
+    }
+
     fun onResumeChoice(resume: Boolean) {
         if (!resume) {
             _uiState.update { it.copy(resumePositionMs = 0L, autoResume = false) }
@@ -343,7 +366,7 @@ class PlayerViewModel @Inject constructor(
         
         // Save progress for VOD and Episodes (not for Live TV channels)
         // Live TV is tracked separately via "recently watched" in ChannelDao
-        if (state.contentType == WatchContentType.CHANNEL) {
+        if (state.contentType == WatchContentType.CHANNEL || state.contentType == WatchContentType.RECORDING) {
             // Mark channel as recently watched instead
             viewModelScope.launch {
                 try {
