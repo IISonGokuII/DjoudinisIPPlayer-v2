@@ -2,8 +2,10 @@ package com.djoudini.iplayer.presentation.ui.mobile
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +26,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,11 +36,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djoudini.iplayer.data.local.entity.CloudRecordingProvider
-import com.djoudini.iplayer.data.local.entity.CloudRecordingSettings
 import com.djoudini.iplayer.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
@@ -47,6 +52,8 @@ fun CloudRecordingSettingsScreen(
     val currentSettings by viewModel.cloudRecordingSettings.collectAsStateWithLifecycle()
     val authStatusMessage by viewModel.cloudAuthStatusMessage.collectAsStateWithLifecycle()
     val authStatusIsError by viewModel.cloudAuthStatusIsError.collectAsStateWithLifecycle()
+    val googleDriveConnected by viewModel.googleDriveConnected.collectAsStateWithLifecycle()
+    val oneDriveConnected by viewModel.oneDriveConnected.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var draft by remember(currentSettings) { mutableStateOf(currentSettings) }
@@ -104,48 +111,105 @@ fun CloudRecordingSettingsScreen(
 
             when (draft.provider) {
                 CloudRecordingProvider.WEBDAV -> {
+                    ProviderInfoCard(
+                        title = "WebDAV / Nextcloud",
+                        body = "Direkte Serververbindung fuer Nextcloud, NAS oder andere WebDAV-Ziele.",
+                        status = if (draft.webDavBaseUrl.isNotBlank()) "Manuelle Verbindung konfiguriert" else "Noch nicht eingerichtet",
+                        connected = draft.webDavBaseUrl.isNotBlank(),
+                    )
                     SettingsField("WebDAV-URL", draft.webDavBaseUrl) { draft = draft.copy(webDavBaseUrl = it) }
                     SettingsField("Benutzername", draft.webDavUsername) { draft = draft.copy(webDavUsername = it) }
                     SettingsField("Passwort", draft.webDavPassword) { draft = draft.copy(webDavPassword = it) }
                     SettingsField("Remote-Ordner", draft.webDavDirectory) { draft = draft.copy(webDavDirectory = it) }
                 }
                 CloudRecordingProvider.GOOGLE_DRIVE -> {
-                    Text(
-                        text = "Google Drive kann direkt verbunden werden, braucht aber eine hinterlegte Client-ID in der App-Konfiguration.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ProviderInfoCard(
+                        title = "Google Drive",
+                        body = "Echter Browser-Login mit Rueckkehr in die App. Nach erfolgreicher Anmeldung bleibt nur noch die Zielordner-ID konfigurierbar.",
+                        status = if (googleDriveConnected) "Verbunden" else "Nicht verbunden",
+                        connected = googleDriveConnected,
                     )
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                val url = viewModel.prepareGoogleDriveAuthorizationUrl()
-                                if (url != null) {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                }
-                            }
-                        },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("Google Drive verbinden")
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    val url = viewModel.prepareGoogleDriveAuthorizationUrl()
+                                    if (url != null) {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                    }
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (googleDriveConnected) "Neu verbinden" else "Google Drive verbinden")
+                        }
+                        if (googleDriveConnected) {
+                            TextButton(
+                                onClick = {
+                                    viewModel.disconnectGoogleDrive()
+                                    draft = draft.copy(
+                                        googleDriveAccessToken = "",
+                                        googleDriveRefreshToken = "",
+                                        googleDriveAccessTokenExpiryMs = 0L,
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("Trennen")
+                            }
+                        }
                     }
-                    SettingsField("Access-Token", draft.googleDriveAccessToken) { draft = draft.copy(googleDriveAccessToken = it) }
                     SettingsField("Ordner-ID", draft.googleDriveFolderId) { draft = draft.copy(googleDriveFolderId = it) }
                 }
                 CloudRecordingProvider.ONEDRIVE -> {
-                    Text(
-                        text = "OneDrive nutzt den Device-Code-Flow und braucht eine hinterlegte Client-ID in der App-Konfiguration.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ProviderInfoCard(
+                        title = "OneDrive",
+                        body = "Echter TV-freundlicher Device-Code-Login. App erzeugt einen Code, du bestaetigst die Anmeldung im Browser.",
+                        status = if (oneDriveConnected) "Verbunden" else "Nicht verbunden",
+                        connected = oneDriveConnected,
                     )
-                    Button(
-                        onClick = { viewModel.startOneDriveDeviceCode() },
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Text("OneDrive verbinden")
+                        Button(
+                            onClick = { viewModel.startOneDriveDeviceCode() },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(if (oneDriveConnected) "Neu verbinden" else "OneDrive verbinden")
+                        }
+                        if (oneDriveConnected) {
+                            TextButton(
+                                onClick = {
+                                    viewModel.disconnectOneDrive()
+                                    draft = draft.copy(
+                                        oneDriveAccessToken = "",
+                                        oneDriveRefreshToken = "",
+                                        oneDriveAccessTokenExpiryMs = 0L,
+                                    )
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("Trennen")
+                            }
+                        }
                     }
                     viewModel.oneDriveDeviceCodeSession?.let { session ->
-                        Text("Code: ${session.userCode}", style = MaterialTheme.typography.titleMedium)
-                        Text(session.message, style = MaterialTheme.typography.bodySmall)
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text("Code: ${session.userCode}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Text(session.message, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                         Button(
                             onClick = {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(session.verificationUri)))
@@ -161,7 +225,6 @@ fun CloudRecordingSettingsScreen(
                             Text("Login pruefen")
                         }
                     }
-                    SettingsField("Access-Token", draft.oneDriveAccessToken) { draft = draft.copy(oneDriveAccessToken = it) }
                     SettingsField("Ordnerpfad", draft.oneDriveFolderPath) { draft = draft.copy(oneDriveFolderPath = it) }
                 }
                 CloudRecordingProvider.NONE -> {
@@ -233,7 +296,7 @@ private fun SettingsField(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
-) {
+    ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -241,4 +304,44 @@ private fun SettingsField(
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
     )
+}
+
+@Composable
+private fun ProviderInfoCard(
+    title: String,
+    body: String,
+    status: String,
+    connected: Boolean,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (connected) MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(body, style = MaterialTheme.typography.bodySmall)
+            Row(
+                modifier = Modifier
+                    .background(
+                        if (connected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        else MaterialTheme.colorScheme.error.copy(alpha = 0.08f),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    status,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
 }

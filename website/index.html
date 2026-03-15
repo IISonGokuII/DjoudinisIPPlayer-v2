@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Djoudinis IP Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="#top">
+        <span class="brand-mark">D</span>
+        <span class="brand-copy">
+          <strong>Djoudinis</strong>
+          <small>IP Player</small>
+        </span>
+      </a>
+      <nav class="topnav">
+        <a href="#features">Features</a>
+        <a href="#experience">Experience</a>
+        <a href="#devices">Devices</a>
+        <a href="#launch">Launch</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Live TV. Smart Konferenz. Cloud Recordings.</p>
+          <h1>Die IPTV-Oberflaeche, die sich wie eine echte Premium-TV-App anfuehlt.</h1>
+          <p class="hero-text">
+            Djoudinis IP Player verbindet Live TV, VOD, Serien, VPN, Aufnahmen,
+            Cloud-Upload und eine sportfokussierte Konferenzlogik in einer einzigen,
+            schnellen Oberflaeche fuer Fire TV, Android TV und Mobile.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#launch">Lokal starten</a>
+            <a class="secondary-button" href="#features">Mehr entdecken</a>
+          </div>
+          <div class="hero-stats">
+            <article>
+              <span>120Hz</span>
+              <small>AFR-ready Playback</small>
+            </article>
+            <article>
+              <span>Cloud</span>
+              <small>Google Drive, OneDrive, WebDAV</small>
+            </article>
+            <article>
+              <span>Smart</span>
+              <small>Konferenz, EPG, Favoriten, Resume</small>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero-stage">
+          <div class="panel panel-player">
+            <div class="panel-head">
+              <span>Smart Konferenz</span>
+              <span class="panel-tag">live</span>
+            </div>
+            <div class="score-rail" id="scoreRail"></div>
+            <div class="panel-footer">
+              <strong>Auto-Zap auf Tor, EPG-Match und Hauptspiel-Rueckkehr</strong>
+              <small>Konzipiert fuer Sportfans mit Fernbedienung.</small>
+            </div>
+          </div>
+
+          <div class="panel panel-stack">
+            <div class="cloud-card">
+              <span>Cloud Recordings</span>
+              <strong>Echter Login statt Token-Gefuehl</strong>
+              <p>Google Drive via Browser-Flow, OneDrive via Device Code und WebDAV fuer dein eigenes Setup.</p>
+            </div>
+            <div class="device-card">
+              <span>TV + Mobile</span>
+              <strong>Eine Sprache. Zwei perfekte Oberflaechen.</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="feature-grid">
+        <article class="feature-card accent-red">
+          <p class="feature-kicker">Playback Engine</p>
+          <h2>Media3-Player mit echter TV-DNA</h2>
+          <p>Aspect Ratio, Audio-Sync, Untertitel, Resume, D-Pad-Steuerung und AFR-Unterstuetzung fuer leistungsstarke Geraete.</p>
+        </article>
+        <article class="feature-card accent-amber">
+          <p class="feature-kicker">Live TV</p>
+          <h2>EPG, Favoriten und Senderverwaltung</h2>
+          <p>Kategorien verschieben, Sender sortieren, Favoriten sehen und den Live-Guide direkt fuer Entscheidungen nutzen.</p>
+        </article>
+        <article class="feature-card accent-cyan">
+          <p class="feature-kicker">Recordings</p>
+          <h2>Lokale und Cloud-Aufnahmen als ein Flow</h2>
+          <p>Aufnehmen, intern wiedergeben, in die Cloud hochladen und den Status auf TV und Mobile klar nachvollziehen.</p>
+        </article>
+      </section>
+
+      <section id="experience" class="experience">
+        <div class="section-copy">
+          <p class="eyebrow">Designed for momentum</p>
+          <h2>Schneller im Alltag. Staerker an Spieltagen.</h2>
+        </div>
+        <div class="experience-cards">
+          <article>
+            <span>01</span>
+            <h3>Smart Konferenz</h3>
+            <p>Spiel und Sender koppeln, Events beobachten, automatisch umschalten und wieder ins Hauptspiel zurueckkehren.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>VPN ohne Frust</h3>
+            <p>QR- und Handy-gestuetzte Provider-Flows mit WireGuard-Fokus, statt unklarer Copy-Paste-Workarounds.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Cloud Login, sauber gedacht</h3>
+            <p>Nutzer sehen, ob ein Provider verbunden ist, koennen trennen, neu verbinden und Zielordner sauber pflegen.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="devices" class="devices">
+        <div class="device-copy">
+          <p class="eyebrow">From couch to pocket</p>
+          <h2>Gebaut fuer Fire TV, Android TV und Mobile.</h2>
+          <p>
+            Das visuelle System setzt auf dunkle Flaechen, tiefe Rottoene, starke Kontraste
+            und klare Fokusmomente. So wirkt die App cineastisch und trotzdem sofort steuerbar.
+          </p>
+        </div>
+        <div class="device-showcase">
+          <div class="screen tv-screen">
+            <div class="screen-glow"></div>
+            <div class="screen-content">
+              <span class="screen-label">TV</span>
+              <h3>Fokus, Overlays und Fernbedienung zuerst</h3>
+              <ul>
+                <li>TV-optimierte Konferenz und Cloud-Flows</li>
+                <li>D-Pad-Zapping und fokussierte Playeroptionen</li>
+                <li>Lesbare Sendernamen und EPG-unterstuetzte Auswahl</li>
+              </ul>
+            </div>
+          </div>
+          <div class="screen phone-screen">
+            <div class="screen-content">
+              <span class="screen-label">Mobile</span>
+              <h3>Schnelle Navigation fuer unterwegs</h3>
+              <ul>
+                <li>Continue Watching mit klarer Entscheidung</li>
+                <li>Aufnahmen, Konferenz und Cloud direkt erreichbar</li>
+                <li>Gesten, Suchdialoge und schnelle Setup-Flows</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="launch" class="launch-strip">
+        <div>
+          <p class="eyebrow">Local website</p>
+          <h2>Direkt aus dem Repo gestartet.</h2>
+          <p>Oeffne einfach diese Datei lokal oder hoste den Ordner als statische Seite. Das Design ist ohne Build-Schritt sofort einsatzbereit.</p>
+        </div>
+        <a class="primary-button" href="./index.html">Neu laden</a>
+      </section>
+    </main>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>

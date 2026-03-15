@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -95,6 +96,14 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, "")
 
     val cloudAuthStatusIsError: StateFlow<Boolean> = appPreferences.cloudAuthStatusIsError
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
+    val googleDriveConnected: StateFlow<Boolean> = appPreferences.cloudRecordingSettings
+        .map { it.googleDriveAccessToken.isNotBlank() }
+        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
+    val oneDriveConnected: StateFlow<Boolean> = appPreferences.cloudRecordingSettings
+        .map { it.oneDriveAccessToken.isNotBlank() }
         .stateIn(viewModelScope, SharingStarted.Lazily, false)
 
     val vpnConnectionState = vpnRepository.connectionInfo
@@ -307,6 +316,21 @@ class SettingsViewModel @Inject constructor(
     fun clearCloudAuthStatus() {
         viewModelScope.launch {
             appPreferences.clearCloudAuthStatus()
+        }
+    }
+
+    fun disconnectGoogleDrive() {
+        viewModelScope.launch {
+            appPreferences.clearGoogleDriveLogin()
+            appPreferences.setCloudAuthStatus("Google Drive wurde getrennt.", false)
+        }
+    }
+
+    fun disconnectOneDrive() {
+        viewModelScope.launch {
+            oneDriveDeviceCodeSession = null
+            appPreferences.clearOneDriveLogin()
+            appPreferences.setCloudAuthStatus("OneDrive wurde getrennt.", false)
         }
     }
 

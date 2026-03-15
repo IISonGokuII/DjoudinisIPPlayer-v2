@@ -414,4 +414,22 @@ class AppPreferences @Inject constructor(
             prefs.remove(CloudRecordingKeys.AUTH_STATUS_IS_ERROR)
         }
     }
+
+    suspend fun clearGoogleDriveLogin() {
+        dataStore.edit { prefs ->
+            prefs.remove(CloudRecordingKeys.GOOGLE_ACCESS_TOKEN)
+            prefs.remove(CloudRecordingKeys.GOOGLE_REFRESH_TOKEN)
+            prefs.remove(CloudRecordingKeys.GOOGLE_ACCESS_TOKEN_EXPIRY)
+            prefs.remove(CloudRecordingKeys.PENDING_GOOGLE_STATE)
+            prefs.remove(CloudRecordingKeys.PENDING_GOOGLE_VERIFIER)
+        }
+    }
+
+    suspend fun clearOneDriveLogin() {
+        dataStore.edit { prefs ->
+            prefs.remove(CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN)
+            prefs.remove(CloudRecordingKeys.ONEDRIVE_REFRESH_TOKEN)
+            prefs.remove(CloudRecordingKeys.ONEDRIVE_ACCESS_TOKEN_EXPIRY)
+        }
+    }
 }
