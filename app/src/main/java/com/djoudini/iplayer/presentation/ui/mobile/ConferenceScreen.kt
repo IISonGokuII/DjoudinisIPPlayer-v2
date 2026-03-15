@@ -165,6 +165,12 @@ fun ConferenceScreen(
                     text = matchError ?: "",
                     color = MaterialTheme.colorScheme.error,
                 )
+            } else {
+                Text(
+                    text = "${availableMatches.size} Spiele fuer die Konferenz verfuegbar.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             if (profiles.isEmpty()) {
@@ -193,6 +199,7 @@ fun ConferenceScreen(
             channels = channels,
             matches = availableMatches,
             loadChannelCandidates = { match -> viewModel.buildChannelCandidates(match) },
+            onRefreshMatches = { viewModel.refreshMatches() },
             onDismiss = { showWizard = false },
             onSave = { name, cooldownEnabled, cooldownSeconds, holdSeconds, slots ->
                 viewModel.saveConference(name, cooldownEnabled, cooldownSeconds, holdSeconds, slots)
@@ -288,6 +295,7 @@ private fun ConferenceWizardDialog(
     channels: List<ChannelEntity>,
     matches: List<ConferenceSelectableMatch>,
     loadChannelCandidates: suspend (ConferenceSelectableMatch?) -> List<ConferenceChannelCandidate>,
+    onRefreshMatches: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (
         name: String,
@@ -324,6 +332,21 @@ private fun ConferenceWizardDialog(
                     fontWeight = FontWeight.Bold,
                 )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "${matches.size} Spiele geladen",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onRefreshMatches) {
+                        Text("Neu laden")
+                    }
+                }
+
                 Column(
                     modifier = Modifier
                         .weight(1f, fill = false)
@@ -337,7 +360,7 @@ private fun ConferenceWizardDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         listOf(1, 2, 3, 4).forEach { count ->
-                            Button(
+                            OutlinedButton(
                                 onClick = {
                                     desiredSlots = count
                                     draftSlots = List(count) { index ->
@@ -345,7 +368,7 @@ private fun ConferenceWizardDialog(
                                     }
                                 },
                             ) {
-                                Text(count.toString())
+                                Text(if (desiredSlots == count) "• $count" else count.toString())
                             }
                         }
                     }
@@ -404,8 +427,27 @@ private fun ConferenceWizardDialog(
                                 OutlinedButton(
                                     onClick = { selectionMode = SelectionMode.Channel(index) },
                                     modifier = Modifier.fillMaxWidth(),
+                                    enabled = slot.match != null,
                                 ) {
-                                    Text(slot.channel?.name ?: "Sender waehlen")
+                                    Text(
+                                        slot.channel?.name ?: if (slot.match == null) {
+                                            "Erst Spiel waehlen"
+                                        } else {
+                                            "Sender waehlen"
+                                        }
+                                    )
+                                }
+                                if (slot.match != null || slot.channel != null) {
+                                    TextButton(
+                                        onClick = {
+                                            draftSlots = draftSlots.toMutableList().also {
+                                                it[index] = ConferenceDraftSlot()
+                                            }
+                                        },
+                                        modifier = Modifier.align(Alignment.End),
+                                    ) {
+                                        Text("Slot leeren")
+                                    }
                                 }
                             }
                         }
@@ -440,7 +482,10 @@ private fun ConferenceWizardDialog(
                 onDismiss = { selectionMode = null },
                 onSelect = { selectedIndex ->
                     draftSlots = draftSlots.toMutableList().also {
-                        it[currentSelection.slotIndex] = it[currentSelection.slotIndex].copy(match = matches[selectedIndex])
+                        it[currentSelection.slotIndex] = ConferenceDraftSlot(
+                            match = matches[selectedIndex],
+                            channel = null,
+                        )
                     }
                     selectionMode = null
                 },
@@ -496,10 +541,13 @@ private fun SelectionRow(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             values.forEach { value ->
                 OutlinedButton(onClick = { onSelected(value) }) {
-                    Text("$value$suffix")
+                    Text(if (selected == value) "• $value$suffix" else "$value$suffix")
                 }
             }
         }
@@ -513,32 +561,59 @@ private fun SelectionDialog(
     onDismiss: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
+    var query by remember { mutableStateOf("") }
+    val filteredItems = remember(items, query) {
+        if (query.isBlank()) {
+            items
+        } else {
+            items.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                    it.subtitle.contains(query, ignoreCase = true)
+            }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            if (items.isEmpty()) {
-                Text(
-                    text = "Keine Eintraege verfuegbar. Bitte API pruefen oder die Spiele zuerst aktualisieren.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 360.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(items.indices.toList()) { index ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onSelect(index) }
-                                .padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = false, onClick = { onSelect(index) })
-                            Column {
-                                Text(items[index].title, fontWeight = FontWeight.Medium)
-                                Text(items[index].subtitle, style = MaterialTheme.typography.bodySmall)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (items.isNotEmpty()) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Suche") },
+                        singleLine = true,
+                    )
+                }
+                if (filteredItems.isEmpty()) {
+                    Text(
+                        text = if (items.isEmpty()) {
+                            "Keine Eintraege verfuegbar. Bitte API pruefen oder die Spiele zuerst aktualisieren."
+                        } else {
+                            "Keine Treffer fuer diese Suche."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 360.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(filteredItems.indices.toList()) { index ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(items.indexOf(filteredItems[index])) }
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = false, onClick = { onSelect(items.indexOf(filteredItems[index])) })
+                                Column {
+                                    Text(filteredItems[index].title, fontWeight = FontWeight.Medium)
+                                    Text(filteredItems[index].subtitle, style = MaterialTheme.typography.bodySmall)
+                                }
                             }
                         }
                     }
